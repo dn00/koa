@@ -146,5 +146,3 @@ If you generate only these 5 items, patching becomes straightforward:
 3. New `D05` Daily actions (Submit/Scan/Audit/Quarantine + math)
 4. New `D07` Daily mutators library (and validation rules)
 5. `D17` filled in (PWA architecture + where logic runs + how Python kernel is used)
-
-If you want, paste your current `index.md` doc list and I’ll produce a concrete “search/replace + move list” patch script (still human-readable) for your agent.
