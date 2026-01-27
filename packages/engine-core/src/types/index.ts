@@ -3,6 +3,10 @@
  * All types are defined with strict TypeScript, no `any` allowed.
  */
 
+// ============================================================================
+// Result Type
+// ============================================================================
+
 /**
  * Result type for operations that can fail.
  * Used throughout engine-core to avoid exceptions.
@@ -24,3 +28,45 @@ export function ok<T>(value: T): Result<T, never> {
 export function err<E>(error: E): Result<never, E> {
   return { ok: false, error };
 }
+
+// ============================================================================
+// Branded ID Types
+// ============================================================================
+
+export type {
+  CardId,
+  CounterId,
+  PuzzleId,
+  ConcernId,
+  RunId,
+} from './ids.js';
+
+export {
+  isCardId,
+  isCounterId,
+  isPuzzleId,
+  isConcernId,
+  isRunId,
+} from './ids.js';
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+export {
+  ProofType,
+  ConcernType,
+  KOAMood,
+  ContradictionSeverity,
+} from './enums.js';
+
+// ============================================================================
+// Domain Types
+// ============================================================================
+
+export type { Claims, EvidenceCard } from './evidence.js';
+export type { Concern } from './concern.js';
+export type { CounterEvidence } from './counter.js';
+export type { Puzzle } from './puzzle.js';
+export type { Scrutiny, RunState, Submission, MoveResult } from './state.js';
+export { RunStatus } from './state.js';
