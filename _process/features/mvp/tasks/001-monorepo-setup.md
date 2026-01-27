@@ -1,6 +1,6 @@
 # Task 001: Monorepo Setup
 
-**Status:** ready
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Foundation
@@ -155,12 +155,12 @@ packages/
 
 ## Definition of Done
 
-- [ ] All acceptance criteria have passing tests
-- [ ] Code follows project patterns
-- [ ] No project doc violations
-- [ ] Types are correct (no `any`)
-- [ ] Self-review completed
-- [ ] Ready for review
+- [x] All acceptance criteria have passing tests
+- [x] Code follows project patterns
+- [x] No project doc violations
+- [x] Types are correct (no `any`)
+- [x] Self-review completed
+- [x] Ready for review
 
 ---
 
@@ -182,10 +182,31 @@ packages/
 > Written by Implementer
 
 **Approach:**
+Created monorepo from scratch using npm workspaces. TDD approach with configuration validation tests.
+
 **Decisions:**
+- npm over pnpm (simpler, no extra tooling)
+- React 19 with new JSX transform
+- Vitest at root level (single config for all packages)
+- TypeScript project references for incremental builds
+
 **Deviations:**
+None - followed ARCHITECTURE.md exactly
+
 **Files Changed:**
+- `package.json` - root with workspaces
+- `tsconfig.base.json` - shared strict config
+- `tsconfig.json` - root references
+- `vitest.config.ts` - test runner config
+- `.gitignore` - standard ignores
+- `packages/engine-core/` - package.json, tsconfig.json, src/, tests/
+- `packages/app/` - package.json, tsconfig.json, vite.config.ts, src/, public/
+
+**Test Count:** 23 tests (6 AC + 1 EC + 16 config validation)
+
 **Gotchas:**
+- Root tsconfig needs explicit exclude for docs/ to avoid picking up .tsx mockups
+- ReactNode return type instead of JSX.Element for React 19
 
 ### Review Notes
 > Written by Reviewer
@@ -207,6 +228,7 @@ packages/
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-27 [Implementer] Task implemented with 23 passing tests
 
 ---
 
@@ -216,3 +238,4 @@ packages/
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
 | 2026-01-26 | backlog | ready | Planner | No dependencies, ready for implementation |
+| 2026-01-27 | ready | done | Implementer | All ACs verified, tests passing |

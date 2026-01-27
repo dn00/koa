@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "paths": {
+      "@hsh/engine-core": ["./packages/engine-core/src"]
+    }
+  },
+  "include": [],
+  "exclude": ["docs", "node_modules", "_process"],
+  "references": [
+    { "path": "./packages/engine-core" },
+    { "path": "./packages/app" }
+  ]
+}
