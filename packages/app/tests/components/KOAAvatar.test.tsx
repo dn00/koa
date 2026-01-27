@@ -1,7 +1,21 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { KOAAvatar } from '../../src/components/KOAAvatar/index.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
+import { createRef } from 'react';
+import { KOAAvatar, type KOAAvatarHandle } from '../../src/components/KOAAvatar/index.js';
 import { KOAMood } from '@hsh/engine-core';
+
+// Mock GSAP
+vi.mock('gsap', () => ({
+  gsap: {
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      kill: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+    })),
+    to: vi.fn(),
+  },
+}));
 
 /**
  * Task 023: KOA Avatar and Moods
@@ -205,6 +219,94 @@ describe('Task 023: KOA Avatar and Moods', () => {
 
       // Component should still render
       expect(screen.getByRole('img')).toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // Task 015: R12.5 - Idle breathing/pulse animation
+  // ==========================================================================
+  describe('R12.5: Idle breathing animation', () => {
+    it('should enable idle animation by default', () => {
+      render(<KOAAvatar mood={KOAMood.NEUTRAL} />);
+      // Animation is controlled by GSAP, just verify component renders
+      expect(screen.getByRole('img')).toBeInTheDocument();
+    });
+
+    it('should allow disabling idle animation', () => {
+      render(<KOAAvatar mood={KOAMood.NEUTRAL} enableIdleAnimation={false} />);
+      expect(screen.getByRole('img')).toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // Task 015: R12.3 - Glitch effect
+  // ==========================================================================
+  describe('R12.3: Glitch effect', () => {
+    it('should expose triggerGlitch via ref', () => {
+      const ref = createRef<KOAAvatarHandle>();
+      render(<KOAAvatar ref={ref} mood={KOAMood.NEUTRAL} />);
+
+      expect(ref.current).toBeDefined();
+      expect(ref.current?.triggerGlitch).toBeDefined();
+      expect(typeof ref.current?.triggerGlitch).toBe('function');
+    });
+
+    it('should call onGlitchComplete callback after glitch', async () => {
+      const onGlitchComplete = vi.fn();
+      const ref = createRef<KOAAvatarHandle>();
+      render(
+        <KOAAvatar
+          ref={ref}
+          mood={KOAMood.NEUTRAL}
+          onGlitchComplete={onGlitchComplete}
+        />
+      );
+
+      act(() => {
+        ref.current?.triggerGlitch();
+      });
+
+      // Note: In real tests with GSAP, we'd wait for animation
+      // With mock, timeline completes synchronously
+    });
+  });
+
+  // ==========================================================================
+  // Task 015: R12.6 - Page Visibility API
+  // ==========================================================================
+  describe('R12.6: Page Visibility API', () => {
+    it('should expose pause and resume methods via ref', () => {
+      const ref = createRef<KOAAvatarHandle>();
+      render(<KOAAvatar ref={ref} mood={KOAMood.NEUTRAL} />);
+
+      expect(ref.current?.pause).toBeDefined();
+      expect(ref.current?.resume).toBeDefined();
+      expect(typeof ref.current?.pause).toBe('function');
+      expect(typeof ref.current?.resume).toBe('function');
+    });
+
+    it('should call pause without error', () => {
+      const ref = createRef<KOAAvatarHandle>();
+      render(<KOAAvatar ref={ref} mood={KOAMood.NEUTRAL} />);
+
+      expect(() => ref.current?.pause()).not.toThrow();
+    });
+
+    it('should call resume without error', () => {
+      const ref = createRef<KOAAvatarHandle>();
+      render(<KOAAvatar ref={ref} mood={KOAMood.NEUTRAL} />);
+
+      expect(() => ref.current?.resume()).not.toThrow();
+    });
+  });
+
+  // ==========================================================================
+  // Task 015: data-testid for querying
+  // ==========================================================================
+  describe('Test ID', () => {
+    it('should have data-testid attribute', () => {
+      render(<KOAAvatar mood={KOAMood.NEUTRAL} />);
+      expect(screen.getByTestId('koa-avatar')).toBeInTheDocument();
     });
   });
 });

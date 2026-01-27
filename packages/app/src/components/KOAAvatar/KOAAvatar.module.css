@@ -52,8 +52,9 @@
   );
   opacity: 0.4;
   /* EC-1: Smooth transition */
-  transition: background 0.5s ease-in-out, opacity 0.3s ease-in-out;
-  animation: pulse 2s ease-in-out infinite;
+  transition: background 0.5s ease-in-out;
+  /* Animation now controlled by GSAP for pause/resume support */
+  will-change: transform, opacity;
 }
 
 /* Core orb */
