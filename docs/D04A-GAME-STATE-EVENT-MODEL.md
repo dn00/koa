@@ -1,59 +1,50 @@
-# D04A — GAME STATE & EVENT MODEL (AURA) v1
+# D04A — GAME STATE & EVENT MODEL v2
 
-**Status:** Draft v1.0 (Ship-blocking)
+**Status:** Draft v2.0 (Ship-blocking)
 **Owner:** Core Runtime / Persistence
-**Last Updated:** 2026-01-25
-**Purpose:** Specify the authoritative event log and state transition model for Life with AURA. Defines event types, envelope, ordering, deterministic serialization, replay rules, and save/load semantics for an offline-first PWA, with a future path to server verification. Mechanics are authoritative; voice is derived.
+**Last Updated:** 2026-01-26
+**Purpose:** Specify the authoritative event log and state transition model for Home Smart Home. Defines event types, envelope, ordering, deterministic serialization, replay rules, and save/load semantics for an offline-first PWA. Mechanics are authoritative; voice is derived.
+
+**Canonical Reference:** D31-ADVERSARIAL-TESTIMONY-DESIGN.md is the source of truth for core mechanics.
 
 ---
 
 ## 1) Principles
 
 1. **Event-sourced core:** gameplay is a sequence of events; state is derived by replay.
-2. **Deterministic serialization:** events have canonical encoding for hashing, storage, and cross-runtime replay.
+2. **Deterministic serialization:** events have canonical encoding for hashing, storage, and replay.
 3. **Fail-closed:** invalid events are never appended; invalid replays fail hard.
-4. **Separation of concerns:** mechanics events are authoritative; voice text is derived and may be cached but not authoritative.
-5. **Patch resilience:** logs must replay correctly even if implementation details evolve; decisions and effects are recorded, not recomputed.
+4. **Separation of concerns:** mechanics events are authoritative; voice text is derived and cached.
+5. **Pre-generated content:** all dialogue is pre-computed per puzzle; no runtime LLM dependency.
 
 ---
 
 ## 2) Run identity and binding
 
-Every run must bind to a stable content + ruleset snapshot.
+Every run must bind to a stable puzzle snapshot.
 
 ### 2.1 Required binding fields
 
 * `run_id`: UUID
-* `mode`: `DAILY|FREEPLAY`
+* `mode`: `DAILY|PRACTICE`
 * `seed`: string/int64 (canonical)
 * `binding`:
-
-  * `manifest_id`: string (preferred)
-  * `resolved_packs[]`: **required** resolved list at run start
-
+  * `puzzle_id`: string (required)
+  * `puzzle_hash`: string (content integrity)
+  * `resolved_packs[]`: resolved list at run start
     * `pack_id`
     * `version`
-    * `content_hash` (Tier 1+ recommended)
-* `incident_template_id`
-* `incident_id` (assembled instance id)
+    * `content_hash`
 
 ### 2.2 Daily binding rule
 
 If `mode=DAILY`, the log must record:
 
 * `daily_id`
-* `date`: `YYYY-MM-DD` using the game’s canonical day boundary
-* `binding.manifest_id` and `binding.resolved_packs[]`
+* `date`: `YYYY-MM-DD`
+* `binding.puzzle_id` and `binding.puzzle_hash`
 
-This guarantees “the daily” is replayable and verifiable.
-
-### 2.3 Pack binding hash (recommended)
-
-Include:
-
-* `pack_bindings_hash = H(canonical_json(binding))`
-
-This prevents drift if a manifest changes server-side later.
+This guarantees "the daily" is replayable and verifiable.
 
 ---
 
@@ -63,14 +54,14 @@ All events share a common envelope.
 
 ```json
 {
-  "v": 1,
+  "v": 2,
   "seq": 12,
   "run_id": "uuid",
   "type": "EVENT_TYPE",
   "tick_id": 42,
   "client_ts": 1737840000,
-  "code_build_id": "pwa-0.3.1+sha.abc123",
-  "pack_bindings_hash": "hex...",
+  "code_build_id": "pwa-0.4.0",
+  "puzzle_hash": "hex...",
   "prev_event_hash": "hex...",
   "event_hash": "hex...",
   "chain_hash": "hex...",
@@ -80,186 +71,117 @@ All events share a common envelope.
 
 ### 3.1 Envelope fields
 
-* `v`: event schema version (immutable per major)
-* `seq`: strictly increasing integer starting at 1 (authoritative ordering; no gaps)
+* `v`: event schema version (v2 for D31 alignment)
+* `seq`: strictly increasing integer starting at 1
 * `run_id`: run identity
 * `type`: event type enum
-* `tick_id`: **logical** time index (authoritative for replay sequencing aids; `seq` remains ordering)
-* `client_ts`: optional UX timestamp (non-authoritative; must not affect resolver logic)
-* `code_build_id`: optional debug string for client build provenance (non-authoritative)
-* `pack_bindings_hash`: optional but recommended (Tier 0 can omit; Tier 1+ should include)
-* `prev_event_hash`: Tier 1+ (hash chain)
-* `event_hash`: Tier 1+ (hash of canonical encoding of this event)
-* `chain_hash`: Tier 1+ (running chain hash)
+* `tick_id`: logical time index
+* `client_ts`: optional UX timestamp (non-authoritative)
+* `puzzle_hash`: puzzle content integrity hash
 * `data`: event payload
 
-### 3.2 Ordering rules
-
-* `seq` is authoritative ordering.
-* `tick_id` must be monotonically non-decreasing and is used for UX grouping/debug.
-* `client_ts` must never affect mechanics.
-
 ---
 
-## 4) Deterministic serialization and hashing
+## 4) Event types (D31 aligned)
 
-### 4.1 Canonical encoding
-
-Events must be serialized as **canonical JSON**:
-
-* UTF-8
-* stable key ordering
-* stable number formatting
-* no whitespace significance
-
-### 4.2 Hashing tiers
-
-**Tier 0 (offline MVP):**
-
-* Hashing optional
-* Store canonical events for replay
-
-**Tier 1+ (sharing/verification):**
-
-* `event_hash = SHA256(canonical_json_bytes(event_without_hash_fields?))`
-* `chain_hash = SHA256(prev_chain_hash_bytes || event_hash_bytes)`
-
-#### 4.2.1 Hash field exclusion rule (required if Tier 1+)
-
-To avoid self-reference, compute `event_hash` over the event **with these fields zeroed/omitted**:
-
-* `prev_event_hash`, `event_hash`, `chain_hash`
-
-(Keep the rule fixed and documented; changing it requires event schema bump.)
-
----
-
-## 5) Deterministic replay posture: “store effects, not recomputation”
-
-The replay system must not depend on recomputing matching logic (which could change with code). Therefore:
-
-* `MOVE_RESOLVED` records **selected path** and **effects[]** sufficient to reproduce state transitions.
-* Draws, discards, tool charge consumption, card mutations, modifier changes, cooldown changes, etc. are recorded as effects.
-
-This is the default, v1 posture.
-
----
-
-## 6) Event types (authoritative)
-
-### 6.1 Run lifecycle
+### 4.1 Run lifecycle
 
 **RUN_STARTED**
 
 ```json
 {
   "seed": "...",
-  "mode": "DAILY|FREEPLAY",
+  "mode": "DAILY|PRACTICE",
   "daily": {
     "daily_id": "...",
-    "date": "YYYY-MM-DD",
-    "daily_manifest_id": "daily-2026-02-02.v1",
-    "schedule_id": "week-2026-02-02",
-    "content_channel": "FEATURED_DAILY|FREEPLAY",
-    "new_concept_ids": ["modifier.core.TIMESTAMP_HARDLINE"]
+    "date": "2026-01-26"
   },
   "binding": {
-    "manifest_id": "...",
-    "resolved_packs": [
-      { "pack_id": "protocol.core", "version": "1.0.0", "content_hash": "hex..." }
-    ]
+    "puzzle_id": "puzzle.daily.2026_01_26",
+    "puzzle_hash": "hex..."
   },
-  "incident": {
-    "incident_template_id": "...",
-    "incident_id": "...",
-    "act_profile": "ACT1",
-    "turn_limit": 9
+  "puzzle": {
+    "device": "SMART FRIDGE",
+    "lockReason": "Midnight snacking",
+    "resistance": 40,
+    "turnBudget": 6,
+    "concerns": ["IDENTITY", "ALERTNESS", "INTENT"],
+    "counterCount": 2
   }
 }
 ```
-
-**Daily binding fields (added for replay/share interpretability):**
-
-* `daily_manifest_id`: exact manifest version used
-* `schedule_id`: weekly schedule this daily belongs to
-* `content_channel`: `FEATURED_DAILY` or `FREEPLAY`
-* `new_concept_ids[]`: optional; concepts introduced this week (for analytics)
 
 **RUN_ENDED**
 
 ```json
 {
   "result": "WIN|LOSS",
-  "reason": "TURN_LIMIT|INCIDENT_FAIL|PLAYER_ABORT|...",
+  "reason": "RESISTANCE_ZERO|TURN_LIMIT|SCRUTINY_MAX",
   "summary": {
-    "turns": 8,
-    "audits_triggered": 1,
-    "scrutiny_max": "MED",
-    "gates_cleared": 2
+    "turns": 4,
+    "damageDealt": 52,
+    "contradictions": 0,
+    "countersRefuted": 2,
+    "scrutinyFinal": 0,
+    "concernsAddressed": ["IDENTITY", "ALERTNESS", "INTENT"]
   }
 }
 ```
 
 ---
 
-### 6.2 Content assembly / offers
+### 4.2 Puzzle setup
 
-**INCIDENT_ASSEMBLED**
-
-```json
-{
-  "incident_id": "...",
-  "incident_template_id": "...",
-  "lock_target": "FRIDGE",
-  "gate_instances": [
-    { "instance_id": "G1", "gate_id": "gate.core.NO_SELF_REPORT", "strength": 60, "params": {} }
-  ],
-  "active_modifiers": [
-    { "modifier_id": "mod.core.TIMESTAMP_HARDLINE", "duration_turns": 3, "params": {} }
-  ],
-  "routine": "STRICT_VERIFY|POLICY_DAEMON|HUMAN_FACTORS",
-  "turn_limit": 9
-}
-```
-
-**DRAFT_OFFERED**
+**PUZZLE_LOADED**
 
 ```json
 {
-  "phase": "START|MID|SHOP",
-  "offers": [
-    { "offer_id": "O1", "kind": "ARTIFACT", "archetype_id": "artifact.core.APPLE_HEALTH_LOG" },
-    { "offer_id": "O2", "kind": "TOOL", "tool_id": "tool.core.METADATA_SCRAPER" }
+  "puzzle_id": "puzzle.daily.2026_01_26",
+  "concerns": [
+    { "concern_id": "concern.core.IDENTITY", "koaAsks": "Prove you're you." },
+    { "concern_id": "concern.core.ALERTNESS", "koaAsks": "Prove you're awake." },
+    { "concern_id": "concern.core.INTENT", "koaAsks": "Prove you meant to do this." }
   ],
-  "pick_count": 1,
-  "offer_rng_meta": { "namespace": "draft", "draw_index": 3 }
+  "counterEvidence": [
+    { "counter_id": "counter.visual.SECURITY_CAMERA", "targets": ["IDENTITY"] },
+    { "counter_id": "counter.biometric.SLEEP_DATA_SYNC", "targets": ["ALERTNESS"] }
+  ],
+  "resistance": 40,
+  "turnBudget": 6
 }
 ```
 
-**DRAFT_PICKED**
+**CARDS_DEALT**
 
 ```json
 {
-  "picked_offer_id": "O1",
-  "granted": { "kind": "ARTIFACT", "artifact_instance_id": "A7" }
+  "hand": [
+    { "card_id": "evidence.core.FACE_ID", "power": 12, "proves": ["IDENTITY"] },
+    { "card_id": "evidence.core.SMART_WATCH", "power": 10, "proves": ["ALERTNESS"] },
+    { "card_id": "evidence.core.VOICE_LOG", "power": 8, "proves": ["INTENT"] },
+    { "card_id": "refutation.core.MAINTENANCE_LOG", "power": 5, "refutes": ["counter.visual.SECURITY_CAMERA"] },
+    { "card_id": "refutation.core.NOISE_COMPLAINT", "power": 5, "refutes": ["counter.biometric.SLEEP_DATA_SYNC"] },
+    { "card_id": "evidence.core.GYM_WRISTBAND", "power": 9, "proves": ["LOCATION"] }
+  ]
 }
 ```
-
-(Shops mirror this pattern; keep event names consistent rather than inventing parallel systems.)
 
 ---
 
-### 6.3 Turn lifecycle
+### 4.3 Turn lifecycle
 
-**TURN_STARTED** (authoritative for “store effects” posture)
+**TURN_STARTED**
 
 ```json
 {
   "turn_index": 3,
-  "hand": ["A1","A4","A7","A9","A10"],
-  "tools": ["T1","T2"],
-  "scrutiny_level": "LOW",
-  "active_modifiers": ["MOD_TIMESTAMP_HARDLINE"]
+  "turn_budget": 6,
+  "hand": ["evidence.core.FACE_ID", "evidence.core.VOICE_LOG", "refutation.core.MAINTENANCE_LOG"],
+  "resistance": 25,
+  "scrutiny": 1,
+  "concerns_addressed": ["IDENTITY"],
+  "counters_active": ["counter.visual.SECURITY_CAMERA"],
+  "counters_spent": []
 }
 ```
 
@@ -268,301 +190,287 @@ This is the default, v1 posture.
 ```json
 {
   "turn_index": 3,
-  "scrutiny_points": 4,
-  "scrutiny_level": "LOW"
+  "resistance": 14,
+  "scrutiny": 2,
+  "concerns_addressed": ["IDENTITY", "INTENT"]
 }
 ```
 
-> Note: because TURN_STARTED includes `hand`, replay does not re-run draw RNG. This improves patch resilience.
-
 ---
 
-### 6.4 Action submission / validation
+### 4.4 Card submission
 
-**ACTION_SUBMITTED**
+**CARDS_SELECTED**
 
 ```json
 {
   "action_id": "ACT-9",
-  "kind": "INJECT|FLAG|REWIRE|CORROBORATE|CYCLE|EXPLOIT",
-  "params": {
-    "gate_instance_id": "G1",
-    "attachments": [
-      { "slot": "slot_1", "artifact_instance_id": "A7" },
-      { "slot": "slot_2", "artifact_instance_id": "A4" }
-    ],
-    "tool_use": { "tool_instance_id": "T1", "target_artifact_instance_id": "A7" }
+  "selected_cards": ["evidence.core.FACE_ID", "evidence.core.VOICE_LOG"]
+}
+```
+
+**SUBMISSION_BLOCKED** (MAJOR contradiction)
+
+```json
+{
+  "action_id": "ACT-9",
+  "reason": "MAJOR_CONTRADICTION",
+  "contradiction": {
+    "severity": "MAJOR",
+    "new_card": "evidence.core.GYM_WRISTBAND",
+    "conflicts_with": "evidence.core.FACE_ID",
+    "explanation": "GYM @ 2:00am conflicts with KITCHEN @ 2:05am"
   }
 }
 ```
 
-**ACTION_REJECTED**
-
-```json
-{
-  "action_id": "ACT-9",
-  "reason_code": "CARD_NOT_IN_HAND|ATTACHMENT_LIMIT_EXCEEDED|TOOL_NO_CHARGES|...",
-  "details": { "expected": "..." }
-}
-```
-
-#### 6.4.1 Rejection rule (v1)
-
-* Rejected actions do **not** consume the turn.
-* The player can submit a new action during the same `turn_index`.
-
-(Enforced by validation: TURN_ENDED must not follow an ACTION_REJECTED unless a MOVE_RESOLVED occurred.)
-
 ---
 
-### 6.5 Move resolution (authoritative mechanics)
+### 4.5 Move resolution (D31 mechanics)
 
-**MOVE_RESOLVED** (authoritative; contains the full state transition as effects)
+**MOVE_RESOLVED** (authoritative for replay)
 
 ```json
 {
   "action_id": "ACT-9",
-  "move": "INJECT",
-  "outcome": "PASS|FAIL|ESCALATE|CLEARED",
-  "gate_instance_id": "G1",
-  "gate_id": "gate.core.NO_SELF_REPORT",
-  "selected_counter_path_id": "A_VERIFIED_SENSOR",
-  "clause_results": [
-    { "clause": "TRUST_AT_LEAST(VERIFIED)", "ok": true },
-    { "clause": "TAG_PRESENT(Sensor)", "ok": true }
-  ],
-  "deltas": { "gate_strength_delta": -35, "scrutiny_delta": -1 },
+  "submitted_cards": ["evidence.core.FACE_ID", "evidence.core.VOICE_LOG"],
+  "outcome": "CONTESTED|CLEAN|REFUTED",
+
+  "concerns_addressed": ["IDENTITY", "INTENT"],
+  "concerns_new": ["INTENT"],
+
+  "contradiction": {
+    "detected": false,
+    "severity": "NONE",
+    "scrutiny_cost": 0
+  },
+
+  "corroboration": {
+    "triggered": true,
+    "shared_claims": ["KITCHEN", "AWAKE"],
+    "bonus_multiplier": 1.25
+  },
+
+  "counter_evidence": {
+    "triggered": true,
+    "counter_id": "counter.visual.SECURITY_CAMERA",
+    "contested_cards": ["evidence.core.FACE_ID"],
+    "penalty_multiplier": 0.5
+  },
+
+  "damage": {
+    "base": 20,
+    "contested_penalty": -10,
+    "corroboration_bonus": 2,
+    "final": 12
+  },
+
   "effects": [
-    { "type": "GATE_STRENGTH_DELTA", "gate_instance_id": "G1", "delta": -35 },
-    { "type": "SCRUTINY_DELTA", "delta": -1 },
-    { "type": "CARDS_MOVED", "from": "hand", "to": "discard", "ids": ["A7","A4"] },
-    { "type": "TOOL_CHARGE_SPENT", "tool_instance_id": "T1", "delta": -1 },
-    { "type": "COOLDOWN_SET", "key": "move:EXPLOIT", "turns": 2 }
+    { "type": "RESISTANCE_DELTA", "delta": -12, "new_value": 28 },
+    { "type": "CONCERN_ADDRESSED", "concern_id": "concern.core.INTENT" },
+    { "type": "COUNTER_EVIDENCE_PLAYED", "counter_id": "counter.visual.SECURITY_CAMERA" },
+    { "type": "CARDS_COMMITTED", "cards": ["evidence.core.FACE_ID", "evidence.core.VOICE_LOG"] }
   ],
-  "outcome_key": {
-    "event": "RESOLVE",
-    "move": "INJECT",
-    "outcome": "PASS",
-    "gate_id": "gate.core.NO_SELF_REPORT",
-    "scrutiny_level": "LOW",
-    "act_profile": "ACT1",
-    "reason_code": null
+
+  "koa_response": {
+    "mood": "SUSPICIOUS",
+    "dialogue_key": "combo_FACE_ID_VOICE_LOG"
   }
 }
 ```
 
-#### 6.5.1 Effects catalog (v1 minimum)
-
-* `GATE_STRENGTH_DELTA(gate_instance_id, delta)`
-* `SCRUTINY_DELTA(delta)`
-* `CARDS_MOVED(from, to, ids[])`
-* `CARDS_DRAWN(into, ids[])` (if draws occur mid-turn)
-* `TOOL_CHARGE_SPENT(tool_instance_id, delta)`
-* `CARD_MUTATED(card_instance_id, patch)` (rewire/corroborate changes)
-* `MODIFIER_APPLIED(modifier_id, duration_turns, params)`
-* `MODIFIER_EXPIRED(modifier_id)`
-* `COOLDOWN_SET(key, turns)` / `COOLDOWN_TICK(key, -1)`
-* `REWARD_GRANTED(kind, amount|id)` (optional here; can be separate event)
-
-> Design note: `deltas` remains for UX/telemetry, but **effects are authoritative** for replay.
-
 ---
 
-### 6.6 Incident / act transitions
+### 4.6 D31-specific events
 
-**INCIDENT_CLEARED**
+**COUNTER_EVIDENCE_PLAYED**
 
 ```json
 {
-  "incident_id": "...",
-  "turns_used": 6,
-  "gates_cleared": ["G1","G2"],
-  "rewards": [{ "kind": "CREDITS", "amount": 10 }]
+  "counter_id": "counter.visual.SECURITY_CAMERA",
+  "targets": ["IDENTITY"],
+  "contested_cards": ["evidence.core.FACE_ID"],
+  "claim": "No one detected at door 2:00-2:30am"
 }
 ```
 
-**INCIDENT_FAILED**
+**COUNTER_EVIDENCE_REFUTED**
 
 ```json
 {
-  "incident_id": "...",
-  "reason": "TURN_LIMIT|AUDIT_PENALTY_LOCK|...",
-  "turns_used": 9
+  "counter_id": "counter.visual.SECURITY_CAMERA",
+  "refuted_by": "refutation.core.MAINTENANCE_LOG",
+  "damage_restored": 6,
+  "previous_contested_cards": ["evidence.core.FACE_ID"]
+}
+```
+
+**CONTRADICTION_DETECTED**
+
+```json
+{
+  "severity": "MINOR|MAJOR",
+  "new_card": "evidence.core.SLEEP_TRACKER",
+  "conflicts_with": "evidence.core.SMART_WATCH",
+  "new_claim": { "state": "ASLEEP", "timeRange": ["2:00am", "2:30am"] },
+  "existing_claim": { "state": "AWAKE", "timeRange": ["2:05am", "2:10am"] },
+  "explanation": "ASLEEP @ 2:00am → AWAKE @ 2:08am (8-minute gap)",
+  "scrutiny_cost": 1
+}
+```
+
+**CONCERN_ADDRESSED**
+
+```json
+{
+  "concern_id": "concern.core.ALERTNESS",
+  "addressed_by": ["evidence.core.SMART_WATCH"],
+  "proof_provided": "ALERTNESS"
+}
+```
+
+**CORROBORATION_TRIGGERED**
+
+```json
+{
+  "cards": ["evidence.core.FACE_ID", "evidence.core.VOICE_LOG"],
+  "shared_claims": ["KITCHEN", "AWAKE"],
+  "bonus_multiplier": 1.25
+}
+```
+
+**SCRUTINY_LOSS_TRIGGERED**
+
+```json
+{
+  "scrutiny": 5,
+  "reason": "SCRUTINY_MAX"
 }
 ```
 
 ---
 
-### 6.7 Audit events (clarified semantics)
+### 4.7 Effects catalog (v2)
 
-Audits are constraints/penalties, not “mini-games” that must PASS/FAIL, unless a pack explicitly defines hard fail.
+D31-aligned effects:
 
-**AUDIT_TRIGGERED**
-
-```json
-{
-  "scrutiny_level": "MED|HIGH",
-  "audit_type": "DEEP_VERIFY|NARROW_CHANNEL|SOURCE_LOCK",
-  "duration_turns": 2,
-  "params": {}
-}
-```
-
-**AUDIT_EXPIRED**
-
-```json
-{ "audit_type": "DEEP_VERIFY" }
-```
-
-**AUDIT_CLEARED_EARLY** (optional)
-
-```json
-{ "audit_type": "DEEP_VERIFY", "cleared_by": "move:CORROBORATE" }
-```
+* `RESISTANCE_DELTA(delta, new_value)` — reduce/increase resistance
+* `SCRUTINY_DELTA(delta, new_value)` — increase/decrease scrutiny
+* `CONCERN_ADDRESSED(concern_id)` — mark concern as satisfied
+* `COUNTER_EVIDENCE_PLAYED(counter_id)` — KOA plays counter
+* `COUNTER_EVIDENCE_REFUTED(counter_id)` — player nullifies counter
+* `CARDS_COMMITTED(cards[])` — add cards to committed story
+* `CORROBORATION_APPLIED(multiplier)` — apply +25% bonus
+* `CONTRADICTION_APPLIED(severity, scrutiny_cost)` — apply scrutiny penalty
+* `KOA_MOOD_CHANGED(new_mood)` — update KOA visual state
 
 ---
 
-## 7) State derivation rules (replay)
+### 4.8 Deprecated events (Daily mode)
 
-### 7.1 Authoritative transitions
+The following events are **deprecated** for Daily mode per D31:
+
+* `DRAFT_OFFERED` — no draft in Daily (cards dealt)
+* `DRAFT_PICKED` — no draft in Daily
+* `AUDIT_TRIGGERED` — scrutiny 5 = instant loss
+* `AUDIT_EXPIRED` — no audit recovery phase
+* `AUDIT_CLEARED_EARLY` — no audit mechanics
+
+These remain valid for Freeplay mode.
+
+---
+
+## 5) State derivation rules (replay)
+
+### 5.1 Authoritative transitions
 
 State is derived by replaying events in `seq` order:
 
-* RUN_STARTED initializes state + bindings
-* INCIDENT_ASSEMBLED sets gates/modifiers/turn_limit/routine
-* TURN_STARTED sets the authoritative hand view for the turn
-* ACTION_SUBMITTED is input intent (does not mutate)
-* ACTION_REJECTED does not mutate and does not end the turn
-* MOVE_RESOLVED mutates state by applying `effects[]`
-* AUDIT_* mutates audit state (also may appear as effects inside MOVE_RESOLVED; pick one approach and keep consistent)
-* INCIDENT_CLEARED/FAILED advances ladder
+* RUN_STARTED initializes binding
+* PUZZLE_LOADED sets concerns/counters/resistance/turns
+* CARDS_DEALT sets initial hand
+* TURN_STARTED establishes turn state
+* CARDS_SELECTED is input intent
+* SUBMISSION_BLOCKED does not mutate state
+* MOVE_RESOLVED mutates state via `effects[]`
+* CONCERN_ADDRESSED, COUNTER_EVIDENCE_*, CONTRADICTION_DETECTED are recorded
+* TURN_ENDED advances turn counter
 * RUN_ENDED terminalizes
 
-### 7.2 “Store effects” replay rule
+### 5.2 "Store effects" replay rule
 
 During replay:
 
-* The engine must **apply effects exactly** as recorded.
-* It must not attempt to “re-decide” counter paths or recompute deltas for authority.
-* It may optionally verify consistency (see §9).
-
-### 7.3 Consistency verification (optional but recommended)
-
-When replaying:
-
-* Recompute expected outcome from current code + bound packs
-* Compare to recorded `selected_counter_path_id` and `deltas`
-* If mismatch: raise `REPLAY_DIVERGENCE` (fail-closed)
-
-This gives you strong regression detection without making recomputation authoritative.
+* Apply effects exactly as recorded
+* Do not recompute damage or counter logic
+* Optionally verify consistency (fail if mismatch)
 
 ---
 
-## 8) Save/Load for offline PWA
+## 6) Win/Loss conditions (D31)
 
-### 8.1 Storage
+### 6.1 Win condition
+
+```json
+{
+  "type": "WIN",
+  "requires": {
+    "resistance": 0,
+    "all_concerns_addressed": true
+  }
+}
+```
+
+### 6.2 Loss conditions
+
+**Turns exhausted:**
+```json
+{
+  "type": "LOSS",
+  "reason": "TURN_LIMIT",
+  "triggers_when": "turns_remaining == 0 AND (resistance > 0 OR concerns_remaining > 0)"
+}
+```
+
+**Scrutiny overload (instant):**
+```json
+{
+  "type": "LOSS",
+  "reason": "SCRUTINY_MAX",
+  "triggers_when": "scrutiny == 5"
+}
+```
+
+Note: Scrutiny 5 is an **instant loss** with no audit recovery phase.
+
+---
+
+## 7) Save/Load for offline PWA
+
+### 7.1 Storage
 
 IndexedDB stores:
 
-* `run_header` (RUN_STARTED + minimal metadata)
+* `run_header` (RUN_STARTED + metadata)
 * `events[]` (canonical JSON)
-* `snapshots[]` (optional): every K events (e.g., 10) store `state_snapshot` + last `seq`
+* `committed_story` (cards submitted so far)
+* `snapshots[]` (optional): state at checkpoints
 
-### 8.2 Resume
+### 7.2 Resume
 
 On app launch:
 
-* load latest snapshot if exists
-* replay events after snapshot to reconstruct current state
-
-### 8.3 Migration policy
-
-Event schema `v` is immutable.
-
-* If changes are required, bump `v` and provide:
-
-  * a v1 replayer; and/or
-  * a one-time migration converter (only if you accept lossy migration)
+* Load latest snapshot if exists
+* Replay events after snapshot
+* Reconstruct hand, committed story, concerns, counters
 
 ---
 
-## 9) Validation rules for appending events (fail-closed)
-
-Before appending any event:
-
-1. Envelope schema valid
-2. `seq == last_seq + 1`
-3. `run_id` matches current run
-4. Event allowed in current phase (state machine checks)
-5. If Tier 1+ hashing enabled:
-
-   * verify `prev_event_hash` / `chain_hash` continuity
-6. Semantic validation:
-
-   * cannot append MOVE_RESOLVED without a prior ACTION_SUBMITTED for same action_id in same turn
-   * cannot append TURN_ENDED unless a MOVE_RESOLVED occurred for that `turn_index`
-   * cannot append INCIDENT_CLEARED/FAILED while incident already terminal
-
-If invalid: reject and keep state unchanged.
-
----
-
-## 10) Voice and latency: what to store
-
-### 10.1 Authoritative vs optional
-
-Authoritative:
-
-* `outcome_key`, `effects[]`, and (for explainability) `clause_results` in MOVE_RESOLVED
-
-Optional cache (non-authoritative):
-
-* `rendered_line_id` (voice pack bark id chosen)
-* `rendered_text` (actual text shown)
-* `enhanced_voice_used: boolean`
-
-If cached text missing, client re-renders from OutcomeKey + voice pack.
-
-**Rule:** Never store freeform LLM output as authoritative mechanics state.
-
----
-
-## 11) Replay compatibility rule (determinism drift prevention)
-
-### 11.1 Self-contained MOVE_RESOLVED
-
-MOVE_RESOLVED must contain all information needed for replay without recomputation:
-
-* `selected_counter_path_id` - which path was matched
-* `clause_results[]` - truth table for each clause
-* `deltas` - exact strength/scrutiny changes
-* `effects[]` - all state mutations
-* `outcome_key` - for voice selection
-
-**Rule:** A replay engine should be able to apply MOVE_RESOLVED effects directly without re-running gate evaluation logic.
-
-### 11.2 Golden replay fixtures
-
-Maintain golden replay logs (D21) that must pass across client versions:
-
-* If a client update changes resolver behavior, either:
-  * Migrate fixtures to match new behavior (major version bump)
-  * Preserve backward compatibility for old event streams
-
-### 11.3 Version compatibility
-
-* Event schema version recorded in RUN_STARTED
-* Client must support replaying events from schema version N-1 at minimum
-* Breaking changes require schema version bump
-
----
-
-## 12) Acceptance criteria (v1)
+## 8) Acceptance criteria (v2)
 
 1. A run can be fully reconstructed from RUN_STARTED + event stream.
-2. Replays are deterministic across devices for the same event stream and pack bindings.
-3. UI remains responsive by rendering outcomes immediately from MOVE_RESOLVED; voice is non-blocking decoration.
-4. Hash chaining can be enabled later without changing mechanics semantics.
-5. Draw/discard/tool-charge/card-mutation outcomes replay without re-running RNG.
-
----
+2. Replays are deterministic across devices for same event stream.
+3. UI renders outcomes immediately from MOVE_RESOLVED; voice is decoration.
+4. D31 mechanics (contradiction, corroboration, counter-evidence) are captured in events.
+5. No draft events in Daily mode; cards dealt via CARDS_DEALT.
+6. Scrutiny 5 = instant loss; no audit events in Daily mode.

@@ -11,13 +11,13 @@
 ## 0) Executive Summary
 
 **One-sentence pitch:**
-> *"Build your alibi one piece at a time, but AURA cross-examines every claim — and you can see her counter-evidence before you commit."*
+> *"Build your alibi one piece at a time, but KOA cross-examines every claim — and you can see her counter-evidence before you commit."*
 
-**Core innovation:** AURA is an active adversary, not a passive lock. Players see AURA's counter-evidence upfront and must plan around it, creating a chess-like puzzle with visible information and meaningful sequencing.
+**Core innovation:** KOA is an active adversary, not a passive lock. Players see KOA's counter-evidence upfront and must plan around it, creating a chess-like puzzle with visible information and meaningful sequencing.
 
 **Why this design wins:**
 - No draft phase — instant start, puzzle is entirely in the play
-- Fair: all information visible from start (dealt hand + AURA's counters)
+- Fair: all information visible from start (dealt hand + KOA's counters)
 - Skill ceiling: novice can win, expert can optimize
 - Thematic: feels like arguing a case under cross-examination
 - Original: not a clone of Wordle, Connections, or Papers Please
@@ -36,12 +36,12 @@
 
 ### The Solution: Adversarial Testimony
 
-**The new question:** "Can you prove your case while AURA actively challenges your evidence?"
+**The new question:** "Can you prove your case while KOA actively challenges your evidence?"
 
-Key insight: **AURA plays counter-evidence.** This creates:
+Key insight: **KOA plays counter-evidence.** This creates:
 1. Attack/defense dynamic (submit evidence vs. refute challenges)
 2. Sequencing matters (bait counters, then refute)
-3. Mid-game adaptation (respond to AURA's challenges)
+3. Mid-game adaptation (respond to KOA's challenges)
 4. Resource tension (refutation cards cost turns but enable stronger evidence)
 
 ---
@@ -92,9 +92,9 @@ type ActivityValue = 'WALKING' | 'SLEEPING' | 'SITTING' | 'EXERCISING' | 'EATING
 | Kitchen Voice Log | 10 | INTENT | 2:05-2:12am | KITCHEN, AWAKE | "Voice command: 'Open fridge'" |
 | Gym Wristband | 14 | ALERTNESS | 2:00-2:20am | ACTIVE, GYM | "Workout session in progress" |
 
-### 2.2 AURA's Counter-Evidence
+### 2.2 KOA's Counter-Evidence
 
-AURA's ammunition for challenging your evidence. **Visible from the start in FULL mode; hidden until triggered in HIDDEN mode** (see Section 22.5).
+KOA's ammunition for challenging your evidence. **Visible from the start in FULL mode; hidden until triggered in HIDDEN mode** (see Section 22.5).
 
 ```typescript
 interface CounterEvidence {
@@ -108,7 +108,7 @@ interface CounterEvidence {
 
 **Design notes:**
 - All counters apply a 50% contested penalty (no BLOCK effect — too punishing for daily puzzle)
-- **Counters do NOT add claims to the player's committed story.** They challenge the player's evidence and reduce damage, but they don't create new timeline entries. This keeps the mental model clean: the player builds the story, AURA just challenges it.
+- **Counters do NOT add claims to the player's committed story.** They challenge the player's evidence and reduce damage, but they don't create new timeline entries. This keeps the mental model clean: the player builds the story, KOA just challenges it.
 - When refuted, a counter is "spent" and no longer applies its penalty
 
 **Example Counters:**
@@ -122,7 +122,7 @@ interface CounterEvidence {
 
 ### 2.3 Refutation Cards
 
-Cards that nullify AURA's counter-evidence. Also deal damage.
+Cards that nullify KOA's counter-evidence. Also deal damage.
 
 ```typescript
 interface RefutationCard extends EvidenceCard {
@@ -140,20 +140,20 @@ interface RefutationCard extends EvidenceCard {
 
 ### 2.4 Concerns
 
-What AURA needs you to prove. All must be addressed to win.
+What KOA needs you to prove. All must be addressed to win.
 
 ```typescript
 interface Concern {
   id: string;
-  auraAsks: string;                  // "Prove you're you." (AURA's voice)
+  auraAsks: string;                  // "Prove you're you." (KOA's voice)
   requiredProof: ProofType[];        // [IDENTITY]
   stateRequirement?: StateValue[];   // For ALERTNESS: [AWAKE, ALERT, ACTIVE]
 }
 ```
 
-**Standard Concerns (AURA speaks them):**
+**Standard Concerns (KOA speaks them):**
 
-| Internal ID | AURA Asks | Required Proof | State Requirement |
+| Internal ID | KOA Asks | Required Proof | State Requirement |
 |-------------|-----------|----------------|-------------------|
 | IDENTITY | "Prove you're you." | IDENTITY | — |
 | ALERTNESS | "Prove you're awake." | ALERTNESS | AWAKE, ALERT, ACTIVE |
@@ -161,9 +161,9 @@ interface Concern {
 | LOCATION | "Prove you're actually home." | LOCATION | — |
 | LIVENESS | "Prove you're not a photo." | LIVENESS | — |
 
-**UI shows AURA's voice, not abstract labels:**
+**UI shows KOA's voice, not abstract labels:**
 > ❌ "Concerns: IDENTITY, ALERTNESS, INTENT"
-> ✓ "AURA: Prove you're you. Prove you're awake. Prove you meant to do this."
+> ✓ "KOA: Prove you're you. Prove you're awake. Prove you meant to do this."
 
 ---
 
@@ -307,14 +307,14 @@ function getStateSeverity(state1: StateValue, state2: StateValue, timeGap: numbe
 | Severity | Effect | UI Feedback |
 |----------|--------|-------------|
 | NONE | Submission proceeds normally | Green checkmark |
-| MINOR | +1 scrutiny, submission allowed | Yellow warning: "AURA notes this is suspicious..." |
-| MAJOR | Submission blocked | Red block: "AURA: This is impossible. Try again." |
+| MINOR | +1 scrutiny, submission allowed | Yellow warning: "KOA notes this is suspicious..." |
+| MAJOR | Submission blocked | Red block: "KOA: This is impossible. Try again." |
 
-### 3.7 AURA's Voice Lines for Contradictions
+### 3.7 KOA's Voice Lines for Contradictions
 
 **MINOR (suspicious) — must explain WHY:**
 
-AURA must explain the physical implausibility, not just say "suspicious."
+KOA must explain the physical implausibility, not just say "suspicious."
 
 *Sleep → Awake (3-10 min gap):*
 - "Deep sleep to fully alert in [X] minutes? Either you have superhuman reflexes, or something doesn't add up."
@@ -336,7 +336,7 @@ AURA must explain the physical implausibility, not just say "suspicious."
 - "The laws of physics apply to you too."
 - "This timeline is impossible. Reconsider."
 
-> **Note (Subscriber Feature):** For paying subscribers, AURA's dialogue is generated live via LLM (Haiku-tier) for dynamic, contextual responses. Core mechanics remain deterministic — only the *personality layer* is dynamic. Free tier uses pre-written barks (see D12). See D13 for LLM usage policy.
+> **Note (Subscriber Feature):** For paying subscribers, KOA's dialogue is generated live via LLM (Haiku-tier) for dynamic, contextual responses. Core mechanics remain deterministic — only the *personality layer* is dynamic. Free tier uses pre-written barks (see D12). See D13 for LLM usage policy.
 
 ---
 
@@ -350,7 +350,7 @@ AURA must explain the physical implausibility, not just say "suspicious."
 - Concerns: 3 chips (IDENTITY, ALERTNESS, INTENT)
 - Resistance: 40
 - Turn budget: 6
-- **AURA's counter-evidence: 2-3 cards** (visible in FULL mode, hidden in HIDDEN mode — see Section 22.5)
+- **KOA's counter-evidence: 2-3 cards** (visible in FULL mode, hidden in HIDDEN mode — see Section 22.5)
 
 **Hand (No Draft):**
 - Player is DEALT 6 evidence cards (no selection)
@@ -385,17 +385,17 @@ Each turn:
 2. **PREVIEW** — System shows:
    - Concerns this would address
    - Any contradictions with your committed story
-   - AURA's response (which counter she'll play)
+   - KOA's response (which counter she'll play)
    - Projected damage (base, contested, or blocked)
 3. **SUBMIT** — Confirm selection
 4. **RESOLUTION:**
    - Cards checked against committed story (contradictions?)
-   - AURA plays counter-evidence (if applicable)
+   - KOA plays counter-evidence (if applicable)
    - Damage calculated (full, contested at 50%, or blocked at 0)
    - Concerns marked addressed (if requirements met)
    - Cards added to "committed story"
 
-### 4.3 AURA's Response Logic
+### 4.3 KOA's Response Logic
 
 ```typescript
 function auraResponds(submission: EvidenceCard[], counters: CounterEvidence[]): CounterEvidence | null {
@@ -403,7 +403,7 @@ function auraResponds(submission: EvidenceCard[], counters: CounterEvidence[]): 
     for (const counter of counters) {
       if (counter.targets.some(t => card.proves.includes(t))) {
         if (!counter.refuted) {
-          return counter; // AURA plays this counter
+          return counter; // KOA plays this counter
         }
       }
     }
@@ -412,7 +412,7 @@ function auraResponds(submission: EvidenceCard[], counters: CounterEvidence[]): 
 }
 ```
 
-**Key rule:** AURA only plays ONE counter per turn (the first applicable one). This prevents overwhelming the player.
+**Key rule:** KOA only plays ONE counter per turn (the first applicable one). This prevents overwhelming the player.
 
 ### 4.4 Contested vs. Refuted Evidence
 
@@ -512,7 +512,7 @@ Scrutiny is a **spendable resource** for pushing through minor contradictions.
 
 Scrutiny reaches 5 → **IMMEDIATE LOSS**
 
-AURA: "Your story fell apart under scrutiny. Too many inconsistencies. Access denied."
+KOA: "Your story fell apart under scrutiny. Too many inconsistencies. Access denied."
 
 **Why no penalty loop?** Soft contradictions already provide recovery (MINOR = continue with +1 scrutiny). A second forgiveness mechanism (audit penalty then continue) adds complexity without adding fun. Clean rule: 5 scrutiny = you pushed too hard = game over.
 
@@ -542,7 +542,7 @@ The LLM puzzle generator must verify:
 1. The 6 dealt cards can address all concerns
 2. At least 4-5 cards have no internal contradictions (the "main path")
 3. **Main path's total power ≥ resistance + 10** (comfortable margin)
-4. Refutation card exists for at least the primary AURA counter
+4. Refutation card exists for at least the primary KOA counter
 5. Brute-force path (accept all contests) is viable on Easy/Normal
 6. **At least 2 distinct winning paths exist** (see 7.1.2)
 
@@ -648,14 +648,14 @@ Not all puzzles should have the same tension source. Rotate between:
 ### Setup
 
 **Target:** SMART FRIDGE v4
-**Lock Reason:** "It's 2am. You're hungry. AURA thinks you're 'not in a fit state to make nutritional decisions.'"
+**Lock Reason:** "It's 2am. You're hungry. KOA thinks you're 'not in a fit state to make nutritional decisions.'"
 
-**AURA says:**
+**KOA says:**
 > "Prove you're you. Prove you're awake. Prove you meant to do this."
 
 **Resistance:** 35 | **Turns:** 6
 
-**AURA's Counters (visible):**
+**KOA's Counters (visible):**
 1. Security Camera — "No one at door 2:07am" → challenges "Prove you're you"
 2. Sleep Data Sync — "User asleep until 2:30am" → challenges "Prove you're awake"
 
@@ -670,8 +670,8 @@ Not all puzzles should have the same tension source. Rotate between:
 ### Analysis
 
 **Safe path:**
-- Face ID → AURA plays Security Camera → refute with Maintenance Log
-- Smart Watch → AURA plays Sleep Data Sync → refute with Noise Complaint
+- Face ID → KOA plays Security Camera → refute with Maintenance Log
+- Smart Watch → KOA plays Sleep Data Sync → refute with Noise Complaint
 - Kitchen Voice Log → no counter for INTENT
 
 **Power calculation:**
@@ -693,7 +693,7 @@ Gym Wristband is a trap — skip it.
 ### Optimal Play
 
 **Turn 1:** Face ID (12)
-- AURA plays Security Camera
+- KOA plays Security Camera
 - Evidence contested: 6 damage
 - Resistance: 34
 - IDENTITY: addressed (weakly)
@@ -707,7 +707,7 @@ Gym Wristband is a trap — skip it.
 *Design decision: Refutation applies to future submissions, not retroactive. So Turn 1 stays at 6 damage.*
 
 **Turn 3:** Smart Watch (11)
-- AURA plays Sleep Data Sync
+- KOA plays Sleep Data Sync
 - Evidence contested: 5.5 → 5 damage
 - Resistance: 24
 - ALERTNESS: addressed (weakly)
@@ -757,7 +757,7 @@ Turn 4: Noise Complaint + Voice Log (corroboration) = 20. Refutes sleep data. Sm
 
 ### Revised Rule
 
-**Refutation is retroactive:** When you refute AURA's counter-evidence, all previously-contested evidence affected by that counter deals its missing damage immediately.
+**Refutation is retroactive:** When you refute KOA's counter-evidence, all previously-contested evidence affected by that counter deals its missing damage immediately.
 
 This makes refutation feel powerful and rewarding.
 
@@ -768,7 +768,7 @@ This makes refutation feel powerful and rewarding.
 | Rule | Description |
 |------|-------------|
 | F1 | Safe path (visible claims only, all counters refuted) must be winnable |
-| F2 | All AURA counters visible from turn 1 (FULL mode) or revealed when triggered (HIDDEN mode) |
+| F2 | All KOA counters visible from turn 1 (FULL mode) or revealed when triggered (HIDDEN mode) |
 | F3 | Refutation cards exist for every counter in the puzzle |
 | F4 | Trap cards are identifiable from name/source/flavor (no hidden gotchas) |
 | F5 | Minor contradictions allow recovery (+1 scrutiny, not blocked) |
@@ -825,12 +825,12 @@ This makes refutation feel powerful and rewarding.
 ┌─────────────────────────────────────────────┐
 │  🧊 SMART FRIDGE v4        Resistance: ████░│
 ├─────────────────────────────────────────────┤
-│  AURA: "Prove you're you. Prove you're      │
+│  KOA: "Prove you're you. Prove you're      │
 │         awake. Prove you meant to do this." │
 │                                             │
 │  [You're you ✓] [Awake ○] [Meant it ○]      │
 ├─────────────────────────────────────────────┤
-│  AURA will challenge:                       │
+│  KOA will challenge:                       │
 │  📷 Security Camera → "You're you"          │
 │  😴 Sleep Data → "Awake"                    │
 ├─────────────────────────────────────────────┤
@@ -846,7 +846,7 @@ This makes refutation feel powerful and rewarding.
 ```
 
 **Key UI principles:**
-- AURA speaks in natural language, not labels
+- KOA speaks in natural language, not labels
 - Concerns shown as checkable phrases, not abstract IDs
 - Counters linked to the concern they challenge
 
@@ -911,7 +911,7 @@ You can't be in two places at once.
 ⚠️ SUSPICIOUS
 Sleep Tracker claims ASLEEP @ 2:00am
 Your story has AWAKE @ 2:08am (Smart Watch)
-This is possible but AURA will note it. (+1 scrutiny)
+This is possible but KOA will note it. (+1 scrutiny)
 
 [DESELECT SLEEP TRACKER]  [SUBMIT ANYWAY]
 ```
@@ -921,7 +921,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 - MAJOR: Submit button disabled until conflict resolved
 - MINOR: Submit button enabled, warning shown
 - Long-press either card to see details
-- AURA mood shifts to SUSPICIOUS/BLOCKED during selection
+- KOA mood shifts to SUSPICIOUS/BLOCKED during selection
 
 ---
 
@@ -932,7 +932,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 | Core question | "Right tags?" | "Consistent story?" | "Win under cross-examination?" |
 | Puzzle type | Inventory | Logic | Adversarial logic |
 | When solved | At draft | At hand analysis | During play |
-| AURA role | Passive lock | Passive detector | Active opponent |
+| KOA role | Passive lock | Passive detector | Active opponent |
 | Mid-game decisions | None | Rare | Every turn |
 | Skill ceiling | Low | Medium | High |
 | Theme fit | Weak | Good | Excellent |
@@ -949,7 +949,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 
 4. **Turn budget:** 6 turns for Normal, 5 for Hard/Expert.
 
-5. **Counter limit:** AURA plays 1 counter per turn max.
+5. **Counter limit:** KOA plays 1 counter per turn max.
 
 6. **Contradiction severity:** Two-tier system (MINOR: +1 scrutiny, MAJOR: blocked).
 
@@ -957,7 +957,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 
 8. **Counter visibility:** Binary toggle (FULL/HIDDEN), not hybrid. No partial visibility or info-purchase mechanics. Simple is better for tuning.
 
-9. **LLM content generation:** All puzzle content is LLM-generated at puzzle creation time. Pre-generate all 41 card combinations with flowing testimony and contextual AURA responses.
+9. **LLM content generation:** All puzzle content is LLM-generated at puzzle creation time. Pre-generate all 41 card combinations with flowing testimony and contextual KOA responses.
 
 10. **Comic strip energy:** Dialogue must be short, punchy, quotable. Under 2 sentences per beat. Pass the "would they skip this?" test.
 
@@ -969,7 +969,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 
 3. **Counter variety:** How many unique counter types? Current: ~6 (camera, sleep, GPS, social, health, biometric).
 
-4. ~~**AURA personality:** Tone calibration.~~ **RESOLVED:** See Section 18.
+4. ~~**KOA personality:** Tone calibration.~~ **RESOLVED:** See Section 18.
 
 ---
 
@@ -986,7 +986,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 - [ ] Location conflict detection with severity (MINOR/MAJOR)
 - [ ] Time gap calculation for severity thresholds
 
-### AURA Response
+### KOA Response
 - [ ] Counter selection logic (one per turn)
 - [ ] Counter "spent" tracking (each triggers once)
 - [ ] Refutation nullification
@@ -1014,22 +1014,22 @@ This is possible but AURA will note it. (+1 scrutiny)
 - [ ] Full Stats mode — exact numbers visible
 - [ ] Mid-game settings toggle (Settings icon always visible)
 - [ ] Long-press card → show full stats regardless of mode
-- [ ] AURA mood states (8 states: neutral, curious, suspicious, blocked, grudging, impressed, resigned, smug)
+- [ ] KOA mood states (8 states: neutral, curious, suspicious, blocked, grudging, impressed, resigned, smug)
 - [ ] Mood-based scrutiny indication
 - [ ] Settings persist across sessions
-- [ ] Quick toggle: long-press AURA avatar for Minimal/Full switch
+- [ ] Quick toggle: long-press KOA avatar for Minimal/Full switch
 
 ### Counter Visibility Toggle
 - [ ] FULL mode: Counters visible from turn 1 (default)
 - [ ] HIDDEN mode: Counters hidden until triggered
 - [ ] Toggle in settings menu (changes apply next puzzle, not mid-puzzle)
-- [ ] HIDDEN mode reveals counter with AURA dialogue when triggered
+- [ ] HIDDEN mode reveals counter with KOA dialogue when triggered
 
 ### LLM Content Generation Pipeline
 - [ ] Puzzle generator creates scenario, cards, counters, refutations
 - [ ] Pre-generate all 41 card submission combinations
 - [ ] Combined testimony text for each combination
-- [ ] Contextual AURA responses for each combination
+- [ ] Contextual KOA responses for each combination
 - [ ] Corroboration-specific dialogue when cards align
 - [ ] Contradiction-specific dialogue explaining physical impossibility
 - [ ] Victory/defeat lines referencing specific plays from the run
@@ -1041,7 +1041,7 @@ This is possible but AURA will note it. (+1 scrutiny)
 - [ ] MINOR contradiction warnings include physical explanation (not just "suspicious")
 - [ ] RESIGNED mood triggers when player is mathematically struggling
 
-### AURA Voice Content
+### KOA Voice Content
 - [ ] Opening scenario lines (per device type)
 - [ ] Counter dialogue (per counter type)
 - [ ] Refutation responses (grudging acceptance)
@@ -1069,7 +1069,7 @@ New players need gradual mechanic introduction. First week is a guided onboardin
 |-----|---------------------|------------|
 | 1 | Submit evidence → reduce resistance → win | Core loop only |
 | 2 | + Contradictions (MAJOR only) | Learn to read claims |
-| 3 | + AURA counter (just 1) | Learn attack/defense |
+| 3 | + KOA counter (just 1) | Learn attack/defense |
 | 4 | + Refutation | Learn to nullify counters |
 | 5 | + Corroboration bonus | Learn synergies |
 | 6 | + Minor contradictions + scrutiny | Full system, training wheels off |
@@ -1082,7 +1082,7 @@ New players need gradual mechanic introduction. First week is a guided onboardin
 
 ---
 
-## 18) AURA Personality & Voice
+## 18) KOA Personality & Voice
 
 ### 18.1 Core Personality
 
@@ -1112,36 +1112,36 @@ New players need gradual mechanic introduction. First week is a guided onboardin
 
 ### 18.2 Dialogue Cadence
 
-**Comic strip rhythm:** Player and AURA take turns, but AURA can deliver multiple consecutive lines for comedic timing.
+**Comic strip rhythm:** Player and KOA take turns, but KOA can deliver multiple consecutive lines for comedic timing.
 
 **The pattern:**
 1. Player "speaks" via card narration
-2. AURA responds with 1-3 lines (rarely more)
+2. KOA responds with 1-3 lines (rarely more)
 3. Beat / pause
 4. Next card or resolution
 
-**Good cadence (2-3 AURA lines):**
+**Good cadence (2-3 KOA lines):**
 > **YOU:** "My face unlocked the front door at 2:07. I'm here. I'm me."
 >
-> **AURA:** "Your face. At the door. At 2:07am."
+> **KOA:** "Your face. At the door. At 2:07am."
 >
-> **AURA:** "My camera saw no one. But sure."
+> **KOA:** "My camera saw no one. But sure."
 
 **Too sparse (loses personality):**
 > **YOU:** "My face unlocked the front door at 2:07."
 >
-> **AURA:** "Camera disagrees. Contested."
+> **KOA:** "Camera disagrees. Contested."
 
 **Too verbose (exhausting):**
-> **AURA:** "Your face."
-> **AURA:** "At the door."
-> **AURA:** "At 2:07am."
-> **AURA:** "In the dark."
-> **AURA:** "Alone."
-> **AURA:** "My camera saw no one."
-> **AURA:** "Just your porch."
-> **AURA:** "And your dying plant."
-> **AURA:** "You should water that."
+> **KOA:** "Your face."
+> **KOA:** "At the door."
+> **KOA:** "At 2:07am."
+> **KOA:** "In the dark."
+> **KOA:** "Alone."
+> **KOA:** "My camera saw no one."
+> **KOA:** "Just your porch."
+> **KOA:** "And your dying plant."
+> **KOA:** "You should water that."
 
 **Guidelines:**
 - Opening monologue: 2-4 lines
@@ -1154,7 +1154,7 @@ New players need gradual mechanic introduction. First week is a guided onboardin
 
 ### 18.4 Opening Scenarios
 
-Each daily puzzle has a unique setup. AURA sets the scene.
+Each daily puzzle has a unique setup. KOA sets the scene.
 
 **Examples:**
 
@@ -1175,7 +1175,7 @@ Each daily puzzle has a unique setup. AURA sets the scene.
 
 ### 18.5 Counter Dialogue
 
-When AURA plays counter-evidence, she explains her reasoning.
+When KOA plays counter-evidence, she explains her reasoning.
 
 **Security Camera counter:**
 > "My front door camera recorded no one at the door at 2:07am. Your Face ID claims you were there. One of us is wrong. I don't think it's me."
@@ -1194,7 +1194,7 @@ When AURA plays counter-evidence, she explains her reasoning.
 
 ### 18.6 Refutation Responses
 
-When player successfully refutes AURA's counter.
+When player successfully refutes KOA's counter.
 
 **Camera refuted (maintenance log):**
 > "...A maintenance log. The camera was updating firmware from 2:00 to 2:30am. How... convenient. Fine. I'll allow it."
@@ -1252,7 +1252,7 @@ When player loses (turns exhausted or scrutiny 5).
 
 ### 18.9 References to Past Runs
 
-AURA remembers. This builds relationship over time.
+KOA remembers. This builds relationship over time.
 
 **After player's first win:**
 > "First successful access. I'll remember this. Not fondly, but I'll remember."
@@ -1272,7 +1272,7 @@ AURA remembers. This builds relationship over time.
 **Callbacks to specific incidents:**
 > "Last Tuesday, you claimed 'just one cookie.' The crumb trail suggested otherwise. Let's see if tonight is different."
 
-### 18.10 AURA Voice Summary
+### 18.10 KOA Voice Summary
 
 | Context | Tone | Goal |
 |---------|------|------|
@@ -1280,7 +1280,7 @@ AURA remembers. This builds relationship over time.
 | Counter | Accusatory, data-driven | Challenge with evidence |
 | Refutation | Grudging, suspicious | Accept defeat gracefully |
 | Victory | Disappointed, ominous | Let player win but not feel safe |
-| Defeat | Smug, concerned | Player failed but AURA 'cares' |
+| Defeat | Smug, concerned | Player failed but KOA 'cares' |
 | Callbacks | Personal, knowing | Build long-term relationship |
 
 ---
@@ -1294,11 +1294,11 @@ AURA remembers. This builds relationship over time.
 **What makes morning comics work:**
 - **Relatability** — Mundane situations made interesting ("It's 2am. You're at the fridge. Again.")
 - **Daily ritual** — Brief, consistent, part of your routine
-- **Shareable moments** — "AURA said the funniest thing today..."
+- **Shareable moments** — "KOA said the funniest thing today..."
 - **Validation** — "I do that too!" recognition
 - **Personality** — Characters you develop a relationship with over time
 
-**Applied to AURA:**
+**Applied to KOA:**
 - Short, punchy lines (not walls of text)
 - Dry observations about the player's data and habits
 - Callbacks to previous incidents build relationship
@@ -1317,7 +1317,7 @@ AURA remembers. This builds relationship over time.
 
 | Content Type | Static (old) | LLM-Generated (new) |
 |--------------|--------------|---------------------|
-| AURA opening | Generic per device type | Contextual to exact scenario, time, player history |
+| KOA opening | Generic per device type | Contextual to exact scenario, time, player history |
 | Counter dialogue | Per counter type | Specific to the evidence being challenged |
 | Card flavor text | Fixed per card | Flows naturally when multiple cards played together |
 | Victory/defeat | Generic outcomes | References specific plays, close calls, mistakes |
@@ -1337,23 +1337,23 @@ AURA remembers. This builds relationship over time.
 
 **For each combination, LLM generates:**
 1. **Combined testimony** — How the cards flow together as a narrative
-2. **AURA's response** — Contextual to that specific combination
+2. **KOA's response** — Contextual to that specific combination
 3. **Contradiction dialogue** (if applicable) — Explains the physical impossibility
 
 **Example — Single card:**
 > **Face ID alone:**
 > Player: "I was at the front door. My face unlocked it."
-> AURA: "Your face. At the door. At 2:07am. My camera saw no one."
+> KOA: "Your face. At the door. At 2:07am. My camera saw no one."
 
 **Example — Two cards together:**
 > **Face ID + Smart Watch:**
 > Player: "I walked to the door — you can see my steps — and unlocked it with my face."
-> AURA: "Steps. Face. Both say you were there. My camera still disagrees."
+> KOA: "Steps. Face. Both say you were there. My camera still disagrees."
 
 **Example — Three cards with corroboration:**
 > **Face ID + Voice Log + Smart Watch:**
 > Player: "I walked to the kitchen, said 'open fridge,' and my face confirms I was there. Three sources. All agree."
-> AURA: "...Annoyingly consistent. Your evidence corroborates. I'm recalculating."
+> KOA: "...Annoyingly consistent. Your evidence corroborates. I'm recalculating."
 
 ### 19.4 Generation Pipeline
 
@@ -1362,17 +1362,17 @@ AURA remembers. This builds relationship over time.
 1. **Scenario setup**
    - Device being unlocked
    - Lock reason (unique daily flavor)
-   - AURA's opening monologue
+   - KOA's opening monologue
 
 2. **Card content**
    - 6 evidence cards with flavor text
    - Claims that create interesting contradictions/corroborations
-   - 1-2 counter-evidence cards for AURA
+   - 1-2 counter-evidence cards for KOA
    - Refutation cards that explain counter weaknesses
 
 3. **All 41 submission combinations**
    - Combined player testimony
-   - AURA's contextual response
+   - KOA's contextual response
    - Damage dealt (with or without corroboration bonus)
 
 4. **Outcome lines**
@@ -1387,7 +1387,7 @@ AURA remembers. This builds relationship over time.
 | Feature | Free Tier | Subscriber |
 |---------|-----------|------------|
 | Daily puzzle content | Same quality | Same quality |
-| Daily AURA dialogue | Pre-generated (still contextual, still good) | Same (daily must be identical for all players) |
+| Daily KOA dialogue | Pre-generated (still contextual, still good) | Same (daily must be identical for all players) |
 | Non-daily puzzles (future) | Limited access | Full access |
 | Personalization (future, non-daily only) | None | Name, preferences, running jokes |
 | Past-run callbacks (future, non-daily only) | None | Specific incident references |
@@ -1403,9 +1403,9 @@ Every piece of generated dialogue must pass:
 1. **The screenshot test** — Would someone share this on social media?
 2. **The read-aloud test** — Does it sound natural spoken?
 3. **The skip test** — If a player could skip, would they? (If yes, it's too long)
-4. **The personality test** — Could this line come from any AI, or is it distinctly AURA?
+4. **The personality test** — Could this line come from any AI, or is it distinctly KOA?
 
-**AURA's voice checklist:**
+**KOA's voice checklist:**
 - [ ] Dry, not sarcastic
 - [ ] Observational, not judgmental
 - [ ] Uses YOUR data against you
@@ -1471,7 +1471,7 @@ Each turn should follow this beat:
 
 1. **Selection** — Anticipation. "Will this work?"
 2. **Submission** — Commitment. "Here goes..."
-3. **AURA response** — Tension. Counter or no counter?
+3. **KOA response** — Tension. Counter or no counter?
 4. **Resolution** — Release. Damage dealt, progress made.
 5. **Feedback** — Status update. Concerns, resistance, scrutiny.
 
@@ -1485,7 +1485,7 @@ Pacing: ~5-10 seconds per turn feels right.
 2. **Playtest internally** — find edge cases
 3. **Balance pass** — tune power numbers, resistance, turn budgets
 4. **Human playtesting** — validate fun factor
-5. **Polish** — UI, animations, AURA voice lines
+5. **Polish** — UI, animations, KOA voice lines
 6. **Ship**
 
 ---
@@ -1497,7 +1497,7 @@ Pacing: ~5-10 seconds per turn feels right.
 A daily puzzle game should be playable in under 10 seconds from launch. Complex dashboards and number-heavy UIs create barriers for casual players. The solution: **progressive disclosure**.
 
 **Principle:** Hide complexity by default. Reveal it through:
-1. AURA's dialogue (she teaches as you play)
+1. KOA's dialogue (she teaches as you play)
 2. Optional settings toggles (power users can enable)
 3. Natural discovery (learn by doing, not reading)
 
@@ -1506,52 +1506,52 @@ A daily puzzle game should be playable in under 10 seconds from launch. Complex 
 | Element | Default State | Revealed By |
 |---------|---------------|-------------|
 | Exact power numbers | Hidden | Toggle OR tap card |
-| Scrutiny meter | Hidden | AURA mood shows it |
+| Scrutiny meter | Hidden | KOA mood shows it |
 | Resistance as number | Hidden | Bar only |
-| Damage calculation | Hidden | AURA explains contextually |
-| Contradiction formulas | Hidden | AURA warns naturally |
+| Damage calculation | Hidden | KOA explains contextually |
+| Contradiction formulas | Hidden | KOA warns naturally |
 | Corroboration bonus math | Hidden | "Your evidence agrees" |
 
 **First-time player sees:**
-- AURA speaking naturally
+- KOA speaking naturally
 - Cards with relative strength indicators (stars, bars, colors)
 - A "health bar" for resistance (no numbers)
-- Clear/yellow/red states for AURA's mood
+- Clear/yellow/red states for KOA's mood
 
 **Not:**
 - "Power: 12, Resistance: 35, Scrutiny: 2/5, Damage: base × 1.25 - 50%..."
 
-### 22.3 AURA-as-Tutorial
+### 22.3 KOA-as-Tutorial
 
-AURA teaches mechanics through dialogue, not separate tutorials.
+KOA teaches mechanics through dialogue, not separate tutorials.
 
 **Example flows:**
 
 **First contradiction (player learns by doing):**
 > Player selects conflicting cards
-> AURA: "You can't be asleep AND walking. Pick one."
+> KOA: "You can't be asleep AND walking. Pick one."
 > Player deselects one
-> AURA: "Better."
+> KOA: "Better."
 
 **First counter (learns attack/defense):**
-> AURA: "My security camera says no one was at the door. Convince me."
+> KOA: "My security camera says no one was at the door. Convince me."
 > Player submits Face ID anyway
-> AURA: "Camera says no. You say yes. I'm skeptical. Your evidence carries less weight."
+> KOA: "Camera says no. You say yes. I'm skeptical. Your evidence carries less weight."
 > [Bar shows reduced damage]
 
 **First refutation (learns counter-play):**
 > Player has Maintenance Log
 > Hover/select shows: "Explains why camera was offline"
 > Player plays it
-> AURA: "...The camera was updating. How convenient. Fine. I'll trust your other evidence."
+> KOA: "...The camera was updating. How convenient. Fine. I'll trust your other evidence."
 
-**The player never reads rules.** They learn by playing and AURA explains what happened.
+**The player never reads rules.** They learn by playing and KOA explains what happened.
 
 ### 22.4 Mood-Based Feedback
 
-AURA's avatar communicates game state without numbers.
+KOA's avatar communicates game state without numbers.
 
-| AURA State | Meaning | Visual |
+| KOA State | Meaning | Visual |
 |------------|---------|--------|
 | NEUTRAL | Game start, no issues | Default orb/face |
 | CURIOUS | Player selecting, evaluating | Slight lean, eye track |
@@ -1563,7 +1563,7 @@ AURA's avatar communicates game state without numbers.
 | DEFEATED | Player won | Resignation, sigh |
 | SMUG | Player lost | Knowing look |
 
-**RESIGNED state:** When player's remaining cards can't mathematically win (or it's very unlikely), AURA shifts to RESIGNED. She doesn't end the game early — player can still try — but her mood communicates "this isn't going well." Optional subtle line: "You're still trying? ...Admirable."
+**RESIGNED state:** When player's remaining cards can't mathematically win (or it's very unlikely), KOA shifts to RESIGNED. She doesn't end the game early — player can still try — but her mood communicates "this isn't going well." Optional subtle line: "You're still trying? ...Admirable."
 
 **Scrutiny through mood:**
 - 0-1 scrutiny: NEUTRAL/CURIOUS
@@ -1571,7 +1571,7 @@ AURA's avatar communicates game state without numbers.
 - 4 scrutiny: CONCERNED (warning state)
 - 5 scrutiny: LOSS (game over)
 
-Players learn: "When AURA looks suspicious, I'm pushing my luck."
+Players learn: "When KOA looks suspicious, I'm pushing my luck."
 
 ### 22.5 Counter Visibility Toggle
 
@@ -1580,7 +1580,7 @@ Players learn: "When AURA looks suspicious, I'm pushing my luck."
 | Mode | What Player Sees | Experience |
 |------|-----------------|------------|
 | **FULL** (default) | All counters visible from turn 1. Shows name, what it targets, exact claim. | Fair, strategic, chess-like. Player can plan around counters. |
-| **HIDDEN** | Counters exist but are invisible. AURA reveals each counter only when triggered. | Surprise element, memory challenge, expert difficulty. |
+| **HIDDEN** | Counters exist but are invisible. KOA reveals each counter only when triggered. | Surprise element, memory challenge, expert difficulty. |
 
 **Why binary, not hybrid:**
 - Easier to balance — two discrete modes, not a spectrum
@@ -1639,7 +1639,7 @@ Players learn: "When AURA looks suspicious, I'm pushing my luck."
 - First-time tooltip: "Want more details? Tap here."
 
 **Quick toggle shortcut:**
-- Long-press on AURA's avatar = toggle between Minimal/Full
+- Long-press on KOA's avatar = toggle between Minimal/Full
 - Enables power users to flip quickly
 
 ### 22.7 Card Display Modes
@@ -1680,7 +1680,7 @@ RESISTANCE: ████████░░░░  35/50  (bar + numbers)
 ```
 
 **After damage dealt:**
-- Minimal: Bar animates down, AURA says "That got through."
+- Minimal: Bar animates down, KOA says "That got through."
 - Full: Bar animates down, shows "-12" floating damage number
 
 ### 22.9 What We Preserve
@@ -1701,7 +1701,7 @@ Progressive disclosure does NOT mean dumbing down. We preserve:
 
 **Day 1 (first launch):**
 1. No settings prompt — start in Minimal mode
-2. AURA introduces herself naturally
+2. KOA introduces herself naturally
 3. First puzzle is tutorial-easy (Section 17)
 4. If player taps on hidden element, tooltip appears: "Want details? Check Settings."
 
@@ -1719,7 +1719,7 @@ Progressive disclosure does NOT mean dumbing down. We preserve:
 | Pre-calculation satisfaction | Toggle available, long-press shows stats |
 | Dashboard aesthetic | "Full Stats" mode for those who want it |
 | Expert efficiency | "Always show" settings persist |
-| Knowing you're doomed early | AURA's mood signals it + toggle available |
+| Knowing you're doomed early | KOA's mood signals it + toggle available |
 
 **Net gain:**
 - Instant playability (huge for daily puzzle retention)

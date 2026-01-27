@@ -1,18 +1,20 @@
-# D28 — END-GAME UI SPEC v1 (Mobile-First PWA)
+# D28 — END-GAME UI SPEC v2 (Mobile-First PWA)
 
-**Status:** Draft v1.1
+**Status:** Draft v2.0
 **Owner:** UX / Engineering
 **Last Updated:** 2026-01-26
-**Purpose:** Define the production-stable UI spec for Life with AURA's core run experience, including AURA presence rendering, action model, and mode-specific UI considerations.
+**Purpose:** Define the production-stable UI spec for Home Smart Home's core run experience, including KOA presence rendering, action model, and mode-specific UI considerations.
+
+**Canonical Reference:** D31-ADVERSARIAL-TESTIMONY-DESIGN.md is the source of truth for core mechanics.
 
 ---
 
 ## 0) UI design goals (non-negotiable)
 
-1. **One primary action per turn** (commit), everything else is selection/config.
+1. **One primary action per turn** (SUBMIT), everything else is selection/config.
 2. **Instant mechanical feedback** (bars/meter/log update immediately from resolver output).
 3. **Explainability on demand** ("why" is always one tap away, never forced).
-4. **Data-driven rendering** (new protocols/cards via JSON packs should "just appear").
+4. **Data-driven rendering** (new puzzles/cards via JSON packs should "just appear").
 5. **Low cognitive load** (no "six buttons with jargon" as the core loop).
 
 ---
@@ -22,10 +24,16 @@
 | Element | Daily (MVP) | Freeplay (Post-MVP) |
 |---------|-------------|---------------------|
 | Primary button | **SUBMIT** | **INJECT** |
-| Secondary button | **SCAN** | **CYCLE** |
 | Ops Strip | Hidden | Visible (FLAG/REWIRE/EXPLOIT) |
 | Ops Tokens | Hidden | Visible (count of 3) |
 | Terminology | Player terms | Internal terms |
+| Counter visibility | FULL/HIDDEN toggle | Always visible |
+| Draft | None (dealt 6 cards) | Draft from pool |
+
+**Removed from Daily (per D31):**
+- SCAN button (no reserve mechanic)
+- Draft screen (players dealt 6 cards)
+- Audit interstitial (scrutiny 5 = instant loss)
 
 This spec describes **Daily UI** as the primary target. Freeplay UI notes are in §12.
 
@@ -39,93 +47,92 @@ The run screen is stable and never redesigns; everything else is a wrapper aroun
 
 **Left:** Target + progress
 
-* **Target label** (e.g., `FRIDGE`)
-* **Resistance Bar** (100→0) with numeric %
-* **Turn indicator**: `Turn 3 / 8`
+* **Target label** (e.g., `SMART FRIDGE`)
+* **Resistance Bar** (40→0) with optional numeric (Full Stats mode)
+* **Turn indicator**: `Turn 3 / 6`
 
-**Right:** Pressure
+**Right:** KOA status
 
-* **Scrutiny meter** (5-pip bar; fills left-to-right)
-* Optional tiny icon for "Daily Seed" mode
+* **KOA avatar** showing mood state (8 states per D31)
+* **Scrutiny indicator** (via KOA mood, or 5-pip bar in Full Stats mode)
 
-**Below HUD (chips row):**
+**Below HUD (concerns row):**
 
-* **Active Protocol chips** (tap for details)
-* **Modifier chip** (if active, rare)
+* **Concern chips** as KOA's voice: **[You're you ✓] [Awake ○] [Meant it ○]**
+* Tap chip → shows required proof type and status
 
 **Interaction rule:**
 
-* Chips are *information first*. Tap opens a **Protocol Detail Sheet** (see §3).
+* Chips are *information first*. Tap opens a **Concern Detail Sheet** (see §3).
 
 ---
 
-### B) AURA Monitor Region (~10% height, between HUD and Transcript)
+### B) KOA Monitor Region (~10% height, between HUD and Transcript)
 
-#### AURA Presence: "Interface Entity" (Not a Character)
+#### KOA Presence: "Interface Entity" (Not a Character)
 
-**Goal:** Provide a strong, iconic AURA "presence" without drifting into character/VN framing (courtroom vibes) or creating a large art burden.
+**Goal:** Provide a strong, iconic KOA "presence" without drifting into character/VN framing (courtroom vibes) or creating a large art burden.
 
-**Rule:** AURA visuals are a **pure rendering of deterministic state**. They must not introduce ambiguity or imply LLM adjudication.
+**Rule:** KOA visuals are a **pure rendering of deterministic state**. They must not introduce ambiguity or imply LLM adjudication.
 
 ##### B1. Default Rendering: "Orb / Lens" (Recommended)
 
-AURA is rendered as a single abstract object with stateful animation:
+KOA is rendered as a single abstract object with stateful animation:
 
 * **Form:** Orb, lens, or ring (single entity, centered)
 * **State layers:**
-
   1. **Core** (idle pulse / damage jitter)
-  2. **Scan layer** (sweep line / reticle)
-  3. **Protocol glyph orbit** (small chips/icons orbiting for active protocols)
-  4. **Audit ring** (locks into place during audit)
+  2. **Scan layer** (sweep line / reticle when selecting)
+  3. **Concern glyph orbit** (small chips/icons orbiting for active concerns)
+  4. **Challenge indicator** (when counter will trigger)
 
 This is intentionally "home AI daemon / OS subsystem," not "person talking."
 
 ##### B2. Alternatives (Supported as Skins, Not Default)
 
-* **Status Panel Only:** No entity, just "AURA / ENFORCEMENT" pane with waveform + system flags.
+* **Status Panel Only:** No entity, just "KOA / ENFORCEMENT" pane with waveform + system flags.
 * **Skins (cosmetic only):** iOS-minimal, Retro CRT, Corporate HR, Cyber-daemon, etc. Skins may alter shaders/texture but cannot change semantics.
 
 ##### B3. State Mapping (Authoritative Inputs)
 
-AURA Presence state is derived from these **authoritative** fields only:
+KOA Presence state is derived from these **authoritative** fields only:
 
 * `scrutiny: 0-5`
-* `audit_active: boolean`
-* `active_gates[]: GateId[]`
-* optional: `last_resolution.outcome: PASS | FAIL | CLEARED`
+* `resistance: number`
+* `concerns_addressed: ConcernId[]`
+* `active_counters[]: CounterId[]`
+* `counters_refuted[]: CounterId[]`
+* optional: `last_resolution.outcome: PASS | CONTESTED | BLOCKED`
 
-**No other input** may influence the AURA visual state (especially not freeform text).
+**No other input** may influence the KOA visual state (especially not freeform text).
 
-##### B4. Presence States (v1 required)
+##### B4. Presence States (8 required per D31)
 
-Define a small enum for the renderer:
+| State | Internal ID | When Triggered | Visual |
+|-------|-------------|----------------|--------|
+| Neutral | `NEUTRAL` | Game start, no issues | Default orb, soft pulse |
+| Curious | `CURIOUS` | Player selecting cards | Slight lean, eye track |
+| Suspicious | `SUSPICIOUS` | MINOR contradiction detected | Orange glow, narrowed eyes |
+| Blocked | `BLOCKED` | MAJOR contradiction | Red pulse, shake |
+| Grudging | `GRUDGING` | Counter refuted | Eye roll, deflation |
+| Impressed | `IMPRESSED` | Clean submission | Subtle surprise |
+| Resigned | `RESIGNED` | Player mathematically struggling | Pitying look, dim glow |
+| Smug | `SMUG` | Player lost | Knowing look |
 
-* `IDLE` — no scan, soft pulse
-* `SCAN` — sweep line / reticle active (default when awaiting input)
-* `LOCKDOWN` — tighter ring + sharper edges (high scrutiny)
-* `AUDIT_ACTIVE` — ring locks + periodic scan burst
-* `DAMAGED` — brief glitch/jitter on successful resolution (Resistance reduced)
-* `REJECT` — sharp "error" flicker when action rejected
-
-**Timing rule:** resolution feedback is immediate; AURA animation reacts instantly to resolution, and any bark text follows non-blocking.
+**Timing rule:** Resolution feedback is immediate; KOA animation reacts instantly to resolution, and any bark text follows non-blocking.
 
 ##### B5. Copy / Bark Placement (Avoids "Ace Attorney")
 
-In the monitor region, show **System Prompt** + optional **Flavor Bark**:
+In the monitor region, show **KOA Dialogue** from pre-generated content:
 
-1. **System Prompt (always shown, deterministic phrasing):**
+1. **System info (always shown, deterministic):**
+   * `Resistance: 25 | Turn 3/6`
+   * `Concerns: 2/3 addressed`
 
-* Examples:
-
-  * `PROTOCOL: NO_SELF_REPORT — verified source required`
-  * `SCRUTINY: 3/5 — audit risk rising`
-  * `AUDIT ACTIVE — next submit constrained`
-
-2. **Flavor Bark (optional, from Voice Pack):**
-
-* Short, snide, but no courtroom words.
-* Must be selectable from `OutcomeKey` only.
+2. **KOA dialogue (from puzzle content):**
+   * Opening: "It's 2am. You're at your fridge. Again."
+   * Counter: "My camera says no one was there. Your face says otherwise."
+   * Refutation: "...The camera was updating. How convenient."
 
 **Banned terms for this region:** "Objection", "Verdict", "Cross-examination", "Court record", "Inadmissible".
 
@@ -134,40 +141,64 @@ In the monitor region, show **System Prompt** + optional **Flavor Bark**:
 * **MVP:** SVG (core) + CSS animation
 * **Enhanced:** optional canvas/Pixi shader layer later
 * Must degrade gracefully on low-end devices:
-
-  * reduce scan effects, disable glitch shader, keep core pulse + glyphs
+  * reduce scan effects, disable glitch shader, keep core pulse + mood indication
 
 ##### B7. Implementation Notes
 
-Component naming for future-proofing:
+Component naming:
 
-* `AuraAvatar` → `AuraDaemonPresence`
-* prop `mood` → `presence_state: AuraPresenceState`
+* `AuraAvatar` → `KoaDaemonPresence`
+* prop `mood` → `presence_state: KoaPresenceState`
 * always pass state derived from engine:
-
-  * `presence_state = audit_active ? AUDIT_ACTIVE : awaiting_input ? SCAN : IDLE`
-  * on resolution success → briefly set `DAMAGED` for 250–400ms
+  * `presence_state = getMoodFromGameState(gameState)`
+  * on resolution success → briefly set `IMPRESSED` or `GRUDGING` for 250–400ms
 
 ---
 
-### C) Middle: Transcript Feed (scrollable; ~30–40% height)
+### C) Middle: Counter-Evidence + Story Panel (~30–40% height)
 
-This is not a chat. It's an **audit log UI** that *reads like* a chat.
+This is not a chat. It's an **evidence display** showing the adversarial dynamic.
 
-Each turn produces 2–3 **Transcript Cards**:
+#### C1) Counter-Evidence Panel (FULL mode)
 
-1. **AURA Prompt Card** (what constraint is active / what's being challenged)
-2. **Payload Card** (what the player submitted—compact structured summary)
-3. **Outcome Card** (PASS/FAIL + deltas)
+Header: "KOA will challenge:"
 
-Each Transcript Card has:
+List of visible counters:
+```
+📷 Security Camera → targets "You're you"
+   "No one at door 2:07am"
+   Refutable by: Maintenance Log
 
-* **One-line headline**
-* **Small structured metadata row** (Protocol, Scrutiny change, Compliance)
-* Optional **flavor bark** (pre-gen voice line)
-* **"WHY" affordance** (tap expands to deterministic explanation)
+😴 Sleep Data → targets "Awake"
+   "User asleep until 2:30am"
+   Refutable by: Noise Complaint
+```
 
-**Critical:** Transcript cards render from deterministic events. The UI is replayable and consistent.
+* Counters marked "SPENT" when refuted (strikethrough + checkmark)
+* In HIDDEN mode: shows "? counters hidden" until triggered
+
+#### C2) Committed Story Timeline
+
+Header: "Your Story:"
+
+Visual timeline of submitted evidence:
+```
+1:00am     2:00     2:05  2:10     2:15
+  |         |        |     |        |
+            [===SMART WATCH (AWAKE)===]
+                 [FACE ID (KITCHEN)]
+                 [VOICE LOG (KITCHEN)]
+```
+
+* Each entry shows: card name, time range, claims
+* Tap entry → card details + contribution to damage
+
+#### C3) Turn Transcript (optional view)
+
+Toggle to show turn-by-turn log:
+
+1. **Turn 1:** Face ID submitted → Contested (Camera) → 6 damage
+2. **Turn 2:** Maintenance Log → Refuted Camera → +6 restored → 11 total
 
 ---
 
@@ -175,32 +206,46 @@ Each Transcript Card has:
 
 This is the "controller." It should feel like a cockpit, not a menu.
 
-#### D1) Payload Staging (top of bottom sheet)
+#### D1) Evidence Hand
 
-* **Two slots** (A / B) that accept cards
-* Optional "link" indicator between slots (shows Resonance bonus)
-* Tap card in slot to remove; long-press opens full detail
+* Shows the player's **6 Evidence cards** (dealt, not drafted)
+* Selected cards elevate and highlight
+* Tap to select (up to 3), tap again to deselect
+* Long-press for full card details
 
-**Drag-and-drop** is ideal; must also support **tap-to-add** for accessibility.
+#### D2) Selection Preview
 
-#### D2) Evidence Carousel
+When cards are selected, show:
 
-* Shows the player's **6 Evidence cards** (drafted loadout)
-* Quarantined cards show "locked" overlay with turn count
-* Swipe to see all cards; tap to select into payload slot
+* **Concerns addressed:** IDENTITY, INTENT
+* **Counter triggered:** "KOA will challenge: Security Camera"
+* **Corroboration:** "Stories Align: +25%" (if applicable)
+* **Contradiction:** "⚠️ SUSPICIOUS (+1 Scrutiny)" or "⛔ IMPOSSIBLE (Blocked)"
+* **Damage preview:** "~17 damage" or "Contested: ~8"
 
 #### D3) Primary commit controls (Daily)
 
-Two buttons:
+Single primary button:
 
-* **SCAN** (secondary): refreshes evidence from reserve
-  * Label: "SCAN" with "+2 Scrutiny" indicator
-  * Disabled if Scrutiny = 5 or SCAN limit reached
 * **SUBMIT** (primary): commits the turn
   * Label: "SUBMIT"
-  * Sub-label shows preview: "Compliance: ~22" or "Protocol: likely pass"
+  * Sub-label shows preview in Full Stats mode
+  * Disabled with message if MAJOR contradiction detected
 
-**Resonance indicator:** When 2 cards share a resonance tag, show "Resonance: 1.5x" near SUBMIT button.
+**Removed from Daily (per D31):**
+* No SCAN button (no reserve mechanic)
+* No secondary actions
+
+#### D4) Corroboration Indicator
+
+When 2+ selected cards share claims:
+```
+┌─────────────┐         ┌─────────────┐
+│  Face ID    │─────────│  Voice Log  │
+│  🏠 KITCHEN │  MATCH  │  🏠 KITCHEN │
+└─────────────┘         └─────────────┘
+      ✨ Stories Align: +25% damage
+```
 
 ---
 
@@ -208,34 +253,34 @@ Two buttons:
 
 Daily mode has the simplest possible action model:
 
-1. Player **slots 1–2 cards** into payload
-2. Player presses **SUBMIT**
-3. Resolver evaluates protocol satisfaction and calculates compliance
+1. Player **selects 1–3 cards** from hand
+2. Player sees **preview** (concerns, counters, contradictions, damage)
+3. Player presses **SUBMIT**
+4. Resolver evaluates and applies mechanics instantly
 
-No move selection. No toggles. No tokens.
-
-**Alternative action:** Player can press **SCAN** instead of SUBMIT (costs turn + scrutiny).
+No move selection. No toggles. No tokens. No SCAN.
 
 ---
 
-## 3) Protocol Detail Sheet (tap any protocol chip)
+## 3) Concern Detail Sheet (tap any concern chip)
 
-This is the most important UX element because it makes the game learnable without a tutorial dump.
+This makes the game learnable without a tutorial dump.
 
-### Protocol Detail Sheet sections
+### Concern Detail Sheet sections
 
-1. **What this protocol forbids** (human readable)
-2. **How to beat it** (2–4 counter paths shown as patterns)
+1. **What KOA asks** (human readable)
+   * "Prove you're you."
 
-   * Show as "recipes," not formulas:
+2. **What satisfies it** (proof types)
+   * Requires: IDENTITY proof type
+   * Cards in hand that prove this: Face ID, Biometric Log
 
-     * `Verified Sensor` OR `Verified Authority` OR `Purchase + Timestamped`
-3. **What will fail** (common invalids)
-4. **Current evidence hints** (purely deterministic)
+3. **Current status**
+   * ✓ Addressed (if satisfied)
+   * ○ Not yet addressed
 
-   * Example: "You currently hold 1 card that can satisfy Path B"
-
-This sheet externalizes the rules without relying on LLM interpretation.
+4. **Counter threats**
+   * "Security Camera challenges IDENTITY evidence"
 
 ---
 
@@ -243,23 +288,29 @@ This sheet externalizes the rules without relying on LLM interpretation.
 
 Cards must support *hundreds* of archetypes over time without redoing the UI.
 
-### Card front (compact)
+### Card front (Minimal mode)
 
 * Title
-* **Impact number** (visible, prominent)
-* Trust tier badge (VERIFIED / PLAUSIBLE / SKETCHY)
-* 1–2 key tags as small chips/icons (e.g., `SENSOR`, `PURCHASE`, `TIME`)
-* Tiny trait markers (timestamped/editable/corroboratable)
+* **Power indicator** (⭐⭐⭐ stars)
+* Claims as icons (🏠 Kitchen, 👁️ Awake)
+* "Proves you're you" (natural language)
+
+### Card front (Full Stats mode)
+
+* Title
+* **Power: 12** (exact number)
+* Proof type: IDENTITY
+* Time range: 2:05-2:10am
+* Claims: KITCHEN, AWAKE
+* Counter trigger warning: "Triggers: Camera"
 
 ### Card back (detail modal / sheet)
 
-* Full tag list
-* Traits + what they do mechanically
-* Source provenance line
-* "Resonance hooks" (what tags enable resonance)
-* Deterministic preview text:
-
-  * "Counts as VERIFIED SENSOR for `NO_SELF_REPORT`"
+* Full claims breakdown
+* Time range visualization
+* Proof types
+* "Will trigger counter: Security Camera"
+* Refutes (if refutation card): "Nullifies: Security Camera"
 
 **Important:** never require unique art per card to ship. Use:
 
@@ -269,25 +320,43 @@ Cards must support *hundreds* of archetypes over time without redoing the UI.
 
 ---
 
-## 5) Draft screen (Daily-specific)
+## 5) Contradiction Warning UI
 
-### 5.1 Layout
+### 5.1 MINOR Contradiction (yellow)
 
-* Top: Target + Protocol chips (what you're solving for)
-* Middle: **12 cards** displayed in grid or carousel
-* Bottom: **6 slots** for your picks + "Start" button
+Appears when selected cards conflict with committed story (recoverable):
 
-### 5.2 Interaction
+```
+┌─────────────────────────────────────┐
+│  ⚠️ SUSPICIOUS                       │
+│                                      │
+│  Sleep Tracker claims ASLEEP @ 2:00am│
+│  Your story has AWAKE @ 2:08am       │
+│                                      │
+│  KOA: "That's... medically           │
+│        impressive." (+1 Scrutiny)    │
+│                                      │
+│  [DESELECT]     [SUBMIT ANYWAY]      │
+└─────────────────────────────────────┘
+```
 
-* Tap card to select (moves to slot)
-* Tap slot to deselect (returns card)
-* "Start" enabled when 6 cards selected
+### 5.2 MAJOR Contradiction (red)
 
-### 5.3 Hints (optional, for accessibility)
+Appears when selected cards logically impossible:
 
-* Show which cards satisfy which protocol paths
-* Show potential resonance pairs
-* These are deterministic UI assists, not LLM-generated
+```
+┌─────────────────────────────────────┐
+│  ⛔ IMPOSSIBLE                       │
+│                                      │
+│  Gym Wristband claims GYM @ 2:00am   │
+│  Your story has KITCHEN @ 2:05am     │
+│                                      │
+│  KOA: "You can't be in two places    │
+│        at once."                     │
+│                                      │
+│  [DESELECT]     [BLOCKED]            │
+└─────────────────────────────────────┘
+```
 
 ---
 
@@ -296,29 +365,46 @@ Cards must support *hundreds* of archetypes over time without redoing the UI.
 ### 6.1 Win screen
 
 * Large "ACCESS GRANTED" header
+* KOA defeat line: "Your story is... consistent. Annoyingly so."
 * Target unlocked animation (device opens)
-* Stats summary:
-  * Turns used / total
-  * Par medal (Gold/Silver/Bronze)
-  * Scrutiny peak
-  * Audits triggered
-* **Share button** → generates share card
+* Concerns: All checked ✓
 
-### 6.2 Loss screen
+**Stats summary:**
+* Turns used: 4/6
+* Damage dealt: 52
+* Contradictions: 0 (Perfect!)
+* Counters refuted: 2/2
+* Scrutiny: 0/5
+
+**Share button** → generates share card
+
+### 6.2 Loss screen (Turns exhausted)
 
 * "ACCESS DENIED" header
-* Stats summary (same as win)
-* "Retry" button
-* Share card still generated (shows progress made)
+* KOA: "Time's up. Your story had gaps."
+* Remaining resistance shown
+* Unaddressed concerns highlighted
 
-### 6.3 Share card format
+### 6.3 Loss screen (Scrutiny 5)
+
+* "SCRUTINY OVERLOAD" header
+* KOA: "Your story fell apart under scrutiny."
+* Scrutiny meter: 🔴🔴🔴🔴🔴 (5/5)
+* Key contradictions that cost scrutiny listed
+
+### 6.4 Share card format
 
 ```
-AURA Daily • 2026-01-26
-FRIDGE unlocked
-⭐⭐⭐ Gold (4 turns left)
-Scrutiny peak: 3/5
-No audits triggered
+HOME SMART HOME — Daily #42
+🧊 SMART FRIDGE
+
+[You're you ✓] [Awake ✓] [Meant it ✓]
+
+Resistance: ████████░░ → ░░░░░░░░░░
+Scrutiny: ⚪⚪⚪⚪⚪ (0/5)
+Turns: 4/6
+
+ACCESS GRANTED ✅
 ```
 
 ---
@@ -330,55 +416,77 @@ No audits triggered
 * **Daily** — primary (shows today's target)
 * **Practice** — secondary (tutorial/sandbox)
 * **Codex** — completion tracking
-* **Settings**
+* **Settings** — display modes, voice packs
 
 ### Daily card
 
-* Shows target device
-* Shows protocol count
-* Shows "First clear" or "Best: Gold"
-* One-tap "Start Daily"
+* Shows target device + theme
+* Shows KOA's opening line preview
+* Shows "Best: 4 turns" or "Not yet cleared"
+* One-tap "Play Daily"
 
 ---
 
 ## 8) Latency + voice handling (UI-level rules)
 
 * Mechanics update at T=0 from deterministic resolver output.
-* Voice line renders at T=0 as **pre-gen bark** selected by `OutcomeKey`.
-* If "Enhanced Voice" is enabled, show the deluxe line **as an edit** that arrives later:
-
-  * The transcript card can "upgrade" its flavor line without changing any numbers.
-* Never block SUBMIT on voice.
+* KOA dialogue renders at T=0 as **pre-generated content** from puzzle pack.
+* All 41 card combinations have pre-generated dialogue.
+* Never block SUBMIT on voice or network.
 
 ---
 
 ## 9) What to avoid in the UI (production warnings)
 
-1. **No move selection in Daily.**
-   * Daily has SUBMIT and SCAN. That's it.
-   * Don't show FLAG/REWIRE/EXPLOIT toggles.
+1. **No SCAN button in Daily.**
+   * Daily has SUBMIT only.
+   * No reserve, no refresh mechanic.
 
-2. **No Ops Tokens display in Daily.**
+2. **No Draft screen in Daily.**
+   * Players are dealt 6 cards immediately.
+   * No card selection phase.
+
+3. **No Audit interstitial in Daily.**
+   * Scrutiny 5 = instant loss.
+   * No audit recovery phase.
+
+4. **No Ops Tokens display in Daily.**
    * Tokens don't exist in Daily mode.
 
-3. **Use player terminology in Daily.**
+5. **Use player terminology in Daily.**
    * "Resistance" not "Gate Strength"
-   * "Protocol" not "Gate"
+   * "Concern" not "Gate"
    * "Submit" not "Inject"
-   * "Scan" not "Cycle"
+   * "Your Story" not "Committed Testimony"
 
-4. **Protocol targeting must be clear.**
-   * If multiple protocols are active, show which one the current payload addresses.
+6. **Counter visibility must be toggleable.**
+   * FULL mode: All counters visible from start
+   * HIDDEN mode: Counters revealed when triggered
 
 ---
 
-## 10) SCAN economy (simple counter)
+## 10) Progressive Disclosure UI
 
-SCAN is implemented as:
+### 10.1 Minimal Mode (default)
 
-* Button label: "SCAN" with cost indicator (+2 Scrutiny)
-* Show remaining uses: `Scans: 1 left` (typical max: 2)
-* When scans exhausted, button disabled with tooltip "No scans remaining"
+* Card power: ⭐⭐⭐ stars
+* Resistance: bar only
+* Scrutiny: KOA mood only
+* Damage: "That got through" not numbers
+
+### 10.2 Full Stats Mode (toggle)
+
+* Card power: exact numbers
+* Resistance: bar + "25/40"
+* Scrutiny: "2/5" meter
+* Damage: floating numbers, formula visible
+
+### 10.3 Toggle access
+
+* Settings icon always visible on run screen
+* Long-press KOA avatar = quick toggle
+* Changes apply immediately
+* Preference persists across sessions
 
 ---
 
@@ -386,14 +494,13 @@ SCAN is implemented as:
 
 Add a persistent affordance (one tap away from any outcome):
 
-* "Why did that work?" expands a panel showing:
-
-  * Protocol(s) checked
-  * Counter-path selected
-  * Which tags/traits satisfied which requirement
-  * Compliance calculation breakdown
-  * Deltas (Resistance change, Scrutiny change)
-  * Any audit triggers
+* "WHY?" button opens panel showing:
+  * Concerns checked
+  * Damage calculation breakdown
+  * Counter status (contested/refuted)
+  * Corroboration bonus applied
+  * Scrutiny changes
+  * What was added to "Your Story"
 
 This is what makes the game feel "real" and not LLM fluff.
 
@@ -405,16 +512,18 @@ When Freeplay mode ships:
 
 ### 12.1 Additional elements
 
-* **Ops Tokens display** in top HUD (e.g., `3`)
-* **Ops Strip** in action builder (FLAG, REWIRE, EXPLOIT toggles)
+* **Draft screen** (pick from pool)
+* **Ops Tokens display** in top HUD
+* **Ops Strip** in action builder (FLAG, REWIRE, EXPLOIT)
 * **Act indicator** (e.g., `Act 2 / 3`)
-* **Gate Strength bars** (multiple gates)
+* **Multiple Gates** (not just Concerns)
+* **SCAN/Cycle** mechanic
 
 ### 12.2 Terminology switch
 
 Freeplay uses internal terms:
 * "Gate Strength" instead of "Resistance"
-* "Gate" instead of "Protocol"
+* "Gate" instead of "Concern"
 * "Inject" instead of "Submit"
 * "Cycle" instead of "Scan"
 
@@ -430,8 +539,8 @@ Freeplay uses internal terms:
 In Daily mode, display:
 
 * `Daily Seed ID`
-* `Manifest ID` (or content snapshot hash)
-* `Standard Loadout` badge (meta perks disabled)
+* `Puzzle ID` (content snapshot)
+* `Same cards for everyone` badge
 
 This prevents player distrust when outcomes feel tight.
 
@@ -442,17 +551,15 @@ This prevents player distrust when outcomes feel tight.
 Add small but critical indicators:
 
 * Offline/Online badge (non-intrusive)
-* Pack integrity status:
-
-  * `PACKS VERIFIED`
-  * `PACKS STALE` (safe but warn)
-  * `PACKS INVALID` (fail-closed; cannot start Daily)
+* Puzzle cache status:
+  * `PUZZLE CACHED`
+  * `PUZZLE STALE` (safe but warn)
+  * `PUZZLE MISSING` (fail-closed; cannot start Daily)
 
 ---
 
 ## 15) Latency Strategy (UI contract)
 
-Even if you later add Enhanced AURA:
-
-* UI must never block "SUBMIT" resolution on LLM.
-* Flavor bark can arrive late and append to transcript with a subtle "(late)" marker if needed.
+* UI must never block "SUBMIT" resolution on network.
+* All dialogue is pre-generated per puzzle.
+* Mechanics are deterministic and instant.

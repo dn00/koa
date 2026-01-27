@@ -1,19 +1,21 @@
-# D29 — PLAYER-FACING RULES CARD (Daily Puzzle Contract) v2.0
+# D29 — PLAYER-FACING RULES CARD (Daily Puzzle Contract) v3.0
 
-**Status:** Draft v2.0 (ship-blocking)
+**Status:** Draft v3.0 (ship-blocking)
 **Owner:** Product / UX
 **Last Updated:** 2026-01-26
 **Purpose:** Player-visible rulebook for Daily mode. This is the contract: everything here is explicit, nothing is hidden. The same inputs always produce the same results.
-
-**Mode:** Option B — Daily Draft (Single-Incident)
+**Canonical Reference:** D31-ADVERSARIAL-TESTIMONY-DESIGN.md
 
 ---
 
 ## 0) What this game is
 
-**Life with AURA** is a 5-minute daily logic puzzle where a smart-home AI (AURA) blocks a device (like your fridge) until you prove—using evidence cards—that your action is "allowed."
+**Home Smart Home** is a 5-minute daily logic puzzle where a smart-home AI (KOA) blocks a device (like your fridge) until you prove—using evidence cards—that your action is "allowed."
 
-You win by **reducing Resistance to 0** before you run out of turns.
+You win by **reducing Resistance to 0** AND **addressing all of KOA's concerns** before you run out of turns.
+
+**One-sentence pitch:**
+> "Build your alibi one piece at a time, but KOA cross-examines every claim — and you can see her counter-evidence before you commit."
 
 ---
 
@@ -21,49 +23,60 @@ You win by **reducing Resistance to 0** before you run out of turns.
 
 ### You win when:
 
-* **Resistance reaches 0** (the device unlocks).
+* **Resistance reaches 0**, AND
+* **All concerns are addressed** (KOA's questions are answered)
 
 ### You lose when:
 
-* You reach **Turn 0** and Resistance is still above 0.
-
-There are no other loss conditions in Daily mode.
+* You reach **Turn 0** and resistance is still above 0 or concerns remain unaddressed, OR
+* **Scrutiny reaches 5** (your story fell apart)
 
 ---
 
 ## 2) What you see on screen
 
-### A) The AURA Monitor (Top HUD)
+### A) The KOA Monitor (Top HUD)
 
 * **Target Device**: what's locked (FRIDGE, COFFEE, DOOR, etc.)
-* **Resistance**: a bar (starts at 100, must reach 0)
-* **Turns Remaining**: how many submissions you have left (usually **8**)
-* **Scrutiny**: a meter from **0 to 5** (risk pressure)
-* **Active Protocol**: the rule you must satisfy right now
-  Example: "Timestamp Required" or "No Self-Report"
+* **Resistance**: a bar (must reach 0)
+* **Turns Remaining**: how many submissions you have left (usually **6**)
+* **Scrutiny**: a meter from **0 to 5** (risk pressure — 5 = you lose)
+* **Concerns**: what KOA needs you to prove
+  Examples: "Prove you're you." "Prove you're awake." "Prove you meant to do this."
 
-### B) AURA Avatar (Center)
+### B) KOA Avatar (Center)
 
-AURA's avatar is always present. It is **visual + voice flavor**.
-Important: AURA's lines do **not** change the rules. The rules are always deterministic.
+KOA's avatar is always present. Her **mood** indicates how your case is going:
+* **NEUTRAL** — Game start
+* **CURIOUS** — Evaluating your cards
+* **SUSPICIOUS** — Minor contradictions detected
+* **BLOCKED** — Major contradiction, can't proceed
+* **GRUDGING** — You refuted her counter
+* **IMPRESSED** — Clean submission
+* **RESIGNED** — You're winning
+* **SMUG** — You're losing
 
-### C) Transcript / Log (Center feed)
+KOA's lines are flavor, not rules. The rules are always deterministic.
 
-Shows exactly what happened each turn:
+### C) Counter-Evidence Panel
 
-* what you submitted
-* whether it satisfied the protocol
-* how much Compliance you gained
-* Scrutiny changes, Audits, and quarantines
+Shows KOA's ammunition:
+* **Counter-evidence cards** that challenge your evidence
+* What proof types each counter targets
+* Whether each counter has been refuted
 
-### D) Evidence Panel (Bottom)
+### D) Committed Story (Timeline)
 
-* Your **Evidence** (the 6 cards you drafted)
-* Two **Payload Slots** (you may submit 1 or 2 cards)
-* Two buttons:
+Shows everything you've already submitted:
+* Cards in your story
+* Time ranges and claims
+* Helps you avoid contradictions
 
-  * **SUBMIT**
-  * **SCAN** (refresh your options, but risky)
+### E) Evidence Panel (Bottom)
+
+* Your **6 dealt cards** (you don't pick them — same for all players today)
+* **SUBMIT button**: play 1-3 cards
+* **Preview**: shows damage, concerns addressed, KOA's response, and any contradictions
 
 ---
 
@@ -71,81 +84,115 @@ Shows exactly what happened each turn:
 
 ### Resistance
 
-The lock's "stubbornness." Starts at **100**. You must reduce it to **0**.
+The lock's "stubbornness." Starts at **35** (Normal). You must reduce it to **0**.
 
 ### Evidence Cards
 
-Your "digital scraps" (receipts, logs, sensor readings, emails). Each card has:
+Your proof (receipts, logs, sensor readings, photos). Each card has:
 
-* **Impact** (a number): how strong it is if accepted
-* **Trust Tier**: VERIFIED / PLAUSIBLE / SKETCHY
-* **Tags**: like TIME, WORK, PURCHASE, SENSOR, AUTHORITY, LOCATION
-* Optional Traits: like TIMESTAMPED, EDITABLE, CORROBORATABLE
+* **Power** (a number): how much damage it deals if accepted
+* **Proves**: which concerns it addresses (IDENTITY, ALERTNESS, etc.)
+* **Claims**: what it says about your timeline
+  * Time range (e.g., "2:05am to 2:10am")
+  * Location (e.g., KITCHEN)
+  * State (e.g., AWAKE)
 
-### Active Protocol
+### Concerns
 
-The rule AURA is enforcing **right now**.
-You must satisfy it to make progress.
+What KOA needs you to prove. All must be addressed to win.
 
-### Payload
+| Concern | KOA asks |
+|---------|----------|
+| IDENTITY | "Prove you're you." |
+| ALERTNESS | "Prove you're awake." |
+| INTENT | "Prove you meant to do this." |
+| LOCATION | "Prove you're actually home." |
+| LIVENESS | "Prove you're not a photo." |
 
-The 1 or 2 cards you place into the payload slots before pressing SUBMIT.
+### Counter-Evidence
 
-### Compliance (Progress)
+KOA's challenges. When you submit evidence that matches a counter's target:
+* Your evidence is **contested** (deals only 50% damage)
+* Use a **refutation card** to nullify the counter
 
-How much Resistance you remove when a submission is accepted.
+### Refutation Cards
+
+Special evidence that proves KOA's counter is wrong:
+* Nullifies the counter (it no longer applies)
+* Restores damage from previously-contested cards
+* Also deals its own damage
+
+### Committed Story
+
+Everything you've submitted becomes part of your "testimony on record."
+* Future submissions are checked against your story
+* Contradictions happen when new cards conflict with your story
+
+### Contradictions
+
+When your cards make conflicting claims:
+
+| Type | What it means | Effect |
+|------|---------------|--------|
+| **MINOR** | Suspicious but possible | +1 Scrutiny, allowed |
+| **MAJOR** | Logically impossible | Blocked, can't submit |
+
+Examples:
+* MINOR: Asleep at 2:00, Awake at 2:07 (suspicious but you could wake up)
+* MAJOR: Asleep at 2:00, Awake at 2:01 (impossible to wake that fast)
+
+### Corroboration
+
+When 2+ cards in your submission agree on a claim:
+* Same location (both say KITCHEN)
+* Same state (both say AWAKE)
+* **Bonus: +25% damage**
 
 ### Scrutiny
 
-A risk meter (0–5). Risk rises when you use sketchy evidence, fail protocols, or scan too much.
+A risk meter (0–5). It rises when:
+* You submit with MINOR contradictions (+1 each)
+* You use SKETCHY evidence (+1)
 
-### Audit
-
-An automatic penalty event that triggers when Scrutiny hits 5.
-
-### Quarantine
-
-A temporary lock on a card (you cannot use it for a short time).
+**Scrutiny 5 = instant loss.** KOA: "Your story fell apart under scrutiny."
 
 ---
 
 ## 4) How a Daily works (Phases)
 
-A Daily puzzle has **four phases** every time:
+A Daily puzzle has **two main phases**:
 
-### Phase 1 — The Lock (Instant)
+### Phase 1 — The Lock (Setup)
 
 You see:
+* the **Target** (what's locked)
+* **Resistance** (how much damage you need to deal)
+* **Concerns** (what KOA needs you to prove)
+* **Turns** remaining
+* **KOA's counter-evidence** (what she'll challenge)
+* **Your 6 cards** (dealt to you — same for all players)
 
-* the **Target**
-* **Resistance (100)**
-* **Turns Remaining**
-* **Scrutiny**
-* the **Active Protocol**
+No draft. No selection. The puzzle is in the PLAY.
 
-Press **START** to begin.
+### Phase 2 — Solve (Turn-based)
 
-### Phase 2 — Draft (Pick your evidence)
+Each turn:
 
-You are shown **12 Evidence Cards**.
-You must choose **6** to keep as your **Evidence (Loadout)**.
+1. **SELECT** 1-3 cards from your hand
+2. **PREVIEW** shows:
+   - Damage you'll deal
+   - Concerns you'll address
+   - Any contradictions with your story
+   - Which counter KOA will play
+3. **SUBMIT** your cards
+4. **RESOLUTION**:
+   - Cards checked against your story
+   - KOA plays counter (if applicable)
+   - Damage calculated and applied
+   - Cards added to your story
+   - Concerns marked as addressed
 
-* The other 6 become your **Reserve** (hidden backup pool).
-* You cannot use Reserve cards directly unless you **SCAN**.
-
-### Phase 3 — Solve (Turn-based)
-
-You play in turns until you win or run out of turns.
-
-On each turn you may do **exactly one** of these actions:
-
-* **SUBMIT** (try to reduce Resistance), or
-* **SCAN** (refresh your evidence options; risky)
-
-### Phase 4 — Result (End)
-
-* If Resistance reaches 0: you win, and you get your result screen.
-* If turns reach 0: you lose, and you see why.
+Repeat until you win or lose.
 
 ---
 
@@ -153,308 +200,320 @@ On each turn you may do **exactly one** of these actions:
 
 ### Step-by-step
 
-1. Choose **1 or 2** cards from your Evidence.
-2. Put them into the **Payload Slots**.
-3. Press **SUBMIT**.
+1. Select **1, 2, or 3** cards from your hand
+2. Check the preview (damage, contradictions, KOA's response)
+3. Press **SUBMIT**
 
 ### What happens next (deterministic)
 
-AURA checks your payload against the **Active Protocol**.
+#### 1. Contradiction Check
 
-#### If your payload satisfies the protocol:
+Your cards are checked against your committed story:
+* **MAJOR contradiction**: blocked, can't submit
+* **MINOR contradiction**: allowed, but +1 Scrutiny
 
-* You gain **Compliance**.
-* **Resistance decreases** by that Compliance amount.
+#### 2. KOA Responds
 
-#### If your payload does NOT satisfy the protocol:
+If any of your cards' proof types match a counter's targets:
+* KOA plays that counter
+* Those cards are **contested** (50% damage)
 
-* You gain **0 Compliance**.
-* Resistance does not go down.
-* Scrutiny usually rises (see Scrutiny rules).
+#### 3. Damage Calculation
 
----
+For each card:
+* Start with card's **Power**
+* If contested: multiply by 0.5 (round up)
+* Add to total
 
-## 6) The rules engine: Protocols and Paths
+If 2+ cards share a claim (corroboration):
+* Multiply total by 1.25 (round up)
 
-Each Active Protocol has **2–4 valid paths** (ways to satisfy it).
+**Resistance decreases** by the final damage.
 
-A "path" is a checklist like:
+#### 4. Concerns Addressed
 
-* "Payload must include AUTHORITY + TIME"
-* "Payload must include PURCHASE + TIMESTAMPED"
-* "At least one VERIFIED card must be included"
+Each card that proves a concern type marks that concern as addressed.
+(Contested cards still address concerns — they just deal less damage.)
 
-### Important: Protocol checks are payload-wide
+#### 5. Story Updated
 
-It does NOT matter which card has which tag, as long as the **combined payload** satisfies the path.
-
-Example:
-
-* Protocol path requires: **AUTHORITY + TIME**
-* Card A has AUTHORITY
-* Card B has TIME
-  → Together, the payload satisfies the path.
-
-You can always tap the Active Protocol to see its valid paths (the game is a puzzle, not a guessing game).
+Your submitted cards are added to your committed story.
 
 ---
 
-## 7) Numbers: Impact, Compliance, and Resonance
+## 6) Counter-Evidence and Refutation
 
-### A) Impact (numbers are real in this game)
+### How counters work
 
-Yes—this game uses numbers.
+KOA has counter-evidence that challenges your proof:
 
-Each Evidence Card has an **Impact value** (an integer).
-Impact represents how much progress it can make *if accepted*.
+| Counter | Targets | Effect |
+|---------|---------|--------|
+| Security Camera | IDENTITY, LOCATION | "No one at door 2:07am" |
+| Sleep Data | ALERTNESS | "User asleep until 2:30am" |
+| GPS History | LOCATION | "Phone at gym until 1:50am" |
 
-### B) Compliance formula (how progress is calculated)
+When you submit evidence that matches a counter's targets:
+* That evidence is **contested**
+* It deals only **50% damage**
 
-If the protocol is satisfied:
+### How refutation works
 
-1. **BaseImpact** = sum of Impact values in your payload
+Refutation cards prove the counter is wrong:
 
-* 1-card payload: Impact(A)
-* 2-card payload: Impact(A) + Impact(B)
+| Refutation | Nullifies | Flavor |
+|------------|-----------|--------|
+| Maintenance Log | Security Camera | "Camera offline for firmware update" |
+| Noise Complaint | Sleep Data | "Neighbor heard footsteps at 2:05am" |
+| Phone Left Behind | GPS History | "Device at home while GPS shows gym" |
 
-2. Check **Resonance** (combo bonus)
+When you submit a refutation:
+* The target counter is **nullified**
+* All previously-contested evidence **restores its missing damage** (retroactive!)
+* The refutation card also deals its own damage
 
-* Resonance occurs only when:
-
-  * you submit **two** cards, and
-  * they share at least one tag from this list:
-    **TIME, LOCATION, WORK, PURCHASE, SENSOR, AUTHORITY**
-
-If Resonance is true:
-
-* **Multiplier = 1.5**
-  Otherwise:
-* **Multiplier = 1.0**
-
-3. **Compliance** = floor(BaseImpact × Multiplier)
-
-4. **Per-turn cap**
-   Compliance is capped per turn to keep the Daily from being trivial:
-
-* **Compliance = min(Compliance, 30)**
-
-5. Resistance decreases:
-
-* **Resistance = Resistance − Compliance**
-
-If the protocol is not satisfied:
-
-* **Compliance = 0**
+**Example:**
+- Turn 1: Submit Face ID (12 power), contested → 6 damage
+- Turn 2: Submit Maintenance Log (5 power), refutes camera → 5 damage + 6 restored = 11 total
 
 ---
 
-## 8) The second action: SCAN (refresh, but risky)
+## 7) Damage Formula (complete)
 
-SCAN is how you swap out weak evidence for new options.
+```
+total = 0
 
-### What SCAN does
+for each card:
+    damage = card.power
+    if card is contested AND counter not refuted:
+        damage = ceil(damage × 0.5)
+    total += damage
 
-* You choose **1 or 2** cards in your Evidence to discard.
-* The game replaces them with cards pulled from your **Reserve**.
-* This is deterministic for the daily seed (not "slot machine RNG").
+if 2+ cards share same claim:
+    total = ceil(total × 1.25)
 
-### Cost of SCAN
+resistance -= total
+```
 
-When you SCAN:
-
-* It consumes **1 Turn**
-* It adds **+2 Scrutiny**
-
-### Limits
-
-* You cannot SCAN if Scrutiny is already maxed (5).
-* The Daily may limit SCAN uses (typical: max 2).
+**Rounding:** Always round UP (favors you).
 
 ---
 
-## 9) Scrutiny, Audit, and Quarantine
+## 8) Contradictions (timeline conflicts)
 
-Scrutiny is the game's pressure system. It is predictable, not random.
+Your cards make claims about time, location, and state. If new cards conflict with your story:
 
-### Scrutiny increases
+### State Conflicts
 
-* If you SUBMIT a payload containing any **SKETCHY** card: **+1**
-* If your SUBMIT fails the protocol (Compliance = 0): **+1**
-* If you SCAN: **+2**
+| Conflict | Time Gap | Result |
+|----------|----------|--------|
+| ASLEEP ↔ AWAKE | <3 min | MAJOR (blocked) |
+| ASLEEP ↔ AWAKE | 3-10 min | MINOR (+1 scrutiny) |
+| ASLEEP ↔ AWAKE | >10 min | OK |
+| DROWSY ↔ ALERT | <5 min | MINOR |
 
-### Audit trigger
+### Location Conflicts
 
-* If Scrutiny reaches **5**, an **Audit triggers immediately**.
+| Conflict | Time Gap | Result |
+|----------|----------|--------|
+| HOME ↔ GYM | <20 min | MAJOR (blocked) |
+| HOME ↔ GYM | 20-30 min | MINOR |
+| BEDROOM ↔ KITCHEN | <30 sec | MAJOR |
+| BEDROOM ↔ KITCHEN | 30 sec - 2 min | MINOR |
 
-### What an Audit does (penalty)
-
-When an Audit triggers:
-
-1. **Resistance heals +15** (up to its maximum)
-2. One card is **Quarantined for 2 turns**:
-
-   * specifically, the **highest-impact card you just submitted**
-3. Scrutiny resets to **2**
-
-### What Quarantine means
-
-* A quarantined card is locked/disabled.
-* You cannot place it into your payload until quarantine ends.
+**KOA explains WHY it's suspicious:**
+> "Deep sleep to fully alert in 5 minutes? Either you have superhuman reflexes, or something doesn't add up."
 
 ---
 
-## 10) Turn structure (exact)
+## 9) Corroboration (agreement bonus)
+
+When 2+ cards in your submission share a claim:
+* Same location (both KITCHEN)
+* Same state (both AWAKE)
+* Same activity (both WALKING)
+
+**Bonus: +25% total damage**
+
+KOA: "...Annoyingly consistent. Your evidence corroborates."
+
+---
+
+## 10) Scrutiny (risk meter)
+
+Scrutiny tracks how suspicious your testimony looks.
+
+| Event | Scrutiny |
+|-------|----------|
+| MINOR contradiction | +1 |
+| SKETCHY card used | +1 |
+
+**Scrutiny 5 = instant loss.**
+
+KOA: "Your story fell apart under scrutiny. Too many inconsistencies. Access denied."
+
+---
+
+## 11) Turn structure (exact)
 
 Each turn:
 
-1. You choose an action: **SUBMIT** or **SCAN**
-2. The game applies effects (Compliance, Scrutiny changes, possible Audit)
-3. Turns remaining decreases by 1
-4. AURA logs the outcome in the transcript
+1. Select 1-3 cards
+2. Preview shows outcome
+3. Submit (or deselect and try again)
+4. Resolution applies
+5. Turns remaining decreases by 1
+6. KOA logs the outcome
 
 ---
 
-## 11) Worked example (one concrete turn)
+## 12) Worked example (one concrete turn)
 
 **State:**
+* Resistance = 28
+* Scrutiny = 1
+* Concerns: IDENTITY (addressed), ALERTNESS (not addressed)
+* KOA's counter: Sleep Data (targets ALERTNESS, not refuted)
 
-* Resistance = 70
-* Turns remaining = 5
-* Scrutiny = 3
-* Active Protocol requires: **AUTHORITY + TIME**
+**Your hand includes:**
+* Smart Watch (11 power, proves ALERTNESS, claims AWAKE 2:00-2:15am)
+* Noise Complaint (6 power, refutes Sleep Data)
 
-**Your Evidence includes:**
+**You SUBMIT Smart Watch + Noise Complaint**
 
-* Card A: "FDA Article" — Impact 12 — Tag: AUTHORITY — Trust: VERIFIED
-* Card B: "Timestamped Receipt" — Impact 10 — Tag: PURCHASE + TIME — Trust: PLAUSIBLE
-
-**You SUBMIT Card A + Card B**
-
-* Combined tags include AUTHORITY + TIME → protocol satisfied
-* BaseImpact = 12 + 10 = 22
-* Resonance? Shared allowlisted tag? (They share none) → no resonance
-* Compliance = floor(22 × 1.0) = 22 (cap doesn't apply)
-* Resistance becomes 70 − 22 = 48
-* Scrutiny changes:
-
-  * payload includes no SKETCHY → +0
-* Turn ends.
+**Resolution:**
+1. No contradictions with committed story ✓
+2. KOA would play Sleep Data, but Noise Complaint refutes it!
+3. Damage:
+   - Smart Watch: 11 (not contested because counter refuted)
+   - Noise Complaint: 6
+   - No corroboration (different claims)
+   - Total: 17
+4. Resistance: 28 → 11
+5. ALERTNESS: now addressed
+6. Turn ends
 
 ---
 
-## 12) What makes this a puzzle (strategy, not guessing)
+## 13) What makes this a puzzle (strategy, not guessing)
 
 Winning is about:
 
-* drafting evidence that covers multiple protocol paths
-* finding **Resonance pairs** so you can hit higher compliance efficiently
-* deciding when to risk **SKETCHY** power versus staying safe
-* choosing whether SCAN is worth the scrutiny + turn cost
+* **Sequencing**: When to play which cards
+* **Counter management**: Refute vs. accept contested penalty
+* **Corroboration hunting**: Find cards that agree for +25%
+* **Contradiction avoidance**: Read your story before submitting
+* **Scrutiny budgeting**: How many minor mistakes can you afford?
 
 ---
 
-## 13) What Daily mode is NOT (to avoid confusion)
+## 14) What Daily mode is NOT (to avoid confusion)
 
 * It is not a chat sandbox. You do not type freeform arguments.
-* AURA's dialogue is flavor, not a rules engine.
-* You are not building a long roguelite deck.
+* KOA's dialogue is flavor, not a rules engine.
+* You are not drafting cards (same 6 for everyone).
+* There is no SCAN action (no card swapping).
 * There are no "Ops moves" (Flag/Rewire/Exploit) in Daily v1.
 
 ---
 
-## 14) Quick reference (one screen summary)
+## 15) Quick reference (one screen summary)
 
-**Daily Flow:** Lock → Draft 6 of 12 → Solve in 8 turns
-**Actions:** SUBMIT (1–2 cards) or SCAN (swap cards)
-**Win:** Resistance 0
-**Loss:** Turns 0
-**Compliance:** if protocol satisfied: floor((Impact sum) × (1.5 if Resonance else 1.0)), capped at 30
-**Resonance:** 2 cards share TIME/LOCATION/WORK/PURCHASE/SENSOR/AUTHORITY
-**Scrutiny:** 0–5, triggers Audit at 5
-**Audit:** Resistance +15, quarantine highest-impact submitted card 2 turns, Scrutiny resets to 2
+**Daily Flow:** Lock → Solve → Result
+**Action:** SUBMIT (1-3 cards per turn)
+**Win:** Resistance 0 AND all concerns addressed
+**Loss:** Turns 0 OR Scrutiny 5
+**Damage:** Power (50% if contested) + 25% if corroboration
+**Refutation:** Nullifies counter, restores contested damage
+**Contradictions:** MINOR = +1 scrutiny, MAJOR = blocked
+**Cards:** 6 dealt (same for all players)
+**Turns:** 6 (Normal difficulty)
 
 ---
 
-## 15) Terminology mapping (player ↔ internal)
+## 16) Terminology mapping (player ↔ internal)
 
 For engineering/content authors—player-facing terms map to internal terms:
 
 | Player term | Internal term |
 |-------------|---------------|
 | Resistance | `lock_strength` |
-| Protocol | `gate` |
-| Submit | `inject` |
-| Scan | `cycle` |
-| Evidence | `artifact` / `card` |
-| Compliance | `damage` / `progress` |
+| Concern | `proof_requirement` |
+| Submit | `submit` |
+| Evidence | `evidence_card` |
+| Counter-Evidence | `counter` |
+| Refutation | `refutation_card` |
+| Corroboration | `claim_match_bonus` |
+| Contested | `counter_penalty` |
 
 ---
 
-## 16) What is NOT in Daily v1 (explicitly deferred)
+## 17) What is NOT in Daily v1 (explicitly deferred)
 
 These mechanics exist in design docs but are **not part of Daily MVP**:
 
-* **Ops Tokens** and **Ops Protocols** (FLAG/REWIRE/EXPLOIT)
-* **3-Act ladder** (multi-incident runs)
-* **Boss Modifiers** (complex run modifiers)
-* **Shops / between-act caches**
-* **Meta-progression unlocks**
+* **Draft phase** (picking cards)
+* **SCAN action** (swapping cards)
+* **Reserve pool**
+* **Audit penalty** (replaced by Scrutiny 5 = loss)
+* **Ops Tokens** and extended moves (FLAG/REWIRE/EXPLOIT)
+* **Multi-puzzle ladder** (Freeplay mode)
 
-These may appear in **Freeplay / Challenge Mode** later.
+These may appear in **Freeplay mode** later.
 
 ---
 
-## 17) Daily Intro Screen (what the player sees)
+## 18) Daily Intro Screen (what the player sees)
 
 The intro screen is **minimal**. Full rules are one tap away.
 
 ### Visible by default:
 
 ```
-DAILY: 2026-01-26 • Seed: AURA-1F9C
+DAILY: 2026-01-26 • Seed: KOA-1F9C
 
 TARGET: FRIDGE
-RESISTANCE: 100 → 0
-TURNS: 8
+RESISTANCE: 35 → 0
+TURNS: 6
 
-PROTOCOL:
-• NO_SELF_REPORT — Your word doesn't count.
+KOA ASKS:
+• "Prove you're you." (IDENTITY)
+• "Prove you're awake." (ALERTNESS)
+• "Prove you meant to do this." (INTENT)
+
+KOA WILL CHALLENGE:
+• Security Camera → "You're you"
+• Sleep Data → "Awake"
+
+YOUR HAND: 6 cards dealt
 
 [ START DAILY ]        [ FULL RULES ]
 ```
 
-### "Full Rules" accordion contains:
-
-* Draft rules (pick 6 of 12)
-* Payload rules (1–2 cards)
-* Compliance formula
-* Resonance rules
-* Scrutiny thresholds and audit behavior
-* Scan rules
-* Glossary
-
 ---
 
-## 18) Scoring and sharing
+## 19) Scoring and sharing
 
-Your **first clear** performance is what you share.
+Your score is based on:
 
-| Par | Turns remaining |
-|-----|-----------------|
-| Gold | ≥4 |
-| Silver | ≥2 |
-| Bronze | ≥1 |
+| Metric | Better Is |
+|--------|-----------|
+| Turns used | Fewer |
+| Power dealt | Higher |
+| Contradictions | Fewer (0 = perfect) |
+| Counters refuted | More |
 
 * Retries are unlimited.
-* Share card shows first-clear par and best par.
+* Share card shows your performance.
 
 **Share card format:**
 ```
-AURA Daily • 2026-01-26
+Home Smart Home • 2026-01-26
 FRIDGE unlocked
-⭐⭐⭐ Gold (4 turns left)
-Scrutiny peak: 3/5
-No audits triggered
+Turns: 4/6
+Power: 52
+Contradictions: 0
+Counters refuted: 2/2
 ```
 
 ---
@@ -463,5 +522,5 @@ No audits triggered
 
 1. This document is the **authoritative player-facing contract** for Daily mode.
 2. Engineering uses internal terminology; UI uses player terminology.
-3. Every rule shown maps 1:1 to Protocol Pack, IncidentSpec, and Daily manifest.
+3. Every rule shown maps 1:1 to D31 mechanics.
 4. No mechanic used during play may be absent from this contract.

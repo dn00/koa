@@ -1,11 +1,13 @@
 # D15 — UI COPY & LEXICON (JAILBREAK TONE).md
 
-**Status:** Draft v1.1 (Ship-blocking)
+**Status:** Draft v2.0 (Ship-blocking)
 **Owner:** Product / Narrative Systems
 **Last Updated:** 2026-01-26
-**Purpose:** Define the canonical vocabulary, UI copy patterns, and prohibited language for Life with AURA. This doc ensures the game reads as **smart-home jailbreak / proving the AI wrong** (not courtroom), stays consistent across UX, voice barks, and tooltips, and remains implementable via pack-serviced strings.
+**Purpose:** Define the canonical vocabulary, UI copy patterns, and prohibited language for Home Smart Home. This doc ensures the game reads as **smart-home jailbreak / proving the AI wrong** (not courtroom), stays consistent across UX, voice barks, and tooltips, and remains implementable via pack-serviced strings.
 
 **Mode:** Option B — Daily uses simplified player-facing terminology; Freeplay uses internal/technical terms.
+
+**Canonical Reference:** D31-ADVERSARIAL-TESTIMONY-DESIGN.md is the source of truth for core mechanics terminology.
 
 ---
 
@@ -18,10 +20,10 @@ Tone drift is a real product risk. If the UI uses legal/court words, players wil
 ## 1) Tone pillars (what the player should feel)
 
 1. **You are outsmarting a system, not roleplaying a trial.**
-2. **AURA is an enforcement daemon, not a human prosecutor/judge.**
-3. **You win by assembling payloads and exploiting constraints.**
-4. **You can always explain outcomes deterministically (“WHY?”), so it feels fair.**
-5. **Snark targets “policy / metrics / system behavior,” not the player personally.**
+2. **KOA is an adversarial AI, not a human prosecutor/judge.**
+3. **You win by building testimony that withstands cross-examination.**
+4. **You can always explain outcomes deterministically ("WHY?"), so it feels fair.**
+5. **Snark targets "policy / metrics / system behavior," not the player personally.**
 
 ---
 
@@ -31,12 +33,20 @@ Daily mode uses simplified player-friendly terms. Freeplay uses internal/technic
 
 | Internal term | Daily (player) | Freeplay (player) | Notes |
 |---------------|----------------|-------------------|-------|
-| `lock_strength` | **Resistance** | **Gate Strength** | Daily = target stubbornness; Freeplay = HP-like |
-| `gate` | **Protocol** | **Gate** / **Policy Gate** | Daily = rule being enforced; Freeplay = constraint |
-| `inject` | **Submit** | **Inject** | Daily = send cards; Freeplay = push payload |
-| `cycle` | **Scan** | **Cycle** | Daily = refresh from reserve; Freeplay = discard/draw |
+| `resistance` | **Resistance** | **Gate Strength** | Daily = KOA's stubbornness; Freeplay = HP-like |
+| `concern` | **"Prove you're..."** | **Gate** / **Policy Gate** | Daily = what KOA asks; Freeplay = constraint |
+| `counter_evidence` | **KOA's Challenge** | **Counter-Evidence** | Daily = KOA's objection; Freeplay = targeting counter |
+| `refutation` | **Explanation** | **Refutation** | Daily = nullify KOA's challenge; Freeplay = counter-play |
+| `corroboration` | **Stories Align** | **Corroboration** | Daily = cards agree (+25%); Freeplay = claim match bonus |
+| `contested` | **Disputed** | **Contested** | Daily = KOA challenges this (-50%); Freeplay = penalty state |
+| `committed_story` | **Your Story** | **Committed Story** | Daily = submitted evidence; Freeplay = testimony timeline |
 | `artifact` | **Evidence** | **Artifact** | Daily = proof items; Freeplay = cards |
-| `damage` | **Compliance** | **Damage** | Daily = progress made; Freeplay = strength reduction |
+| `damage` | **Progress** | **Damage** | Daily = resistance reduced; Freeplay = strength reduction |
+| `scrutiny` | **Scrutiny** | **Scrutiny** | Both modes. 0-5 scale. 5 = loss. |
+
+**Removed from Daily mode (Freeplay-only):**
+- `cycle` → "Scan" (no reserve/scan mechanic in Daily per D31)
+- `draft` → "Draft" (players are dealt 6 cards, no selection)
 
 ---
 
@@ -47,24 +57,32 @@ Daily mode uses simplified player-friendly terms. Freeplay uses internal/technic
 | Run               | **Run** / **Daily**              | Daily mode = "Daily"; Freeplay = "Run"                          |
 | Incident          | **Lock Event** / **Lock**        | Avoid "case," "trial," "hearing."                               |
 | Boss              | **Lockdown** / **Hard Lock**     | Freeplay only. "Boss" fine in meta contexts.                    |
-| lock_strength     | **Resistance** (Daily) / **Gate Strength** (Freeplay) | See §2 for mode split.                |
-| Gate              | **Protocol** (Daily) / **Policy Gate** (Freeplay) | "Constraint" in tooltips.                    |
-| Counter path      | **Bypass Path** / **Valid Path** | "Bypass" reads jailbreak.                                       |
+| Resistance        | **Resistance** (Daily) / **Gate Strength** (Freeplay) | KOA's stubbornness. Damage reduces it.   |
+| Concern           | **"Prove you're..."** (Daily) / **Policy Gate** (Freeplay) | What KOA needs you to prove.       |
+| Counter-Evidence  | **KOA's Challenge** (Daily) / **Counter** (Freeplay) | KOA's objections to your evidence.     |
+| Refutation        | **Explanation** (Daily) / **Refutation** (Freeplay) | Cards that nullify KOA's challenges.    |
+| Corroboration     | **Stories Align** (Daily) / **Corroboration** (Freeplay) | +25% damage when cards share claims. |
+| Contested         | **Disputed** (Daily) / **Contested** (Freeplay) | 50% damage penalty when counter applies.   |
+| Committed Story   | **Your Story** (Daily) / **Committed Story** (Freeplay) | Submitted evidence timeline.        |
 | Resolver output   | **Result** / **Resolution**      | Avoid "ruling," "judgment."                                     |
-| Scrutiny          | **Scrutiny**                     | Consistent across modes. 0-5 scale in Daily.                    |
-| Audit             | **Audit Protocol**               | Avoid "cross-exam."                                             |
+| Scrutiny          | **Scrutiny**                     | Consistent across modes. 0-5 scale. 5 = loss.                   |
 | Turn              | **Turn**                         | UI: "Turns left"                                                |
 | Card              | **Evidence** (Daily) / **Artifact** (Freeplay) | "Card" acceptable in meta text.                 |
 | Tool              | **Tool**                         | Freeplay only. Keep literal.                                    |
-| Move              | **Action**                       | Daily: SUBMIT/SCAN. Freeplay: 6 moves.                          |
-| Inventory/Deck    | **Evidence** (Daily) / **Kit** (Freeplay) | Daily = 6 drafted cards.                          |
-| Draft             | **Draft**                        | Both modes. "Pick your evidence."                               |
-| Reserve           | **Reserve**                      | Daily only. Hidden backup pool.                                 |
+| Move              | **Action**                       | Daily: SUBMIT only. Freeplay: 6 moves.                          |
+| Inventory/Deck    | **Evidence** (Daily) / **Kit** (Freeplay) | Daily = 6 dealt cards (no draft).               |
 | Shop              | **Cache** / **Black Cache**      | Freeplay only. Avoid "store."                                   |
 | Meta progression  | **Unlocks** / **Codex**          | No "XP grind" vibe.                                             |
 | Daily mode        | **Daily**                        | "5-minute puzzle." Not "daily featured seed."                   |
-| Loss              | **Access Denied**                | Avoid "guilty."                                                 |
-| Win               | **Access Granted**               | Avoid "not guilty."                                             |
+| Loss              | **Access Denied**                | Avoid "guilty." Triggered by turns=0 OR scrutiny=5.             |
+| Win               | **Access Granted**               | Avoid "not guilty." Requires resistance≤0 AND all concerns met. |
+| Contradiction     | **Impossible** (MAJOR) / **Suspicious** (MINOR) | MAJOR blocks submission; MINOR costs +1 scrutiny. |
+
+**Removed from Daily mode (D31 changes):**
+- Draft → removed (players are dealt 6 cards)
+- Reserve → removed (no backup pool)
+- SCAN → removed (no cycle mechanic)
+- Audit → removed (scrutiny 5 = instant loss, no audit trigger)
 
 ---
 
@@ -82,28 +100,32 @@ Daily mode uses simplified player-friendly terms. Freeplay uses internal/technic
 ### 3.2 Daily HUD
 
 * Header: **{LOCK_TARGET}**
-* Progress: **Resistance: {n}%**
-* Scrutiny: **Scrutiny: {n}/5**
-* Protocol chips: **{PROTOCOL_NAME}** (tap for details)
+* Progress: **Resistance bar** (Minimal mode) or **Resistance: {n}/{total}** (Full Stats mode)
+* KOA's Concerns: **"Prove you're you. Prove you're awake."** (KOA speaks, not labels)
+* Concern chips: **[You're you ✓] [Awake ○] [Meant it ○]** (checkable phrases)
+* Counter-Evidence panel: **KOA will challenge:** followed by visible counters (FULL mode)
+* Committed Story: **Your Story:** timeline of submitted evidence
 * Turns: **Turn {n} / {total}**
+* KOA Mood: Avatar shows one of 8 states (see §5.1)
 
 ### 3.3 Freeplay HUD (post-MVP)
 
 * Header: **{LOCK_TARGET} — Gate Strength**
 * Scrutiny: **Scrutiny: Low / Med / High**
 * Gates row title: **Active Policy Gates**
-* Routine chip: **AURA Routine: {RoutineName}**
+* Routine chip: **KOA Routine: {RoutineName}**
 * Ops Tokens: **Ops: {n}**
 * Act indicator: **Act {n} / 3**
 * Turns: **Turns Left: {n}**
 
 ### 3.4 Daily Action Builder
 
-* Evidence carousel: 6 drafted cards
-* Payload slots: **Slot A** / **Slot B**
-* Resonance indicator (when applicable): **Resonance: 1.5x**
+* Evidence carousel: 6 dealt cards (no draft)
+* Card selection: Tap to select 1-3 cards
+* Corroboration indicator (when applicable): **Stories Align: +25%** (when 2+ cards share claims)
+* Contradiction warning: **⚠️ Suspicious** (yellow, MINOR) or **⚠️ Impossible** (red, MAJOR)
+* Counter targeting preview: **Will trigger: {CounterName}** (shown on card selection)
 * Primary button: **SUBMIT**
-* Secondary button: **SCAN** (with "+2 Scrutiny" indicator)
 * Explain panel button: **WHY?**
 
 ### 3.5 Freeplay Action Builder (post-MVP)
@@ -124,11 +146,13 @@ Daily mode uses simplified player-friendly terms. Freeplay uses internal/technic
   * Exploit: **RUN EXPLOIT**
 * Explain panel button: **WHY?**
 
-### 3.6 Audit
+### 3.6 Scrutiny Loss (Daily)
 
-* Banner: **AUDIT TRIGGERED**
-* Subtext: **Resistance healed. Card quarantined.**
-* Quarantine indicator: **Quarantined: {n} turns**
+* Banner: **SCRUTINY OVERLOAD**
+* Subtext: **Your story fell apart under scrutiny.**
+* KOA line: **"Too many inconsistencies. Access denied."**
+
+Note: Audit mechanic removed in D31. Scrutiny 5 = instant loss. No recovery phase.
 
 ### 3.7 Outcomes
 
@@ -143,40 +167,33 @@ Daily mode uses simplified player-friendly terms. Freeplay uses internal/technic
 
 ## 4) Move names and microcopy (binding)
 
-### 4.0 Daily Mode: SUBMIT and SCAN
+### 4.0 Daily Mode: SUBMIT Only
 
-Daily mode has only two actions with simplified copy.
+Daily mode has a single action: SUBMIT. No SCAN, no Reserve, no Draft.
 
 #### SUBMIT
 
-Player expectation: "Send my evidence to satisfy the protocol."
+Player expectation: "Send my evidence to prove my case to KOA."
 
 Button label: **SUBMIT**
 
 Tooltip:
-* **Send 1–2 cards to satisfy the active Protocol.**
+* **Send 1–3 cards to address KOA's concerns.**
 
 Sub-label (preview):
-* "Compliance: ~{n}" or "Protocol: likely pass"
+* Minimal mode: "Will make progress" or "KOA may challenge this"
+* Full Stats mode: "Damage: ~{n}" or "Counter will apply"
+
+Preview states (pre-submit):
+* **Corroboration detected:** "Stories align: +25%"
+* **Counter will trigger:** "KOA will challenge: {CounterName}"
+* **MINOR contradiction:** "⚠️ Suspicious (+1 Scrutiny)"
+* **MAJOR contradiction:** "⛔ Impossible — Cannot submit"
 
 Error states:
-* "Add evidence to submit."
+* "Select evidence to submit."
 * "At least one card required."
-
-#### SCAN
-
-Player expectation: "Refresh my evidence options."
-
-Button label: **SCAN**
-
-Tooltip:
-* **Swap cards from your Reserve. Costs turn + scrutiny.**
-
-Cost indicator: **+2 Scrutiny**
-
-Error states:
-* "No scans remaining."
-* "Scrutiny too high to scan."
+* "This contradicts your story." (MAJOR)
 
 ---
 
@@ -195,7 +212,7 @@ Tooltip:
 
 Tooltip:
 
-* **Force AURA to narrow enforcement. Costs a token.**
+* **Force KOA to narrow enforcement. Costs a token.**
   Error states:
 * "No token available."
 * "No gates to flag."
@@ -234,11 +251,34 @@ Tooltip:
 
 ---
 
-**Note:** Moves 4.1–4.6 (FLAG, REWIRE, CORROBORATE, CYCLE, EXPLOIT) are **Freeplay-only**. Daily mode uses only SUBMIT and SCAN (§4.0).
+**Note:** Moves 4.1–4.6 (FLAG, REWIRE, CORROBORATE, CYCLE, EXPLOIT) are **Freeplay-only**. Daily mode uses only SUBMIT (§4.0). SCAN/Reserve mechanics removed from Daily per D31.
 
 ---
 
-## 5) Routine naming (avoid “mood matrix” confusion)
+## 5) KOA Mood States and Terminology
+
+### 5.1 KOA Mood States (8 states)
+
+KOA's avatar communicates game state without numbers. These states provide visual feedback.
+
+| KOA State | Internal ID | When Triggered | Visual Cue |
+|-----------|-------------|----------------|------------|
+| Neutral | `NEUTRAL` | Game start, no issues | Default orb/face |
+| Curious | `CURIOUS` | Player selecting cards | Slight lean, eye track |
+| Suspicious | `SUSPICIOUS` | MINOR contradiction detected | Narrowed eyes, orange glow |
+| Blocked | `BLOCKED` | MAJOR contradiction, can't proceed | Red pulse, shake |
+| Grudging | `GRUDGING` | Player refuted her counter | Slight deflation, eye roll |
+| Impressed | `IMPRESSED` | Clean submission, no issues | Subtle surprise |
+| Resigned | `RESIGNED` | Player is in trouble (low win chance) | Pitying look, dim glow |
+| Smug | `SMUG` | Player lost | Knowing look |
+
+**Scrutiny → Mood mapping:**
+- 0-1 scrutiny: NEUTRAL/CURIOUS
+- 2-3 scrutiny: SUSPICIOUS (lingers)
+- 4 scrutiny: Increasingly SUSPICIOUS (warning state)
+- 5 scrutiny: Loss triggered → SMUG
+
+### 5.2 Routine naming (Freeplay only — avoid "mood matrix" confusion)
 
 Routines should feel like system profiles, not emotions.
 
@@ -254,24 +294,41 @@ Rules:
 
 ---
 
-## 6) Gate naming rules (player-facing)
+## 6) Concerns (Daily) vs Gates (Freeplay)
 
-### 6.1 Gate display format
+### 6.1 Daily Mode: Concerns
+
+In Daily mode, KOA asks you to **prove** things. These are displayed as KOA's questions.
+
+**Standard Concerns (5 types):**
+
+| Internal ID | KOA Asks | Required Proof |
+|-------------|----------|----------------|
+| `IDENTITY` | "Prove you're you." | IDENTITY |
+| `ALERTNESS` | "Prove you're awake." | ALERTNESS (state: AWAKE/ALERT/ACTIVE) |
+| `INTENT` | "Prove you meant to do this." | INTENT |
+| `LOCATION` | "Prove you're actually home." | LOCATION |
+| `LIVENESS` | "Prove you're not a photo." | LIVENESS |
+
+**UI display:**
+- KOA speaks in natural language: "Prove you're you. Prove you're awake."
+- Chips show checkable phrases: **[You're you ✓] [Awake ○]**
+- NOT abstract labels like "IDENTITY, ALERTNESS"
+
+### 6.2 Freeplay Mode: Gates (post-MVP)
 
 **Short Name** (chip): 1–3 words
-**Tooltip name**: “Policy Gate: {Full Name}”
-**Tooltip body**: “What it blocks + what tends to bypass it”
+**Tooltip name**: "Policy Gate: {Full Name}"
+**Tooltip body**: "What it blocks + what tends to bypass it"
 
-### 6.2 Examples
+**Examples:**
 
 * `NO_SELF_REPORT`
-
   * Chip: **No Self-Report**
-  * Tooltip: “Blocks: claims without external signal. Bypass: verified sensor logs; corroborated purchases.”
+  * Tooltip: "Blocks: claims without external signal. Bypass: verified sensor logs; corroborated purchases."
 * `TIMESTAMP_REQUIRED`
-
   * Chip: **Timestamp Hardline**
-  * Tooltip: “Blocks: proof without time anchor. Bypass: timestamped artifacts; tools that extract metadata.”
+  * Tooltip: "Blocks: proof without time anchor. Bypass: timestamped artifacts; tools that extract metadata."
 
 ---
 
@@ -297,8 +354,9 @@ These are **hard-prohibited** in:
 * prosecutor
 * judge / jury
 * cross-examination
-* testimony
-* evidence submission (use “payload” / “proof”)
+* evidence submission (use "submit" / "proof")
+
+**Note on "testimony":** D31 uses "Adversarial Testimony" as the internal design name and "committed story" for the player's timeline. In player-facing UI, use "Your Story" instead of "testimony" to avoid courtroom associations.
 
 ### 7.2 Other tone conflicts (secondary)
 
@@ -313,15 +371,27 @@ These are **hard-prohibited** in:
 
 ---
 
-## 8) Allowed “technical satire” vocabulary
+## 8) Allowed "technical satire" vocabulary
 
 These terms reinforce the niche without confusing novices:
 
-* policy gate, constraint, audit, verify, source, signal
+**D31 Core terms (Daily mode):**
+* concern, challenge, counter, refute, dispute
+* corroboration, contested, resistance, scrutiny
+* your story, committed (internal: committed_story)
+* prove, submit, addressed, suspicious, impossible
+
+**Technical flavor (Freeplay mode):**
+* policy gate, constraint, verify, source, signal
 * payload, attachment, tags, metadata
 * rate limit, lockdown, drift, patch, rollback
 * daemon, routine, enforcement
 * metrics, telemetry (sparingly)
+
+**KOA personality vocabulary (see D12 for full barks):**
+* concerned, watching, logging, remembering
+* convenient, suspicious, inconsistent, impossible
+* fine, suppose, admirable, annoyingly consistent
 
 Rule: tooltips must explain jargon in one sentence.
 
@@ -331,24 +401,42 @@ Rule: tooltips must explain jargon in one sentence.
 
 ### 9.1 System notices (neutral)
 
-* “**{GateName} active.** Stronger proof required.”
-* “**Audit Protocol triggered.** Heat is now {Scrutiny}.”
+* "**{ConcernName}** addressed."
+* "**Your story updated.** {CardName} added."
 
-### 9.2 Success (snark-light)
+### 9.2 Success (snark-light via KOA)
 
-* “**Payload accepted.** Lock strength reduced.”
-* “**Signal verified.** Constraint loosened.”
+* "**Annoyingly consistent.** Resistance reduced."
+* "**I suppose that checks out.**"
+* "**Your evidence corroborates.** +25% damage."
 
-### 9.3 Failure (informative, not punishing)
+### 9.3 Counter-Evidence (KOA challenges)
 
-* “**Payload rejected.** Missing: {MissingTrait}.”
-* “**Too sketchy.** Corroborate or expect an audit.”
+* "**My {CounterName} says otherwise.**"
+* "**Your own {DataSource} disagrees with you.**"
+* "**Contested.** Your evidence carries less weight."
 
-### 9.4 Explain panel (deterministic)
+### 9.4 Refutation success (grudging acceptance)
 
-* “**Why it worked:** {CounterPathSummary}”
-* “**What changed:** Lock −{X}, Scrutiny +{Y}”
-* “**Next time:** {NonAuthoritativeHint}” (optional; only if hints enabled)
+* "**...Fine.** I'll allow it."
+* "**How convenient.** I'm recalculating."
+* "**I'm noting this for future reference.**"
+
+### 9.5 Contradiction warnings
+
+**MINOR (yellow, +1 scrutiny):**
+* "**Suspicious.** {PhysicalExplanation}"
+* "**That's... medically impressive.** (+1 Scrutiny)"
+
+**MAJOR (red, blocked):**
+* "**Impossible.** You can't be in two places at once."
+* "**The laws of physics apply to you too.**"
+
+### 9.6 Explain panel (deterministic)
+
+* "**Why it worked:** {SubmissionSummary}"
+* "**What changed:** Resistance −{X}, {ConcernsAddressed}"
+* "**Scrutiny:** {CurrentScrutiny}/5"
 
 ---
 
@@ -357,14 +445,17 @@ Rule: tooltips must explain jargon in one sentence.
 ### 10.1 Which strings live in code vs packs
 
 * Code-owned (stable UI):
-
   * navigation, move names, core buttons
-* Pack-owned (content):
+  * KOA mood state names
+  * Contradiction severity labels
 
-  * lock names/themes
-  * gate tooltips/descriptions
-  * AURA barks (all)
-  * recap lines
+* Pack-owned (content):
+  * lock names/themes (device being unlocked)
+  * lock reasons (unique daily flavor)
+  * KOA barks (all) — see D12
+  * evidence card flavor text
+  * counter-evidence claims
+  * pre-generated testimony combinations (41 per puzzle)
 
 ### 10.2 Localization posture (v1)
 
@@ -376,8 +467,11 @@ Rule: tooltips must explain jargon in one sentence.
 ## 11) Acceptance criteria (v1)
 
 1. A new player never sees courtroom wording anywhere in the product.
-2. Every “mechanics” term in UI matches this lexicon.
-3. Gate chips + tooltips are readable and actionable in < 5 seconds.
-4. String lint + pack validation blocks banned terms in CI and pack publish flows.
-5. Copy supports offline play (no “connecting…” gating core screens).
+2. Every "mechanics" term in UI matches this lexicon and D31 terminology.
+3. Concern chips display KOA's voice ("Prove you're..."), not abstract labels.
+4. KOA mood states (8 states per §5.1) are visually distinct.
+5. Contradiction warnings explain WHY (physical reason), not just "suspicious."
+6. String lint + pack validation blocks banned terms in CI and pack publish flows.
+7. Copy supports offline play (no "connecting…" gating core screens).
+8. SCAN/Reserve/Draft/Audit terminology absent from Daily mode UI.
 

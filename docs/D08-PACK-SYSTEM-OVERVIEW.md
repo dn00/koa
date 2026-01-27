@@ -1,20 +1,22 @@
-# D08 — PACK SYSTEM OVERVIEW (AURA) v1
+# D08 — PACK SYSTEM OVERVIEW v2
 
-**Status:** Draft v0.1
+**Status:** Draft v2.0
 **Owner:** Content Platform / Runtime
-**Last Updated:** 2026-01-25
-**Purpose:** Define the pack system that services Life with AURA: what packs are, how they are versioned, loaded, validated, and bound to daily/free-play runs—while keeping gameplay deterministic and offline-first.
+**Last Updated:** 2026-01-26
+**Purpose:** Define the pack system that services Home Smart Home: what packs are, how they are versioned, loaded, validated, and bound to daily/practice runs—while keeping gameplay deterministic and offline-first.
+
+**Canonical Reference:** D31-ADVERSARIAL-TESTIMONY-DESIGN.md is the source of truth for core mechanics.
 
 ---
 
 ## 1) Goals
 
-1. **Ship content without app releases** (incidents, gates, artifacts, voice, tuning).
+1. **Ship content without app releases** (puzzles, evidence, counters, voice, tuning).
 2. **Deterministic gameplay**: packs define rules and content; the resolver remains authoritative.
 3. **Fail-closed**: invalid packs never partially apply.
 4. **Offline-first**: packs are cacheable and usable without network after first fetch.
-5. **Composable**: multiple packs can be active; layering rules are explicit and predictable.
-6. **Monetization-ready**: enable “free baseline + paid expansions” by pack entitlements (without pay-to-win for Daily).
+5. **Pre-generated content**: all 41 testimony combinations pre-computed per puzzle.
+6. **Composable**: multiple packs can be active; layering rules are explicit.
 
 ---
 
@@ -27,177 +29,154 @@
 
 ---
 
-## 3) Definitions and invariants
+## 3) Pack types (D31-aligned)
 
-### 3.1 Pack
+### 3.1 Puzzle Pack (Daily Mode)
 
-A **Pack** is a versioned, immutable content artifact (JSON) that declares:
+**New in v2.** Defines complete Daily puzzles:
 
-* domain definitions (gates, artifacts, modifiers, incidents),
-* tuning parameters,
-* and text/audio assets references (voice barks).
+* Concerns (KOA's proof requirements)
+* Counter-evidence (KOA's challenges)
+* Dealt hand (6 evidence/refutation cards)
+* Pre-generated testimony for all 41 card combinations
+* KOA's dialogue and mood transitions
+* Resistance, turn budget, difficulty
 
-Once published, a pack version is **immutable**.
+**Principle:** Puzzles are complete, self-contained units ready for offline play.
 
-### 3.2 Pack Set
+### 3.2 Evidence Pack
 
-A **Pack Set** is the exact set of pack versions active for a run:
+Defines reusable templates:
 
-* `{(pack_type, pack_id, version) …}`
+* Evidence card archetypes (power, claims, proof types)
+* Refutation card archetypes (what they nullify)
+* Counter-evidence definitions
+* Standard concerns (5 types)
 
-A run must record/bind to a specific Pack Set (or Manifest ID) to ensure reproducibility.
+**Used for:** Puzzle generation pipeline, template library.
 
-### 3.3 Determinism rule
+### 3.3 Voice Pack
 
-Resolver outcomes depend only on:
-
-* initial state,
-* RNG seed(s),
-* Pack Set,
-* player actions.
-
-No wall-clock data, locale, or online responses may affect outcomes.
-
----
-
-## 4) Pack types (v1)
-
-### 4.1 Protocol Pack
-
-Defines the **rules of enforcement**:
-
-* Gate library and counter-sets
-* Scrutiny mechanics parameters (thresholds, audit triggers)
-* Boss modifier definitions (effects hooks and constraints)
-* Optional routine profiles (claim weighting profiles)
-
-**Principle:** Protocol packs define *what can happen*, not *what will happen today*.
-
-### 4.2 Incident Pack
-
-Defines **scenario templates**:
-
-* Lock targets (fridge/thermostat/router/etc.)
-* Gate bundles and weights
-* Draft offer pools (“Data Packs”) and reward tables
-* Act tuning bands (Act1/Act2/Boss)
-* Constraints ensuring solvability and variety
-
-**Principle:** Incidents are *procedurally assembled* from templates, not freeform text.
-
-### 4.3 Artifact/Tool Pack
-
-Defines the player’s **building blocks**:
-
-* Artifact archetypes (tags, trust tiers, traits, base power bands)
-* Tool definitions (corroborate/transform/tag-scrape effects)
-* Upgrade paths and sidegrades
-* Any deterministic synergy rules (if used)
-
-### 4.4 Voice Pack
-
-Defines AURA’s **barks**, keyed by deterministic outcomes:
+Defines KOA's **barks**, keyed by deterministic outcomes:
 
 * OutcomeKey → list of lines (with selection policy)
-* Intros/outros/recaps (optional)
-* Banned vocabulary lists and tone constraints (“jailbreak daemon,” not “courtroom”)
+* Mood state barks (8 states per D31)
+* Opening monologues, victory/defeat lines
+* Banned vocabulary lists and tone constraints ("jailbreak daemon," not "courtroom")
 
 **Important:** Voice never changes mechanics; it only renders results.
 
+### 3.4 Legacy Pack Types (Freeplay Mode)
+
+Preserved for post-MVP Freeplay mode:
+
+* **Protocol Pack**: Gates, counter-sets, modifiers, routines
+* **Artifact/Tool Pack**: Artifacts with tags/traits/trust tiers, tools with effects
+* **Incident Pack**: Scenario templates, draft pools, reward tables
+
 ---
 
-## 5) Versioning and compatibility
+## 4) D31 Content Structure
 
-### 5.1 Semantic versioning
+### 4.1 Pre-generated Testimony (41 combinations)
+
+For a 6-card Daily hand, there are exactly 41 possible submission combinations:
+- 6 single cards
+- 15 two-card combinations
+- 20 three-card combinations
+
+Each combination has pre-generated:
+- Player's implied testimony
+- KOA's response dialogue
+- Mechanical outcomes (damage, concerns, counters)
+- KOA's mood state
+
+### 4.2 Counter-Evidence Definitions
+
+```json
+{
+  "counter_id": "counter.visual.SECURITY_CAMERA",
+  "name": "Security Camera",
+  "targets": ["IDENTITY", "LOCATION"],
+  "claim": "No one detected at door 2:00-2:30am",
+  "refutableBy": ["refutation.core.MAINTENANCE_LOG"]
+}
+```
+
+### 4.3 Concern Definitions
+
+```json
+{
+  "concern_id": "concern.core.ALERTNESS",
+  "koaAsks": "Prove you're awake.",
+  "requiredProof": ["ALERTNESS"],
+  "stateRequirement": ["AWAKE", "ALERT", "ACTIVE"]
+}
+```
+
+### 4.4 Evidence Card Definitions
+
+```json
+{
+  "card_id": "evidence.core.FACE_ID",
+  "name": "Face ID",
+  "source": "Apple HomeKit",
+  "power": 12,
+  "proves": ["IDENTITY"],
+  "claims": {
+    "timeRange": ["2:05am", "2:10am"],
+    "location": "KITCHEN",
+    "state": "AWAKE"
+  }
+}
+```
+
+---
+
+## 5) Mode-specific Pack Requirements
+
+### 5.1 Daily Mode (MVP)
+
+Daily mode requires:
+- **Puzzle Pack**: Contains everything needed for the day
+- **Voice Pack**: KOA's dialogue (can be shared across puzzles)
+
+Daily mode does NOT require:
+- Draft pools (cards are dealt, not drafted)
+- Protocol/Gate definitions (uses Concerns instead)
+- Tool definitions (no tools in Daily MVP)
+- Incident templates (puzzle is pre-assembled)
+
+### 5.2 Freeplay Mode (Post-MVP)
+
+Freeplay mode requires all legacy pack types:
+- Protocol Pack (gates, modifiers, routines)
+- Incident Pack (templates, draft pools, rewards)
+- Artifact/Tool Pack (cards with tags/traits)
+- Voice Pack
+
+---
+
+## 6) Versioning and compatibility
+
+### 6.1 Semantic versioning
 
 Packs use SemVer: `MAJOR.MINOR.PATCH`
 
-* **PATCH**: text fixes, tuning within defined constraints, additive bark lines
-* **MINOR**: additive content (new gates/artifacts/incidents) that does not break resolver contract
-* **MAJOR**: breaking changes to schemas or mechanics that require client/runtime changes
+* **PATCH**: text fixes, tuning, additive bark lines
+* **MINOR**: additive content (new cards/puzzles) without breaking changes
+* **MAJOR**: breaking schema changes
 
-### 5.2 Runtime compatibility
+### 6.2 Schema version
 
-The client declares:
+* v1.0: Legacy packs (gates, artifacts, incidents)
+* v2.0: D31-aligned packs (puzzles, evidence, concerns, counters)
 
-* supported schema versions per pack type
-* minimum compatible protocol pack version(s)
-* supported engine capabilities
+### 6.3 Backward compatibility
 
-If a pack requires an unsupported schema or runtime capability, it must be rejected (fail-closed).
-
-### 5.3 Version field semantics
-
-* **Engine version** (`min_engine_version`): governs resolver and pack decode. This is the primary compatibility check for most packs.
-* **Client version** (`min_client_version`): governs UI-only dependencies (rarely needed; use sparingly).
-
-**Rule:** Most packs should depend only on `min_engine_version`. Use `min_client_version` only for UI-specific features (e.g., new screen types).
-
-### 5.4 Capability contract
-
-Packs declare required capabilities via `requires.capabilities_required[]`. The engine must:
-
-1. Validate that `engine_version >= pack.min_engine_version`
-2. Validate that all `capabilities_required` are in the engine's supported capability set
-3. If either check fails, **fail closed** (pack not loaded; incidents depending on it not eligible)
-
-**Capability naming convention:**
-
-* `gate.<name>_v<N>` - gate-related capabilities
-* `tool.effect_ops_v<N>` - tool effect primitives
-* `modifier.<name>_v<N>` - modifier-related capabilities
-* `voice.outcomekey_v<N>` - voice/bark selection
-
-**Extension classification:**
-
-* **Data-only extension:** uses existing capabilities only (just new JSON)
-* **Engine extension:** requires a new capability ID (needs code change)
-
-Capabilities are **monotonic**: once introduced, they never change meaning. Deprecate via new capability IDs.
-
----
-
-## 6) Composition and override rules (pack layering)
-
-We need explicit rules for “multiple packs are active.”
-
-### 6.1 Namespacing
-
-All definitions are addressed by stable IDs:
-
-* `gate_id`, `modifier_id`, `artifact_id`, `tool_id`, `incident_template_id`, `voice_pack_id`
-  IDs must be globally unique within a Pack Set.
-
-Recommended naming:
-
-* `gate.core.NO_SELF_REPORT`
-* `artifact.core.APPLE_HEALTH_LOG`
-* `incident.kitchen.MIDNIGHT_SNACK_V1`
-
-### 6.2 Add vs override
-
-A pack may:
-
-* **Add** new definitions (safe default)
-* **Override** existing definitions only if explicitly allowed via an “override contract”
-
-**V1 recommendation:** Allow overrides only for:
-
-* voice lines (safe)
-* incident pools/weights (safe if validated)
-* tuning parameters that are explicitly marked overridable
-
-Avoid overriding gate semantics in v1 unless you also ship strict compatibility tests.
-
-### 6.3 Precedence
-
-If overrides are allowed, define precedence:
-
-1. Daily/Run-bound overrides (rare, hotfix)
-2. Explicit “patch packs” (targeted adjustments)
-3. Base packs (core)
-
-Precedence must be deterministic and recorded in the Pack Set.
+* v2 clients can load v1 packs for Freeplay mode
+* v2 Daily mode requires v2 Puzzle packs
+* Voice packs require terminology update (AURA→KOA)
 
 ---
 
@@ -212,154 +191,97 @@ The backend publishes a **Manifest** that lists the recommended Pack Set per cha
 * verifies integrity (sha256),
 * caches packs in IndexedDB.
 
-### 7.2 Fail-closed loading
-
-On load:
-
-1. Parse JSON
-2. Validate schema
-3. Validate internal invariants (IDs unique, required fields present)
-4. Validate cross-pack references
-5. Only then “activate” the Pack Set
-
-If any step fails, the pack is rejected and the last-known-good Pack Set remains active.
-
-### 7.3 Daily binding
+### 7.2 Daily binding
 
 A DailySpec must bind to:
 
-* a specific manifest_id or explicit pack versions
-* so “today’s daily” is stable even if packs update mid-day.
+* a specific puzzle_id
+* puzzle content hash
+* voice pack version
+
+This guarantees "today's daily" is stable and reproducible.
+
+### 7.3 Pre-caching strategy
+
+For Daily mode, cache:
+* Today's puzzle pack
+* Tomorrow's puzzle pack (if available)
+* Active voice pack
+* Last 7 days' puzzles (for replay)
 
 ---
 
 ## 8) Pack validation (high-level; detailed in D10)
 
-Pack validation has two layers:
-
 ### 8.1 Static validation (per pack)
 
-* schema conformance
-* unique IDs, non-empty lists, sane ranges
-* forbidden vocabulary checks (voice pack)
-* no undefined references
+* Schema conformance
+* Unique IDs
+* Valid enum values
+* Forbidden vocabulary checks (voice pack)
 
-### 8.2 Dynamic validation (Pack Set)
+### 8.2 D31-specific validation
 
-* solvability checks for each incident template under expected draft distributions
-* dominance checks (no single archetype solves everything)
-* pacing checks (audit frequency, dead-hand rates)
-* performance budgets (pack size, number of templates)
-
----
-
-## 9) RNG and seeding contracts (pack-relevant)
-
-### 9.1 Seed inputs
-
-* DailySpec provides a seed.
-* Free Play generates a seed locally.
-
-### 9.2 Stream keys
-
-The generator must use named RNG streams (or keyed derivations) so:
-
-* adding cosmetic randomness does not perturb gameplay-critical randomness
-* incident assembly randomness is stable
-
-Pack system implication: each incident template specifies which RNG stream keys it consumes (at least at a conceptual level) to preserve reproducibility.
+* All 41 combinations have pre-generated content
+* Concerns addressable with dealt hand
+* Counter-evidence has valid refutableBy references
+* Contradiction detection is consistent
+* Solvability requirements met (D31)
 
 ---
 
-## 10) Voice pack selection policy (non-blocking)
+## 9) Voice pack selection policy
 
 Voice selection must not block mechanics.
 
-**Recommended policy:**
+**Policy:**
 
-* Resolver produces `OutcomeKey`.
-* Voice system selects a line deterministically or semi-deterministically:
-
-  * Deterministic option: hash(OutcomeKey + tick_id) mod N
-  * Semi option: local RNG stream `voice_rng` keyed by seed but isolated from gameplay RNG
-
-Repetition control:
-
-* maintain a small “recently used” cache per OutcomeKey family.
+* Resolver produces combination_id from submitted cards
+* Voice system looks up pre-generated dialogue for that combination
+* If missing, fallback to mood-based generic bark
+* KOA mood state derived from game state (D31)
 
 ---
 
-## 11) Entitlements and packaging (monetization-ready)
+## 10) Entitlements and packaging (monetization-ready)
 
-### 11.1 Baseline packs
+### 10.1 Baseline packs
 
-* A minimal “core” Pack Set is free and cached.
+* Core voice pack (free)
+* Weekly puzzles (free)
+* Tutorial puzzles (free)
 
-### 11.2 Paid packs
+### 10.2 Premium options
 
-Paid expansions unlock additional packs:
+* Alternate KOA voice packs (cosmetic)
+* Extended puzzle archives
+* Freeplay mode content (post-MVP)
 
-* more incident templates (new themes)
-* more artifact/tool archetypes (new strategies)
-* more voice packs/cosmetics
-
-**Fairness rule:** Daily mode should not become pay-to-win.
-Options:
-
-* Daily uses only baseline artifacts/tools, or
-* Daily standardizes the available pool for all players.
+**Fairness rule:** Daily puzzles are identical for all players.
 
 ---
 
-## 12) Operational workflows (thin live service)
+## 11) Acceptance criteria (v1)
 
-### 12.1 Publishing
-
-* Build pack → validate → compute sha256 → upload immutable version to CDN → update manifest pointer.
-
-### 12.2 Rollout
-
-* Channels: stable/beta
-* Optional percentage rollout field in manifest (defer if not needed)
-
-### 12.3 Emergency rollback
-
-* Repoint manifest to previous Pack Set (no pack deletion)
-* If a daily is affected, publish a corrected daily_id (do not silently mutate)
+1. Client can load a Puzzle Pack and run fully offline after caching.
+2. Invalid packs fail closed without corrupting cache.
+3. DailySpec is reproducible: same puzzle → same outcomes.
+4. Pack updates ship without client release.
+5. All 41 testimony combinations have pre-generated content.
+6. Voice packs can be swapped without affecting gameplay.
 
 ---
 
-## 13) Acceptance criteria (v1)
-
-1. Client can load a Pack Set deterministically and run fully offline after initial caching.
-2. Any invalid pack fails closed and does not corrupt cached “last known good” content.
-3. DailySpec is reproducible: same seed + same Pack Set + same actions ⇒ same outcomes.
-4. Pack updates can ship without client release via manifest update.
-5. Voice packs can be swapped/updated without affecting gameplay results.
-
----
-
-## 14) Terminology glossary
+## 12) Terminology glossary
 
 | Term | Definition |
 |------|------------|
-| **Engine** | The deterministic resolver runtime that computes game outcomes |
+| **Engine** | The deterministic resolver runtime |
 | **Client** | The PWA application (UI + engine + storage) |
-| **Resolver** | Pure function that computes move outcomes given state + action + packs |
-| **Pack** | Versioned, immutable content artifact (JSON) containing game definitions |
-| **Manifest** | Immutable document listing exact pack versions for a content release |
-| **Schedule** | Weekly table mapping dates to daily manifests |
-| **Capability** | A named feature flag that packs can require and engines can provide |
-| **Daily** | A featured seed + manifest binding for a specific calendar date |
-| **Free Play** | Offline mode using locally cached packs with player-generated seed |
-
----
-
-## 15) Open decisions (to finalize before D09)
-
-1. Override policy scope: do we allow any gate overrides in v1, or strictly additive only?
-2. How strict do we want pack size/perf budgets (especially voice)?
-3. Whether to support "patch packs" as first-class artifacts in v1 or just treat them as ordinary packs with higher precedence.
-
----
-
+| **Resolver** | Pure function computing outcomes from state + action + packs |
+| **Puzzle Pack** | Complete Daily puzzle with pre-generated content |
+| **Evidence Pack** | Reusable card template library |
+| **Voice Pack** | KOA dialogue keyed by outcomes |
+| **Manifest** | Document listing exact pack versions |
+| **Daily** | Featured puzzle for a specific calendar date |
+| **Freeplay** | Extended mode with 3-act runs (post-MVP) |

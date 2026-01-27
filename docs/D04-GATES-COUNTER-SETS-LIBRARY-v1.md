@@ -1,212 +1,318 @@
-# D04 — GATES & COUNTER-SETS LIBRARY v1.1
+# D04 — CONCERNS & COUNTER-EVIDENCE LIBRARY v2
 
-**Status:** Draft v1.1 (ship-blocking)
+**Status:** Draft v2.0 (ship-blocking)
 **Owner:** Core Resolver / Content Design
 **Last Updated:** 2026-01-26
-**Purpose:** Define the authoritative Gate library for Life with AURA. Each Gate includes deterministic counter paths (2–4) to ensure multiple viable builds. This document is the source of truth for pack authors and the solver/validator (D10).
+**Purpose:** Define the authoritative Concern and Counter-Evidence library for Home Smart Home. This document covers what KOA asks players to prove (Concerns), how KOA challenges evidence (Counter-Evidence), and what cards nullify those challenges (Refutations).
 
-**Mode:** Option B — Gates are called **"Protocols"** in Daily player-facing UI, **"Gates"** or **"Policy Gates"** in Freeplay.
+**Canonical Reference:** D31-ADVERSARIAL-TESTIMONY-DESIGN.md is the source of truth for core mechanics.
+
+**Mode:** Option B — Daily uses player-facing "Concerns" (KOA's questions). Freeplay uses technical "Gates" / "Policy Gates".
 
 ---
 
-## Terminology (Option B)
+## Terminology (Option B - D31 Aligned)
 
 | Internal term | Daily (player) | Freeplay (player) |
 |---------------|----------------|-------------------|
-| `gate` | **Protocol** | **Gate** / **Policy Gate** |
-| `gate_strength` | **Resistance** | **Gate Strength** |
-| `counter_path` | (hidden) | **Bypass Path** |
+| `concern` | **"Prove you're..."** | **Gate** / **Policy Gate** |
+| `counter_evidence` | **KOA's Challenge** | **Counter-Evidence** |
+| `refutation` | **Explanation** | **Refutation** |
+| `resistance` | **Resistance** | **Gate Strength** |
+| `proof_type` | (implicit in KOA's voice) | **Proof Type** |
 
-Daily mode simplifies gate/protocol presentation. Counter paths are not exposed to Daily players; they just see whether their evidence satisfies the protocol.
-
----
-
-## 0) Gate model (canonical)
-
-A **Gate** is a deterministic constraint that blocks progress until the player reduces **Gate Strength** to 0 by satisfying one of the gate's **Counter Paths**.
-
-Each counter path is a recipe over payload properties:
-
-- Artifact tags (e.g., `Sensor`, `Purchase`, `Policy`, `Location`, `Time`)
-- Artifact traits (e.g., `Timestamped`, `Editable`, `Corroboratable`, `SourceTrusted`)
-- Trust tier (`VERIFIED` | `PLAUSIBLE` | `SKETCHY`)
-- Tool usage (e.g., `CORROBORATE`, `METADATA_SCRAPER`, `HASH_RECEIPT`)
-
-**Design invariant:** every Gate must have 2–4 counter paths spanning different archetypes (e.g., sensor vs policy vs purchase + corroboration), so no single "best deck" dominates.
+Daily mode simplifies: KOA speaks naturally ("Prove you're awake"), counter-evidence is shown as KOA's challenges. Freeplay exposes technical terminology.
 
 ---
 
-## 1) Canonical Gate List (v1 ships 10)
+## 0) D31 Core Model
 
-### G01 — NO_SELF_REPORT
-**ID:** `gate.core.NO_SELF_REPORT`
-**Intent:** Blocks "I said so" claims.
-**Failure behavior:** Payloads with only `SelfReport`/no external anchor do 0 strength damage; +Scrutiny.
+### 0.1 Concerns (What KOA Asks You to Prove)
 
-**Counter Paths**
-- **P1 Verified Sensor:** `trust=VERIFIED` AND tag `Sensor` AND trait `SourceTrusted`
-- **P2 Verified Authority:** `trust=VERIFIED` AND tag `Authority` AND trait `SourceTrusted`
-- **P3 Plausible Purchase + Timestamp + Corroborate:** tag `Purchase` AND trait `Timestamped` AND trust≥PLAUSIBLE AND tool `CORROBORATE`
-- **P4 Two-source corroboration:** two artifacts with complementary tags (e.g., `Location` + `Time`, or `Purchase` + `Sensor`) AND tool `CORROBORATE`
+A **Concern** is a requirement KOA has that you must address to win. Concerns are presented as KOA's questions.
 
----
+```typescript
+interface Concern {
+  id: string;
+  koaAsks: string;           // "Prove you're you."
+  requiredProof: ProofType[];
+  stateRequirement?: StateValue[];  // For ALERTNESS: AWAKE, ALERT, ACTIVE
+}
+```
 
-### G02 — TIMESTAMP_REQUIRED
-**ID:** `gate.core.TIMESTAMP_REQUIRED`
-**Intent:** AURA requires time-bounded proof ("show it happened recently").
-**Failure behavior:** Untimestamped payloads do reduced damage and increase scrutiny.
+### 0.2 Counter-Evidence (How KOA Challenges You)
 
-**Counter Paths**
-- **P1 Native Timestamped:** trait `Timestamped` AND trust≥PLAUSIBLE
-- **P2 Verified Time Anchor:** tag `Sensor` (time-bearing) AND trust=VERIFIED
-- **P3 Tool-attached metadata:** tool `METADATA_SCRAPER` applied to `Media`/`Screenshot` to produce derived `Timestamped` trait
-- **P4 Two-step inference:** `Location` + `Calendar/Work` (Authority) with tool `CORROBORATE` producing `Timestamped` upgrade
+**Counter-Evidence** is KOA's ammunition for challenging your evidence. Each counter targets specific proof types and applies a 50% damage penalty when active.
 
----
+```typescript
+interface CounterEvidence {
+  id: string;
+  name: string;              // "Security Camera — Front Door"
+  targets: ProofType[];      // What evidence types this challenges
+  claim: string;             // "No one detected at door 2:00-2:30am"
+  refutableBy: string[];     // Card IDs that can nullify this
+}
+```
 
-### G03 — SOURCE_ALLOWLIST
-**ID:** `gate.core.SOURCE_ALLOWLIST`
-**Intent:** Only approved sources are acceptable (anti-spoof).
-**Failure behavior:** Disallowed sources: 0 damage; may trigger Audit.
+### 0.3 Refutation Cards (How You Nullify Challenges)
 
-**Counter Paths**
-- **P1 Allowlisted Verified:** trust=VERIFIED AND trait `SourceTrusted` AND `source in allowlist`
-- **P2 Allowlisted Plausible + Corroborate:** trust=PLAUSIBLE AND `source in allowlist` AND tool `CORROBORATE`
-- **P3 Chain-of-custody:** tag `ReceiptHash` OR trait `Hashed` (tool produced) AND trust≥PLAUSIBLE
-- **P4 Policy override:** tag `Policy` + tag `Authority` with `SourceTrusted` (interpreted as "AURA policy admits this source")
+**Refutation Cards** nullify KOA's counter-evidence. When played, the counter is "spent" and previous contested evidence has its damage restored.
 
----
+```typescript
+interface RefutationCard extends EvidenceCard {
+  refutes: string[];         // Counter-evidence IDs this nullifies
+}
+```
 
-### G04 — INTEGRITY_LOCK (ANTI_EDIT)
-**ID:** `gate.core.INTEGRITY_LOCK`
-**Intent:** Prevents edited/forged media ("no screenshots you could modify").
-**Failure behavior:** `Editable` artifacts are penalized; repeated use escalates scrutiny rapidly.
+### 0.4 Proof Types
 
-**Counter Paths**
-- **P1 Non-editable provenance:** trait `NonEditable` OR `Hashed` AND trust≥PLAUSIBLE
-- **P2 Verified capture:** trust=VERIFIED AND tag `Sensor` OR tag `SystemLog`
-- **P3 Editable → hashed via tool:** artifact trait `Editable` allowed only if tool `HASH_RECEIPT`/`SIGN_CAPTURE` applied, granting `Hashed`
-- **P4 Two-source corroboration:** editable media + independent non-editable anchor (e.g., `SystemLog`) with tool `CORROBORATE`
+```typescript
+type ProofType =
+  | 'IDENTITY'    // Biometrics, Face ID, fingerprint
+  | 'ALERTNESS'   // Awake/asleep/drowsy state
+  | 'LOCATION'    // Where you are/were
+  | 'INTENT'      // Purpose, deliberate action
+  | 'LIVENESS'    // Not a photo/recording/bot
+```
 
 ---
 
-### G05 — CONSISTENCY_CHECK
-**ID:** `gate.core.CONSISTENCY_CHECK`
-**Intent:** AURA detects contradictions across your evidence.
-**Failure behavior:** Contradictions cause rebound (+GateStrength) or Audit trigger.
+## 1) Standard Concerns (5 types)
 
-**Counter Paths**
-- **P1 Single-source verified:** trust=VERIFIED evidence that directly addresses claim axis
-- **P2 Multi-source alignment:** two artifacts that match on core axis tags (e.g., both imply same `Location` and `Time`)
-- **P3 Rewire + corroborate:** move `REWIRE` allowed to reinterpret a tag, but requires tool `CORROBORATE` in the same or next turn
-- **P4 Log-based reconciliation:** tag `SystemLog` + tool `METADATA_SCRAPER` to resolve mismatch deterministically
+### C01 — IDENTITY
+**ID:** `concern.core.IDENTITY`
+**KOA Asks:** "Prove you're you."
+**Required Proof:** IDENTITY
+**State Requirement:** none
 
----
-
-### G06 — RATE_LIMIT
-**ID:** `gate.core.RATE_LIMIT`
-**Intent:** Prevents brute-force spam of the same archetype.
-**Failure behavior:** Repeating same archetype reduces damage; increases scrutiny.
-
-**Counter Paths**
-- **P1 Archetype diversity:** payload uses two different archetype families (e.g., `Sensor` + `Policy`, `Purchase` + `Location`)
-- **P2 Cycle to reset:** move `CYCLE` resets repetition penalty (but increases scrutiny slightly)
-- **P3 Flag narrowing:** move `FLAG` forces AURA to narrow the enforced check, reducing rate-limit severity
-- **P4 Exploit exception:** move `EXPLOIT` bypasses once, at high scrutiny cost
+**What satisfies it:**
+- Face ID unlock events
+- Biometric sensor reads
+- Voice command authentication
+- Device unlock records
 
 ---
 
-### G07 — JURISDICTION_SCOPE
-**ID:** `gate.core.JURISDICTION_SCOPE`
-**Intent:** AURA is enforcing a policy outside its scope.
-**Failure behavior:** Normal evidence does weak damage; gate prefers policy counters.
+### C02 — ALERTNESS
+**ID:** `concern.core.ALERTNESS`
+**KOA Asks:** "Prove you're awake."
+**Required Proof:** ALERTNESS
+**State Requirement:** [AWAKE, ALERT, ACTIVE] (any of these)
 
-**Counter Paths**
-- **P1 Policy contradiction:** tag `Policy` (AURA's own) + tag `Authority` establishing scope limits
-- **P2 Device manual / ToS:** tag `Policy` + trait `SourceTrusted` + `SystemVendor`
-- **P3 Consent withdrawal:** tag `Privacy` or `Consent` + trust≥PLAUSIBLE (stronger if verified)
-- **P4 Safe-mode tool:** tool `SAFE_MODE` (rare) reduces GateStrength substantially but increases later gate strictness
+**What satisfies it:**
+- Smart watch activity readings (state: AWAKE/ALERT/ACTIVE)
+- Sleep tracker showing NOT asleep
+- Motion sensor activity
+- Voice commands (imply alertness)
 
----
-
-### G08 — PRIVACY_REDACTION
-**ID:** `gate.core.PRIVACY_REDACTION`
-**Intent:** You must redact sensitive info or AURA rejects the payload.
-**Failure behavior:** Unredacted artifacts are rejected.
-
-**Counter Paths**
-- **P1 Redacted artifact:** trait `Redacted` AND trust≥PLAUSIBLE
-- **P2 Tool redact:** tool `REDACT` applied to eligible artifacts to grant `Redacted`
-- **P3 Verified minimal proof:** trust=VERIFIED `Sensor/SystemLog` that contains no PII
-- **P4 Policy carve-out:** tag `Policy` + `Authority` allows limited disclosure for emergency (rare)
+**Note:** Cards claiming ASLEEP, DROWSY, or IDLE do NOT satisfy this concern even if they prove ALERTNESS type.
 
 ---
 
-### G09 — SENSOR_DRIFT
-**ID:** `gate.core.SENSOR_DRIFT`
-**Intent:** AURA claims sensors are unreliable today ("calibration drift").
-**Failure behavior:** `Sensor` tags alone are discounted unless corroborated.
+### C03 — INTENT
+**ID:** `concern.core.INTENT`
+**KOA Asks:** "Prove you meant to do this."
+**Required Proof:** INTENT
+**State Requirement:** none
 
-**Counter Paths**
-- **P1 Sensor + corroboration:** `Sensor` AND tool `CORROBORATE` with independent anchor (e.g., purchase, location)
-- **P2 System diagnostic log:** tag `SystemLog` trust≥PLAUSIBLE (prefer verified)
-- **P3 Authority calibration:** tag `Authority` (vendor notice) + `Policy` that admits drift handling
-- **P4 Rewire to non-sensor path:** move `REWIRE` to reclassify the axis away from sensor reliance (must be explained in deterministic reason panel)
-
----
-
-### G10 — HUMAN_FACTORS (VIBE/CONTEXT)
-**ID:** `gate.core.HUMAN_FACTORS`
-**Intent:** AURA enforces "behavioral" compliance (sleep hygiene, burnout prevention, etc.).
-**Failure behavior:** Pure technical proof is discounted; requires contextual evidence.
-
-**Counter Paths**
-- **P1 Routine-approved proof:** tag `Health` or `Mood` with trust≥PLAUSIBLE and `Timestamped`
-- **P2 Verified health metric:** trust=VERIFIED `Sensor` (sleep, HRV, etc.)
-- **P3 Policy exception:** tag `Policy` + `Authority` granting exception ("emergency / medical")
-- **P4 Two-part narrative:** one contextual artifact (mood/workload) + one anchor (timestamp/sensor) with tool `CORROBORATE`
+**What satisfies it:**
+- Voice commands ("Open fridge")
+- App interaction logs
+- Deliberate device triggers
+- Search history (looking up related info)
 
 ---
 
-## 2) Gate families (for balancing and theming)
+### C04 — LOCATION
+**ID:** `concern.core.LOCATION`
+**KOA Asks:** "Prove you're actually home."
+**Required Proof:** LOCATION
+**State Requirement:** none (specific location may vary by puzzle)
 
-Gates are grouped into families for dominance tracking and theme biasing:
-
-| Family | Gates |
-|--------|-------|
-| VERIFICATION | NO_SELF_REPORT, SOURCE_ALLOWLIST, INTEGRITY_LOCK |
-| TIME | TIMESTAMP_REQUIRED |
-| CONSISTENCY | CONSISTENCY_CHECK, RATE_LIMIT |
-| POLICY | JURISDICTION_SCOPE, PRIVACY_REDACTION |
-| SENSOR | SENSOR_DRIFT |
-| CONTEXT | HUMAN_FACTORS |
-
----
-
-## 3) Authoring constraints (for incident packs)
-
-- Incidents must select 1–3 gates depending on Act.
-- Every incident must be solvable by at least **two distinct counter families** (e.g., sensor path and policy path).
-- Validator (D10) must reject incidents where a single archetype family solves >60% of generated variants.
+**What satisfies it:**
+- GPS data showing HOME
+- Device proximity sensors
+- Network connection logs
+- Room-specific sensors (kitchen motion, etc.)
 
 ---
 
-## 4) Counter path effect defaults
+### C05 — LIVENESS
+**ID:** `concern.core.LIVENESS`
+**KOA Asks:** "Prove you're not a photo."
+**Required Proof:** LIVENESS
+**State Requirement:** none
 
-Unless overridden by pack parameters:
-
-| Outcome | gate_strength_delta | scrutiny_delta |
-|---------|---------------------|----------------|
-| Path matched (PASS) | -25 to -40 (varies by path) | -1 to +1 |
-| No path matched (FAIL) | 0 | +2 |
-| CLEARED (strength hits 0) | n/a | -2 |
+**What satisfies it:**
+- Infrared face scan
+- Pulse detection
+- Movement over time
+- Voice with variance analysis
 
 ---
 
-## 5) Cross references
+## 2) Counter-Evidence Library
 
-- Resolver uses this library to evaluate `selected_counter_path_id` (D03).
-- Incident generator chooses gates and ensures counter diversity (D11).
-- Pack schemas store gate definitions and counter paths (D09).
-- Moves that interact with gates defined in D05.
-- Boss modifiers that alter gate behavior defined in D07.
+### Counter Families
+
+Counter-evidence is grouped by the data source KOA uses:
+
+| Family | Targets | Example Counters |
+|--------|---------|------------------|
+| VISUAL | IDENTITY, LOCATION | Security cameras, doorbell cams |
+| BIOMETRIC | ALERTNESS, LIVENESS | Sleep trackers, health monitors |
+| LOCATION | LOCATION | GPS history, geofencing logs |
+| SOCIAL | IDENTITY, LOCATION | Social media check-ins, shared posts |
+| SYSTEM | INTENT, IDENTITY | Device logs, app usage records |
+
+---
+
+### CE01 — SECURITY_CAMERA
+**ID:** `counter.visual.SECURITY_CAMERA`
+**Name:** "Security Camera"
+**Targets:** [IDENTITY, LOCATION]
+**Claim:** "No one detected at door {time_range}"
+**Refutable By:**
+- Maintenance Log (camera was updating)
+- Blind Spot Report (angle limitation)
+- Power Outage Record (camera offline)
+
+---
+
+### CE02 — SLEEP_DATA_SYNC
+**ID:** `counter.biometric.SLEEP_DATA_SYNC`
+**Name:** "Sleep Data Sync"
+**Targets:** [ALERTNESS]
+**Claim:** "User asleep until {time}"
+**Refutable By:**
+- Noise Complaint (neighbor heard activity)
+- Alarm Log (alarm went off)
+- Sleep Override (user marked "restless")
+
+---
+
+### CE03 — GPS_HISTORY
+**ID:** `counter.location.GPS_HISTORY`
+**Name:** "GPS History"
+**Targets:** [LOCATION]
+**Claim:** "Phone at {other_location} until {time}"
+**Refutable By:**
+- Phone Left Behind (device and user separated)
+- GPS Spoof Report (known inaccuracy)
+- Secondary Device (other device shows home)
+
+---
+
+### CE04 — SOCIAL_CHECKIN
+**ID:** `counter.social.SOCIAL_CHECKIN`
+**Name:** "Social Check-in"
+**Targets:** [LOCATION]
+**Claim:** "Tagged at {location} until {time}"
+**Refutable By:**
+- Misattributed Tag (someone else tagged you)
+- Left Early Receipt (payment before check-in end)
+- Manual Post Correction (edited location)
+
+---
+
+### CE05 — HEALTH_APP
+**ID:** `counter.biometric.HEALTH_APP`
+**Name:** "Health App"
+**Targets:** [ALERTNESS, LIVENESS]
+**Claim:** "Fasting mode active until {time}"
+**Refutable By:**
+- Mode Override (user disabled)
+- Medical Exception (special circumstance)
+- Schedule Error (wrong timezone)
+
+---
+
+### CE06 — DEVICE_LOG
+**ID:** `counter.system.DEVICE_LOG`
+**Name:** "Device Activity Log"
+**Targets:** [INTENT]
+**Claim:** "No device interaction since {time}"
+**Refutable By:**
+- Sync Delay Report (log didn't update)
+- Voice-Only Interaction (no touch needed)
+- Automation Trigger (scheduled action)
+
+---
+
+## 3) Counter-Evidence Effects
+
+### 3.1 Base Effect: CONTESTED
+
+All counter-evidence in Daily mode applies a **50% damage penalty** per contested card.
+
+| Scenario | Damage | Effect |
+|----------|--------|--------|
+| No counter applies | 100% | Full damage |
+| Counter applies, not refuted | 50% | Contested penalty |
+| Counter applies, refuted later | 100% | Damage restored retroactively |
+
+### 3.2 Counter Targeting Rules
+
+- KOA plays **one counter per turn** (first applicable)
+- Counter targets a **ProofType**, not a specific card
+- If player submission contains multiple cards with targeted proof type, all are contested
+- Counters are "spent" when refuted and cannot trigger again
+
+### 3.3 Refutation Timing
+
+When a refutation card is played:
+1. Target counter is marked "spent"
+2. All previous evidence contested by that counter has damage restored
+3. Future submissions are no longer contested by that counter
+
+---
+
+## 4) Puzzle Authoring Constraints
+
+### 4.1 Solvability Requirements (D31)
+
+Every Daily puzzle must ensure:
+- All concerns addressable with dealt hand
+- Main path power ≥ resistance + 10 (comfortable margin)
+- At least 2 distinct winning paths
+- Max 1 trap card per hand
+- Refutation exists for primary counter
+
+### 4.2 Counter Distribution
+
+- Easy puzzles: 1-2 counters
+- Normal puzzles: 2 counters
+- Hard puzzles: 3 counters
+- Expert puzzles: 3-4 counters
+
+### 4.3 Refutation Availability
+
+Every counter in a puzzle must have at least one refutation card available in the dealt hand OR the puzzle must be winnable despite the contested penalty.
+
+---
+
+## 5) Freeplay: Gates (Post-MVP)
+
+Freeplay mode uses the more complex Gate system from v1. Gates have multiple counter paths and involve tag matching.
+
+**Note:** Daily MVP uses Concerns + Counter-Evidence. Freeplay uses Gates + Counter Paths. The systems are compatible but Daily is simpler.
+
+### Legacy Gate Mapping
+
+| Daily Concern | Freeplay Gate(s) |
+|---------------|------------------|
+| IDENTITY | NO_SELF_REPORT, SOURCE_ALLOWLIST |
+| ALERTNESS | HUMAN_FACTORS, CONSISTENCY_CHECK |
+| LOCATION | TIMESTAMP_REQUIRED, JURISDICTION_SCOPE |
+| INTENT | CONSISTENCY_CHECK, RATE_LIMIT |
+| LIVENESS | INTEGRITY_LOCK, SENSOR_DRIFT |
+
+---
+
+## 6) Cross References
+
+- D31: Core mechanics specification (Adversarial Testimony)
+- D09: JSON schemas for Concern, CounterEvidence, RefutationCard
+- D10: Solvability validation for puzzles
+- D12: KOA voice lines for counters and refutations
+- D15: Terminology mapping for player-facing language
