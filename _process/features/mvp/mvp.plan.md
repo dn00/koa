@@ -156,7 +156,7 @@ Build a playable Daily Puzzle mode that proves the Home Smart Home adversarial t
 | Task | Name | Status | Depends On |
 |------|------|--------|------------|
 | 001 | Monorepo Setup | done | - |
-| 002 | Domain Types | backlog | 001 |
+| 002 | Domain Types | done | 001 |
 | 003 | Basic Damage Calculation | backlog | 002 |
 
 ### Phase 2: Game Engine
@@ -191,7 +191,7 @@ Build a playable Daily Puzzle mode that proves the Home Smart Home adversarial t
 | Task | Name | Status | Depends On |
 |------|------|--------|------------|
 | 015 | Zustand Stores | backlog | 009 |
-| 016 | Home Screen | backlog | 001 |
+| 016 | Home Screen | done | 001 |
 | 017 | Run Screen (HUD, Hand, Story) | backlog | 015, 018 |
 | 018 | Evidence Card Component | backlog | 002 |
 | 019 | Submit Flow with Preview | backlog | 003, 004, 005, 006, 017 |
@@ -294,7 +294,7 @@ Phase 6 (Content & Polish):
 | ID | Name | Complexity | Status | Phase |
 |----|------|------------|--------|-------|
 | 001 | Monorepo Setup | M | done | 1 |
-| 002 | Domain Types | M | backlog | 1 |
+| 002 | Domain Types | M | done | 1 |
 | 003 | Basic Damage Calculation | S | backlog | 1 |
 | 004 | Contradiction Detection | M | backlog | 2 |
 | 005 | Corroboration Bonus | S | backlog | 2 |
@@ -308,7 +308,7 @@ Phase 6 (Content & Polish):
 | 013 | IndexedDB Persistence | M | backlog | 3 |
 | 014 | Service Worker and Pack Caching | M | backlog | 3 |
 | 015 | Zustand Stores | M | backlog | 4 |
-| 016 | Home Screen | S | backlog | 4 |
+| 016 | Home Screen | S | done | 4 |
 | 017 | Run Screen (HUD, Hand, Story) | M | backlog | 4 |
 | 018 | Evidence Card Component | S | backlog | 4 |
 | 019 | Submit Flow with Preview | M | backlog | 4 |
