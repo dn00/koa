@@ -67,3 +67,13 @@ export {
 
 // Task 007: Refutation Mechanics
 export { canRefute, applyRefutations } from './refutation.js';
+
+// Task 015: Turn Processor
+export {
+  processTurn,
+  type TurnResult,
+  type TurnOutcome,
+  type DamageBreakdown,
+  TurnError,
+  type TurnErrorCode,
+} from './turn.js';

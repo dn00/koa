@@ -3,7 +3,7 @@
  */
 
 import type { CardId, CounterId } from './ids.js';
-import type { ProofType } from './enums.js';
+import type { ProofType, TrustTier } from './enums.js';
 
 /**
  * AC-3: Claims made by an evidence card.
@@ -32,4 +32,5 @@ export interface EvidenceCard {
   readonly claims: Claims;
   readonly source?: string;
   readonly refutes?: CounterId;
+  readonly trustTier?: TrustTier;
 }

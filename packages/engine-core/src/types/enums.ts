@@ -57,3 +57,16 @@ export const ContradictionSeverity = {
 
 export type ContradictionSeverity =
   (typeof ContradictionSeverity)[keyof typeof ContradictionSeverity];
+
+/**
+ * Trust tier for evidence cards.
+ * Metadata only — affects puzzle design (SKETCHY cards get higher power values),
+ * not a runtime modifier.
+ */
+export const TrustTier = {
+  VERIFIED: 'VERIFIED',
+  PLAUSIBLE: 'PLAUSIBLE',
+  SKETCHY: 'SKETCHY',
+} as const;
+
+export type TrustTier = (typeof TrustTier)[keyof typeof TrustTier];

@@ -58,6 +58,7 @@ export {
   ConcernType,
   KOAMood,
   ContradictionSeverity,
+  TrustTier,
 } from './enums.js';
 
 // ============================================================================
