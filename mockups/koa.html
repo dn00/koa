@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOA Personality Mockup</title>
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="koa.css">
+    <style>
+        body {
+            background-color: #111;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
+        .koa-wrap {
+            width: 300px;
+            height: 300px;
+            position: relative;
+        }
+
+        /* Wrapper for sizing */
+        .status {
+            margin-top: 20px;
+            font-family: monospace;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="koa-wrap">
+        <!-- The Daemon -->
+        <div class="koa-orb state-neutral" id="koaDaemon">
+            <div class="koa-core"></div>
+
+            <!-- The Face (Eyes) -->
+            <div class="koa-face">
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+            </div>
+
+            <!-- Optional Mouth (Hidden mostly) -->
+            <div class="mouth"></div>
+        </div>
+    </div>
+
+    <div class="status" id="statusLabel">STATE: NEUTRAL</div>
+
+    <div class="controls">
+        <button onclick="setMood('neutral', 'Observing...')">Neutral</button>
+        <button onclick="setMood('curious', 'Scanning payload...')">Curious</button>
+        <button onclick="setMood('suspicious', 'Wait, what is that?')">Suspicious</button>
+        <button onclick="setMood('hostile', 'ACCESS DENIED.')">Hostile</button>
+        <button onclick="setMood('smug', 'Nice try, human.')">Smug</button>
+    </div>
+
+    <script>
+        const daemon = document.getElementById('koaDaemon');
+        const label = document.getElementById('statusLabel');
+
+        function setMood(mood, text) {
+            // clear all state classes
+            daemon.className = 'koa-orb';
+            // force reflow for animation restart
+            void daemon.offsetWidth;
+            // add new class
+            daemon.classList.add('state-' + mood);
+
+            label.innerText = `STATE: ${mood.toUpperCase()} - "${text}"`;
+        }
+
+        // Init
+        setMood('neutral', 'System online.');
+    </script>
+
+</body>
+
+</html>

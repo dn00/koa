@@ -12,6 +12,7 @@
   "dependencies": {
     "@hsh/engine-core": "*",
     "dexie": "^4.2.1",
+    "gsap": "^3.14.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.13.0",
