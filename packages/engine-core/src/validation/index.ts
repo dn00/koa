@@ -18,3 +18,9 @@ export {
   type VoicePackSchema,
   type OutcomeKey,
 } from './schemas.js';
+
+// Task 012: Pack Reference Validation
+export {
+  validateReferences,
+  validatePuzzlePackFull,
+} from './references.js';
