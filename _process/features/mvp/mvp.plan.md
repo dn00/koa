@@ -2,7 +2,7 @@
 
 **Discovery:** [discovery.md](./discovery.md)
 **Date:** 2026-01-26
-**Status:** planning
+**Status:** active
 
 ---
 
@@ -155,7 +155,7 @@ Build a playable Daily Puzzle mode that proves the Home Smart Home adversarial t
 
 | Task | Name | Status | Depends On |
 |------|------|--------|------------|
-| 001 | Monorepo Setup | backlog | - |
+| 001 | Monorepo Setup | done | - |
 | 002 | Domain Types | backlog | 001 |
 | 003 | Basic Damage Calculation | backlog | 002 |
 
@@ -293,7 +293,7 @@ Phase 6 (Content & Polish):
 
 | ID | Name | Complexity | Status | Phase |
 |----|------|------------|--------|-------|
-| 001 | Monorepo Setup | M | backlog | 1 |
+| 001 | Monorepo Setup | M | done | 1 |
 | 002 | Domain Types | M | backlog | 1 |
 | 003 | Basic Damage Calculation | S | backlog | 1 |
 | 004 | Contradiction Detection | M | backlog | 2 |

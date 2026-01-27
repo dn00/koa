@@ -1,7 +1,7 @@
 # Project Status
 
-**Last Updated:** 2026-01-26
-**Current Phase:** Planning Complete
+**Last Updated:** 2026-01-27
+**Current Phase:** Implementation
 
 ---
 
@@ -9,17 +9,17 @@
 
 | Metric | Value |
 |--------|-------|
-| Phase | Implementation Ready |
+| Phase | Implementation |
 | Features | 1 (MVP) |
-| Tasks | 29 planned |
-| Batches | 7 |
-| Code | Not started |
+| Tasks | 1/29 done |
+| Batches | 1/7 done |
+| Tests | 23 passing |
 
 ---
 
 ## Current Focus
 
-**Planning Complete** - MVP task breakdown done, ready for implementation.
+**Batch 1 Complete** - Monorepo scaffolding done, ready for Batch 2.
 
 ### Completed
 - [x] Read all design docs (D01-D31)
@@ -30,13 +30,13 @@
 - [x] Write STATUS.md
 - [x] Write MVP discovery document
 - [x] Planner creates task breakdown for MVP
-
-### Ready for Implementation
 - [x] Task 001: Monorepo Setup (Batch 1)
 
-### Next Batches
-- Batch 1: Task 001 (Monorepo Setup)
-- Batch 2: Tasks 002, 016 (Domain Types, Home Screen)
+### Next Batch (Batch 2)
+- [ ] Task 002: Domain Types
+- [ ] Task 016: Home Screen
+
+### Following Batches
 - Batch 3: Tasks 003, 004, 008, 009, 011, 018, 023
 
 ---
@@ -53,10 +53,10 @@
 
 | Phase | Name | Tasks | Status |
 |-------|------|-------|--------|
-| 1 | Foundation | 001, 002, 003 | 001 ready |
+| 1 | Foundation | 001, 002, 003 | 001 done, 002-003 ready |
 | 2 | Game Engine | 004-010 | backlog |
 | 3 | Content System | 011-014 | backlog |
-| 4 | UI Layer | 015-020 | backlog |
+| 4 | UI Layer | 015-020 | 016 ready |
 | 5 | Integration | 021-024 | backlog |
 | 6 | Content & Polish | 025-029 | backlog |
 
@@ -98,7 +98,7 @@ None currently.
 
 | Question | Status | Owner |
 |----------|--------|-------|
-| Package manager (npm/pnpm/bun)? | Open | Implementer |
+| Package manager (npm/pnpm/bun)? | Resolved: npm | Implementer |
 | Initial puzzle content author? | Open | TBD |
 | KOA bark content author? | Open | TBD |
 
