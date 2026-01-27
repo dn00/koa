@@ -1,0 +1,112 @@
+/**
+ * KOAAvatar styles (Task 023)
+ * EC-1: Smooth transition between moods via CSS animation
+ */
+
+.avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Size variants */
+.small {
+  --orb-size: 48px;
+  --font-size: 0.625rem;
+}
+
+.medium {
+  --orb-size: 80px;
+  --font-size: 0.75rem;
+}
+
+.large {
+  --orb-size: 120px;
+  --font-size: 0.875rem;
+}
+
+/* The orb container */
+.orb {
+  position: relative;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border-radius: 50%;
+  /* EC-1: Smooth transition between moods */
+  transition: transform 0.3s ease-in-out;
+}
+
+.orb:hover {
+  transform: scale(1.05);
+}
+
+/* Outer glow effect */
+.glow {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    var(--mood-color) 0%,
+    transparent 70%
+  );
+  opacity: 0.4;
+  /* EC-1: Smooth transition */
+  transition: background 0.5s ease-in-out, opacity 0.3s ease-in-out;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Core orb */
+.core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in srgb, var(--mood-color) 60%, white) 0%,
+    var(--mood-color) 50%,
+    color-mix(in srgb, var(--mood-color) 70%, black) 100%
+  );
+  /* EC-1: Smooth transition */
+  transition: background 0.5s ease-in-out;
+  box-shadow:
+    inset -4px -4px 12px rgba(0, 0, 0, 0.3),
+    inset 4px 4px 12px rgba(255, 255, 255, 0.2),
+    0 4px 16px color-mix(in srgb, var(--mood-color) 50%, transparent);
+}
+
+/* Mood label */
+.moodLabel {
+  font-size: var(--font-size);
+  font-weight: 500;
+  color: var(--mood-color);
+  text-transform: capitalize;
+  letter-spacing: 0.05em;
+  /* EC-1: Smooth transition */
+  transition: color 0.5s ease-in-out;
+}
+
+/* Pulse animation for glow */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+/* Fallback for browsers without color-mix support */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .core {
+    background: radial-gradient(
+      circle at 30% 30%,
+      #ffffff 0%,
+      var(--mood-color) 30%,
+      var(--mood-color) 70%,
+      #000000 100%
+    );
+  }
+}
