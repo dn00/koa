@@ -150,6 +150,7 @@ function processTurn(
 
   // --- Step 1-2: Contradiction check with graduated rule (Rule B) ---
   const tagsInFlight = [...state.committedTags];
+  const contradictionsBefore = state.contradictionsSoFar;
   for (const card of cards) {
     const opposite = OPPOSING.get(card.tag);
     if (opposite && tagsInFlight.includes(opposite)) {
@@ -161,7 +162,8 @@ function processTurn(
         // Don't block, but don't add this tag to flight (it's contradictory)
         continue;
       } else {
-        // Second+ contradiction: BLOCKED
+        // Second+ contradiction: BLOCKED — roll back, blocked turns don't consume warning
+        state.contradictionsSoFar = contradictionsBefore;
         return {
           damage: 0, scrutinyAdded: 0, concernsAddressed: [],
           refutationsApplied: [], corroborationBonus: 0,
@@ -690,6 +692,35 @@ const THE_LAST_SLICE_V25: Puzzle = {
 };
 
 // ============================================================================
+// Test Puzzle 6: "The Loud Music" (SKELETON-BREAKER archetype)
+// Breaks the "refute T1, corroborate, manage" pattern.
+// Refuter is pwr 1. Counter targets mid card. Two contradiction axes forced.
+// ============================================================================
+
+const THE_LOUD_MUSIC: Puzzle = {
+  name: 'The Loud Music (SKELETON-BREAKER)',
+  resistance: 13,
+  turns: 3,
+  scrutinyLimit: 5,
+  cards: [
+    { id: 'A', power: 5, tag: Tag.HOME,   risk: 0,                              source: 'sound_meter',   flavor: 'Sound meter' },
+    { id: 'B', power: 4, tag: Tag.AWAY,   risk: 1, proves: ProofType.LOCATION,  source: 'phone',         flavor: 'Uber receipt' },
+    { id: 'C', power: 3, tag: Tag.HOME,   risk: 1, proves: ProofType.IDENTITY,  source: 'smart_lock',    flavor: 'Key fob' },
+    { id: 'D', power: 1, tag: Tag.ALONE,  risk: 0, proves: ProofType.IDENTITY,  refutes: 'counter_lm1',  source: 'doorbell', flavor: 'Doorbell cam' },
+    { id: 'E', power: 3, tag: Tag.ASLEEP, risk: 1, proves: ProofType.ALERTNESS, source: 'sleep_tracker', flavor: 'Sleep app' },
+    { id: 'F', power: 3, tag: Tag.AWAKE,  risk: 0, proves: ProofType.INTENT,    source: 'phone_msg',     flavor: 'Text message' },
+  ],
+  counters: [
+    { id: 'counter_lm1', targets: ['C'], refuted: false },
+  ],
+  concerns: [
+    { id: 'concern_identity',  requiredProof: ProofType.IDENTITY },
+    { id: 'concern_location',  requiredProof: ProofType.LOCATION },
+    { id: 'concern_alertness', requiredProof: ProofType.ALERTNESS },
+  ],
+};
+
+// ============================================================================
 // Metrics Output
 // ============================================================================
 
@@ -1061,6 +1092,7 @@ const ALL_PUZZLES = [
   THE_MISSING_REMOTE,
   THE_SHAMPOO_THIEF,
   THE_LAST_SLICE_V25,
+  THE_LOUD_MUSIC,
 ];
 
 interface PuzzleSummary {

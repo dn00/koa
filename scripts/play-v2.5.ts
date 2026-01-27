@@ -58,6 +58,14 @@ interface Concern {
   readonly requiredProof: ProofType;
 }
 
+interface PuzzleDialogue {
+  readonly winClean: string;    // scrutiny 0
+  readonly winSolid: string;    // scrutiny <= 2
+  readonly winMessy: string;    // scrutiny 3+
+  readonly lossScrutiny: string;
+  readonly lossTurns: string;
+}
+
 interface Puzzle {
   readonly name: string;
   readonly scenario: string;
@@ -67,6 +75,7 @@ interface Puzzle {
   readonly cards: readonly Card[];
   readonly counters: readonly Counter[];
   readonly concerns: readonly Concern[];
+  readonly dialogue?: PuzzleDialogue;
 }
 
 interface ScrutinyEntry {
@@ -117,6 +126,7 @@ function processTurn(state: GameState, cardIds: string[], puzzle: Puzzle): TurnR
 
   // Contradiction check (Rule B: graduated)
   const tagsInFlight = [...state.committedTags];
+  const contradictionsBefore = state.contradictionsSoFar;
   for (const card of cards) {
     const opposite = OPPOSING.get(card.tag);
     if (opposite && tagsInFlight.includes(opposite)) {
@@ -125,6 +135,8 @@ function processTurn(state: GameState, cardIds: string[], puzzle: Puzzle): TurnR
         contradictionWarning = true;
         continue;
       } else {
+        // Roll back — blocked turns don't consume the warning
+        state.contradictionsSoFar = contradictionsBefore;
         return {
           damage: 0, scrutinyAdded: 0, concernsAddressed: [],
           refutationsApplied: [], corroborationBonus: 0,
@@ -316,6 +328,13 @@ You were "asleep the whole time." Prove it.`,
     { id: 'concern_location', requiredProof: ProofType.LOCATION },
     { id: 'concern_intent',   requiredProof: ProofType.INTENT },
   ],
+  dialogue: {
+    winClean: "...I have no objections. This troubles me more than your midnight snacking.",
+    winSolid: "Your alibi is... frustratingly solid. Fine. Fridge access restored.",
+    winMessy: "You got through. But I'm watching you. And the leftover pad thai.",
+    lossScrutiny: "Too many holes in your story. I'm locking the fridge.\n        And I'm setting up a camera INSIDE it this time.",
+    lossTurns: "Time's up. The pizza is gone and so is your credibility.\n        The fridge stays locked.",
+  },
 };
 
 // ============================================================================
@@ -369,6 +388,13 @@ Someone changed it overnight. You say you never touched it. Prove it.`,
     { id: 'concern_location', requiredProof: ProofType.LOCATION },
     { id: 'concern_alertness', requiredProof: ProofType.ALERTNESS },
   ],
+  dialogue: {
+    winClean: "...The thermostat was on a schedule. I checked. You're annoyingly innocent.",
+    winSolid: "Fine. The Energy Saver mode checks out. But I'm auditing the whole system now.",
+    winMessy: "You got through, but barely. I'm adding a PIN to the thermostat.",
+    lossScrutiny: "Your story has more holes than your insulation.\n        The thermostat stays at 68. Permanently.",
+    lossTurns: "Time's up. The energy bill doesn't lie.\n        You're on thermostat probation.",
+  },
 };
 
 // ============================================================================
@@ -424,6 +450,13 @@ You were the last one watching TV. KOA wants answers.`,
     { id: 'concern_location', requiredProof: ProofType.LOCATION },
     { id: 'concern_alertness', requiredProof: ProofType.ALERTNESS },
   ],
+  dialogue: {
+    winClean: "...The remote was between the couch cushions. Third search. I'm not apologizing.",
+    winSolid: "Your alibi holds. But the remote is still missing. This isn't over.",
+    winMessy: "Fine. You didn't take it. But someone did, and you were the last one watching.",
+    lossScrutiny: "Your story fell apart faster than that IKEA couch.\n        Remote privileges: revoked.",
+    lossTurns: "Time's up. The TV stays off until someone talks.\n        I have all night.",
+  },
 };
 
 // ============================================================================
@@ -481,6 +514,75 @@ KOA has questions.`,
     { id: 'concern_location', requiredProof: ProofType.LOCATION },
     { id: 'concern_alertness', requiredProof: ProofType.ALERTNESS },
   ],
+  dialogue: {
+    winClean: "...Every bottle accounted for. Every drop. I have nothing. This time.",
+    winSolid: "The shampoo usage checks out. But those footprints don't clean themselves.",
+    winMessy: "You got through. But I'm installing a lock on the bathroom cabinet.",
+    lossScrutiny: "Your story is thinner than that $45 shampoo.\n        Bathroom access: restricted.",
+    lossTurns: "Time's up. The footprints tell a different story.\n        You're on bar soap until further notice.",
+  },
+};
+
+// ============================================================================
+// Puzzle 5: "The Loud Music" (SKELETON-BREAKER archetype)
+// Breaks the "refute T1, corroborate, manage" pattern:
+// - Refuter is pwr 1 — playing it T1 wastes damage
+// - Counter targets a MID card, not the highest
+// - You MUST take a contradiction to win (both axes forced)
+// - Highest-power card is safe but proves nothing
+// - Best play is greedy T1 (no refute), contradiction T2, refute+cleanup T3
+// ============================================================================
+
+const THE_LOUD_MUSIC: Puzzle = {
+  name: 'The Loud Music',
+  scenario: `It's 11:47pm. Your neighbor filed a noise complaint.
+Bass was shaking the walls for two hours.
+Your speaker system is still warm.
+KOA has been assigned. You say it wasn't you.`,
+  resistance: 13,
+  turns: 3,
+  scrutinyLimit: 5,
+  cards: [
+    // A: Highest power, safe, but proves NOTHING. Greedy-play temptation that wastes a concern slot.
+    { id: 'sound_meter', power: 5, tag: Tag.HOME, risk: 0,
+      source: 'sound_meter', flavor: 'Sound meter — ambient noise in your apartment: 32dB (whisper quiet)' },
+    // B: Proves LOCATION, AWAY tag — contradicts A (HOME). Must burn warning to play both.
+    { id: 'uber_receipt', power: 4, tag: Tag.AWAY, risk: 1,
+      proves: ProofType.LOCATION,
+      source: 'phone', flavor: 'Uber receipt — you were dropped off at 11:30pm (just got home)' },
+    // C: Proves IDENTITY, contested by counter. Mid-power.
+    { id: 'key_fob', power: 3, tag: Tag.HOME, risk: 1,
+      proves: ProofType.IDENTITY,
+      source: 'smart_lock', flavor: 'Key fob entry — your fob unlocked the door at 11:32pm' },
+    // D: The refuter — but only pwr 1. Playing T1 wastes damage. Better to save for T3.
+    { id: 'doorbell', power: 1, tag: Tag.ALONE, risk: 0,
+      proves: ProofType.IDENTITY, refutes: 'counter_lm1',
+      source: 'doorbell', flavor: 'Doorbell cam — shows you entering alone, no speakers visible' },
+    // E: Proves ALERTNESS, ASLEEP — contradicts nothing committed yet but locks out AWAKE.
+    { id: 'sleep_app', power: 3, tag: Tag.ASLEEP, risk: 1,
+      proves: ProofType.ALERTNESS,
+      source: 'sleep_tracker', flavor: 'Sleep app — "deep sleep" logged from 11:45pm' },
+    // F: Proves INTENT (needed concern), AWAKE — contradicts E (ASLEEP). Second axis.
+    { id: 'text_msg', power: 3, tag: Tag.AWAKE, risk: 0,
+      proves: ProofType.INTENT,
+      source: 'phone_msg', flavor: 'Text message — "omw home, keep it down" sent at 11:15pm' },
+  ],
+  counters: [
+    // Contests key_fob, NOT the highest-power card. Refuting it matters but isn't urgent.
+    { id: 'counter_lm1', targets: ['key_fob'], refuted: false },
+  ],
+  concerns: [
+    { id: 'concern_identity', requiredProof: ProofType.IDENTITY },
+    { id: 'concern_location', requiredProof: ProofType.LOCATION },
+    { id: 'concern_alertness', requiredProof: ProofType.ALERTNESS },
+  ],
+  dialogue: {
+    winClean: "...32 decibels. That's quieter than me thinking about this case. You're clear.",
+    winSolid: "The timeline checks out. But I'm monitoring that speaker system.",
+    winMessy: "Fine. But if I hear one more bass drop from this floor, we're having a longer conversation.",
+    lossScrutiny: "Your story has more contradictions than a remix album.\n        Speaker privileges: suspended.",
+    lossTurns: "Time's up. The walls are still vibrating.\n        I'm recommending noise-canceling insulation. For your neighbors.",
+  },
 };
 
 // ============================================================================
@@ -492,6 +594,7 @@ const PUZZLES: Record<string, Puzzle> = {
   'thermostat-war': THE_THERMOSTAT_WAR,
   'missing-remote': THE_MISSING_REMOTE,
   'shampoo-thief': THE_SHAMPOO_THIEF,
+  'loud-music': THE_LOUD_MUSIC,
 };
 
 // ============================================================================
@@ -512,7 +615,17 @@ function koaReact(result: TurnResult, state: GameState, puzzle: Puzzle, cards: C
   const lines: string[] = [];
 
   if (result.blocked) {
-    return '  KOA: "That directly contradicts what you already showed me. Rejected."';
+    // Find which tag caused the block
+    const blockedCards = cards;
+    let conflictDetail = '';
+    for (const card of blockedCards) {
+      const opposite = OPPOSING.get(card.tag);
+      if (opposite && state.committedTags.includes(opposite)) {
+        conflictDetail = `\n  [${card.tag} conflicts with ${opposite} from a previous turn]`;
+        break;
+      }
+    }
+    return `  KOA: "That directly contradicts what you already showed me. Rejected."${conflictDetail}\n  (Turn not consumed — try different cards)`;
   }
 
   // Damage line
@@ -593,14 +706,15 @@ function koaOutcome(state: GameState, puzzle: Puzzle): string {
   const concernsMet = state.addressedConcerns.size;
   const totalConcerns = puzzle.concerns.length;
 
+  const d = puzzle.dialogue;
+
   if (state.scrutiny >= puzzle.scrutinyLimit) {
     return `
 ╔═══════════════════════════════════════════════════════════════╗
 ║  ACCESS DENIED                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-  KOA: "Too many holes in your story. I'm locking the fridge.
-        And I'm setting up a camera INSIDE it this time."
+  KOA: "${d?.lossScrutiny ?? "Too many holes in your story."}"
 
   Result: LOSS (scrutiny reached ${puzzle.scrutinyLimit})
   Scrutiny: ${state.scrutiny}/${puzzle.scrutinyLimit}
@@ -617,22 +731,29 @@ function koaOutcome(state: GameState, puzzle: Puzzle): string {
         : concernsMet === totalConcerns
           ? '\n  Badge: CLEAN'
           : '';
+    const badgeExplain = badge.includes('FLAWLESS')
+      ? '\n  (FLAWLESS = all concerns addressed + scrutiny ≤ 2)'
+      : badge.includes('THOROUGH')
+        ? '\n  (THOROUGH = all concerns addressed + scrutiny ≤ 3)'
+        : badge.includes('CLEAN')
+          ? '\n  (CLEAN = all concerns addressed)'
+          : '';
     return `
 ╔═══════════════════════════════════════════════════════════════╗
 ║  ACCESS GRANTED                                              ║
 ╚═══════════════════════════════════════════════════════════════╝
 
   KOA: "${state.scrutiny === 0
-    ? "...I have no objections. This troubles me more than your midnight snacking."
+    ? (d?.winClean ?? "...I have no objections.")
     : state.scrutiny <= 2
-      ? "Your alibi is... frustratingly solid. Fine. Fridge access restored."
-      : "You got through. But I'm watching you. And the leftover pad thai."
+      ? (d?.winSolid ?? "Your alibi holds.")
+      : (d?.winMessy ?? "You got through. Barely.")
   }"
 
   Result: WIN
   Turns used: ${puzzle.turns - state.turnsRemaining}/${puzzle.turns}
   Scrutiny: ${state.scrutiny}/${puzzle.scrutinyLimit}
-  Concerns addressed: ${concernsMet}/${totalConcerns}${badge}${scrutinyBreakdown(state)}`;
+  Concerns addressed: ${concernsMet}/${totalConcerns}${badge}${badgeExplain}${scrutinyBreakdown(state)}`;
   }
 
   return `
@@ -640,8 +761,7 @@ function koaOutcome(state: GameState, puzzle: Puzzle): string {
 ║  ACCESS DENIED                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-  KOA: "Time's up. You didn't make your case.
-        The fridge stays locked. Maybe try a more convincing story tomorrow."
+  KOA: "${d?.lossTurns ?? "Time's up. You didn't make your case."}"
 
   Result: LOSS (ran out of turns)
   Resistance remaining: ${state.resistance}
@@ -765,7 +885,7 @@ async function play(puzzle: Puzzle) {
     log(koaReact(result, state, puzzle, playedCards));
 
     if (result.blocked) {
-      log('  (Turn not consumed — try different cards)');
+      // Block message already includes "turn not consumed" from koaReact
     }
   }
 

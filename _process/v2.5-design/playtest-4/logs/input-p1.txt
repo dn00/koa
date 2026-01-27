@@ -1,0 +1,3 @@
+fitbit, security_cam
+doorbell, thermostat
+speaker

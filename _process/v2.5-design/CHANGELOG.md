@@ -2,6 +2,30 @@
 
 ---
 
+## v2.5.4 — Post-Playtest-4 Fixes (2026-01-27)
+
+**Source:** Playtest 4 — 5 personas × 3 puzzles (15 games). Tests 6-card hand, scrutiny breakdown, KOA personality, session arc.
+
+### Playtest 4 Results
+- 9/13 pass criteria. 1 hard fail: 0% loss rate persists (same as PT2, PT3)
+- NPS: 7.2 (down from 7.6). Zero losses → no emotional arc → NPS declines
+- Scrutiny breakdown unanimously valued: S17 average 6.6/7. "Single best addition" (Marcus)
+- KOA personality: 3/5 see as fun character, 4/5 want reactive KOA
+- Subscription drivers: daily puzzles 5/5, story cases 3/5
+- Positioning: "Wordle for true crime fans" is universal comp
+
+### Fixes Applied
+1. **Per-puzzle KOA dialogue.** Each puzzle now has unique win/loss lines (winClean, winSolid, winMessy, lossScrutiny, lossTurns). Fixes "leftover pad thai on a missing remote puzzle" immersion break flagged by 3/5.
+2. **Block feedback transparency.** When a card pair is blocked, shows which tag conflict triggered it: `[IDLE conflicts with ACTIVE from a previous turn]`. Fixes David's PT4 bug report + 2/5 flagging opaque rejections.
+3. **Badge criteria hints.** Post-game now shows: `(FLAWLESS = all concerns addressed + scrutiny ≤ 2)`. Addresses recurring feedback from PT3+PT4 (2/5).
+4. **Skeleton-breaker puzzle: The Loud Music.** Breaks the "refute T1 → corroborate → manage penalties" skeleton that Aisha identified as solvable. Design: pwr-1 refuter (refuting T1 wastes damage), counter targets mid card, two contradiction axes forced (HOME/AWAY + ASLEEP/AWAKE), highest-power card proves nothing. Checker: 44.2% win rate, ALL PASS.
+
+### Playtest 4 Files
+- `_process/v2.5-design/playtest-4/` — Protocol, briefings, survey, results
+- `_process/v2.5-design/playtest-4/logs/` — 15 game logs + 5 surveys
+
+---
+
 ## v2.5.3 — Post-Playtest-3 Fixes (2026-01-27)
 
 **Source:** Playtest 3 — 5 personas × 3 different puzzles. Tests variety, difficulty, learning transfer, session arc.
