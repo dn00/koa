@@ -10,14 +10,18 @@
     "clean": "rm -rf dist .tsbuildinfo"
   },
   "dependencies": {
+    "@hsh/engine-core": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@hsh/engine-core": "*"
+    "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^27.4.0",
     "vite": "^6.1.0"
   }
 }
