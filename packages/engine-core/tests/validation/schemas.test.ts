@@ -332,4 +332,36 @@ describe('Task 011: Pack Schemas', () => {
       }
     });
   });
+
+  // ==========================================================================
+  // ERR-2: Negative Power
+  // ==========================================================================
+  describe('ERR-2: Negative Power', () => {
+    it('should fail when card has negative power', () => {
+      const pack = createValidPuzzlePack();
+      pack.cards[0]!.power = -5;
+
+      const result = validatePuzzlePack(pack);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.some((e) => e.path.includes('power'))).toBe(true);
+      }
+    });
+
+    it('should fail when card has power = -1', () => {
+      const pack = createValidPuzzlePack();
+      pack.cards[0]!.power = -1;
+
+      const result = validatePuzzlePack(pack);
+      expect(result.ok).toBe(false);
+    });
+
+    it('should accept power = 0', () => {
+      const pack = createValidPuzzlePack();
+      pack.cards[0]!.power = 0;
+
+      const result = validatePuzzlePack(pack);
+      expect(result.ok).toBe(true);
+    });
+  });
 });

@@ -215,29 +215,46 @@ function KOAAvatar({ mood, className }: KOAAvatarProps) {
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Added ERR-1 runtime fallback for unknown moods
 **Decisions:**
-**Deviations:**
+- Falls back to NEUTRAL if mood color lookup fails
+- Handles both undefined mood and unknown mood string
+- Graceful degradation rather than crash
+**Deviations:** None
 **Files Changed:**
-**Gotchas:**
+- `packages/app/src/components/KOAAvatar/KOAAvatar.tsx`
+- `packages/app/tests/components/KOAAvatar.test.tsx`
+**Test Count:** 8 ACs + 1 EC + 1 ERR = 24 tests
+**Gotchas:** TypeScript prevents most invalid moods at compile time; runtime fallback handles edge cases
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | Avatar Renders | ✓ |
+| AC-2 | Neutral State | ✓ |
+| AC-3 | Curious State | ✓ |
+| AC-4 | Suspicious State | ✓ |
+| AC-5 | Blocked State | ✓ |
+| AC-6 | Grudging State | ✓ |
+| AC-7 | Smug State | ✓ |
+| AC-8 | Mood Transitions | ✓ |
+| EC-1 | Rapid Mood Changes | ✓ |
+| ERR-1 | Unknown Mood Fallback | ✓ |
+
+**Fixes Applied:**
+- Unknown mood fallback to NEUTRAL at runtime
+- 24 tests passing
+
+**What's Good:**
+- All 8 mood states with colors and labels
+- CSS variable approach for smooth transitions
+- Graceful degradation for invalid moods
 
 ### Change Log
 > Append-only, chronological

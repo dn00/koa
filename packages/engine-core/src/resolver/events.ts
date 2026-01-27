@@ -16,8 +16,92 @@ import type {
 import { RunStatus, ok, err, type Result } from '../types/index.js';
 
 // ============================================================================
+// Hash Functions (AC-8, AC-9)
+// ============================================================================
+
+/**
+ * Simple deterministic hash function for strings.
+ * Uses djb2 algorithm - simple, fast, deterministic.
+ * Integer-only math per Invariant I1.
+ */
+function djb2Hash(str: string): string {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
+/**
+ * Recursively sort object keys for canonical JSON.
+ */
+function sortKeys(obj: unknown): unknown {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(sortKeys);
+  }
+
+  const sorted: Record<string, unknown> = {};
+  const keys = Object.keys(obj as object).sort();
+  for (const key of keys) {
+    sorted[key] = sortKeys((obj as Record<string, unknown>)[key]);
+  }
+  return sorted;
+}
+
+/**
+ * Compute a deterministic hash of an object.
+ * Uses canonical JSON stringification for consistency.
+ */
+function hashObject(obj: unknown): string {
+  const canonical = JSON.stringify(sortKeys(obj));
+  return djb2Hash(canonical);
+}
+
+/**
+ * Compute a deterministic hash of the current game state.
+ * Same state = same hash (Invariant I1).
+ *
+ * AC-9: State Snapshot Hash
+ */
+export function computeStateHash(state: RunState): string {
+  const stateForHash = {
+    puzzleId: state.puzzle.id,
+    resistance: state.resistance,
+    scrutiny: state.scrutiny,
+    turnsRemaining: state.turnsRemaining,
+    concernsAddressed: [...state.concernsAddressed].sort(),
+    committedStoryIds: state.committedStory.map((c) => c.id).sort(),
+  };
+  return hashObject(stateForHash);
+}
+
+/**
+ * Compute hash for an event (for hash chain).
+ */
+function computeEventHash(event: GameEvent, prevHash: string): string {
+  const eventForHash = {
+    type: event.type,
+    payload: event.payload,
+    prevHash,
+  };
+  return hashObject(eventForHash);
+}
+
+// ============================================================================
 // Event Types
 // ============================================================================
+
+/**
+ * Base event metadata for hash chain.
+ */
+interface EventMetadata {
+  readonly eventHash: string;
+  readonly prevEventHash: string;
+}
 
 /**
  * Payload for RUN_STARTED event.
@@ -60,13 +144,21 @@ export interface RunEndedPayload {
 
 /**
  * Discriminated union of all game events.
+ * AC-8: Each event has prev_event_hash linking to previous event.
  */
-export type GameEvent =
-  | { readonly type: 'RUN_STARTED'; readonly payload: RunStartedPayload }
-  | { readonly type: 'CARDS_SUBMITTED'; readonly payload: CardsSubmittedPayload }
-  | { readonly type: 'CONCERN_ADDRESSED'; readonly payload: ConcernAddressedPayload }
-  | { readonly type: 'SCRUTINY_INCREASED'; readonly payload: ScrutinyPayload }
-  | { readonly type: 'RUN_ENDED'; readonly payload: RunEndedPayload };
+export type GameEvent = EventMetadata &
+  (
+    | { readonly type: 'RUN_STARTED'; readonly payload: RunStartedPayload }
+    | { readonly type: 'CARDS_SUBMITTED'; readonly payload: CardsSubmittedPayload }
+    | { readonly type: 'CONCERN_ADDRESSED'; readonly payload: ConcernAddressedPayload }
+    | { readonly type: 'SCRUTINY_INCREASED'; readonly payload: ScrutinyPayload }
+    | { readonly type: 'RUN_ENDED'; readonly payload: RunEndedPayload }
+  );
+
+/**
+ * Initial hash for the first event in a chain.
+ */
+const GENESIS_HASH = '00000000';
 
 // ============================================================================
 // Event Constructors
@@ -74,40 +166,92 @@ export type GameEvent =
 
 /**
  * Create a RUN_STARTED event.
+ * AC-8: First event uses GENESIS_HASH as prev_event_hash.
  */
-export function runStarted(payload: RunStartedPayload): GameEvent {
-  return { type: 'RUN_STARTED', payload };
+export function runStarted(
+  payload: RunStartedPayload,
+  prevEventHash: string = GENESIS_HASH
+): GameEvent {
+  const baseEvent = { type: 'RUN_STARTED' as const, payload };
+  const eventHash = computeEventHash(
+    { ...baseEvent, eventHash: '', prevEventHash } as GameEvent,
+    prevEventHash
+  );
+  return { ...baseEvent, eventHash, prevEventHash };
 }
 
 /**
  * Create a CARDS_SUBMITTED event.
+ * AC-8: Links to previous event via hash.
  */
-export function cardsSubmitted(payload: CardsSubmittedPayload): GameEvent {
-  return { type: 'CARDS_SUBMITTED', payload };
+export function cardsSubmitted(
+  payload: CardsSubmittedPayload,
+  prevEventHash: string = GENESIS_HASH
+): GameEvent {
+  const baseEvent = { type: 'CARDS_SUBMITTED' as const, payload };
+  const eventHash = computeEventHash(
+    { ...baseEvent, eventHash: '', prevEventHash } as GameEvent,
+    prevEventHash
+  );
+  return { ...baseEvent, eventHash, prevEventHash };
 }
 
 /**
  * Create a CONCERN_ADDRESSED event.
+ * AC-8: Links to previous event via hash.
  */
-export function concernAddressed(concernId: ConcernId): GameEvent {
-  return { type: 'CONCERN_ADDRESSED', payload: { concernId } };
+export function concernAddressed(
+  concernId: ConcernId,
+  prevEventHash: string = GENESIS_HASH
+): GameEvent {
+  const baseEvent = {
+    type: 'CONCERN_ADDRESSED' as const,
+    payload: { concernId },
+  };
+  const eventHash = computeEventHash(
+    { ...baseEvent, eventHash: '', prevEventHash } as GameEvent,
+    prevEventHash
+  );
+  return { ...baseEvent, eventHash, prevEventHash };
 }
 
 /**
  * Create a SCRUTINY_INCREASED event.
+ * AC-8: Links to previous event via hash.
  */
-export function scrutinyIncreased(amount: number): GameEvent {
-  return { type: 'SCRUTINY_INCREASED', payload: { amount } };
+export function scrutinyIncreased(
+  amount: number,
+  prevEventHash: string = GENESIS_HASH
+): GameEvent {
+  const baseEvent = {
+    type: 'SCRUTINY_INCREASED' as const,
+    payload: { amount },
+  };
+  const eventHash = computeEventHash(
+    { ...baseEvent, eventHash: '', prevEventHash } as GameEvent,
+    prevEventHash
+  );
+  return { ...baseEvent, eventHash, prevEventHash };
 }
 
 /**
  * Create a RUN_ENDED event.
+ * AC-8: Links to previous event via hash.
  */
 export function runEnded(
   status: typeof RunStatus.WON | typeof RunStatus.LOST,
-  reason?: string
+  reason?: string,
+  prevEventHash: string = GENESIS_HASH
 ): GameEvent {
-  return { type: 'RUN_ENDED', payload: { status, reason } };
+  const baseEvent = {
+    type: 'RUN_ENDED' as const,
+    payload: { status, reason },
+  };
+  const eventHash = computeEventHash(
+    { ...baseEvent, eventHash: '', prevEventHash } as GameEvent,
+    prevEventHash
+  );
+  return { ...baseEvent, eventHash, prevEventHash };
 }
 
 // ============================================================================

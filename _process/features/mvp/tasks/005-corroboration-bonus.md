@@ -1,6 +1,6 @@
 # Task 005: Corroboration Bonus
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Game Engine
@@ -186,33 +186,44 @@ export function applyCorroborationBonus(damage: number, hasCorroboration: boolea
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
-**Decisions:**
-**Deviations:**
+**Approach:** Detection via claim matching, bonus via ceil(damage * 0.25)
+**Decisions:** Any matching claim type triggers bonus (OR logic)
+**Deviations:** None
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/src/resolver/corroboration.ts`
+- `packages/engine-core/tests/resolver/corroboration.test.ts`
+**Test Count:** 7 ACs + 3 ECs = 18 tests
+**Gotchas:** None
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS (minor issues)
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
+| AC-1 | `AC-1: 25% bonus for same location` | ✓ |
+| AC-2 | `AC-2: 25% bonus for same state` | ✓ |
+| AC-3 | `Additional edge cases: matching activity` | ✓ |
+| AC-4 | `EC-2: No bonus for different claims` | ✓ |
+| AC-5 | `AC-1: apply 25% bonus` | ✓ |
+| AC-6 | `EC-1: return 0 bonus` | ✓ |
+| AC-7 | `AC-3: ceil() rounding` | ✓ |
+
 **Issues:**
+- EC-2 "Three Cards All Match" not explicitly tested (still just 25% bonus)
+- Test AC numbers don't align with spec AC numbers (cosmetic)
+
 **Suggestions:**
+- Add explicit test for EC-2 showing 3+ cards still get only 25% bonus
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Task implemented
+- 2026-01-26 [Reviewer] Review: PASS with minor EC gap
+- 2026-01-26 [Implementer] Added EC-2 "Three Cards All Match" test
 
 ---
 
@@ -221,3 +232,5 @@ export function applyCorroborationBonus(damage: number, hasCorroboration: boolea
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | review-failed | Reviewer | EC-2 not tested |

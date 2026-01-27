@@ -1,7 +1,7 @@
 # Task 016: Home Screen
 
-**Status:** backlog
-**Assignee:** -
+**Status:** done
+**Assignee:** Implementer
 **Blocked By:** -
 **Phase:** UI Layer
 **Complexity:** S
@@ -203,19 +203,29 @@ function HomeScreen() {
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26
+
 **AC Verification:**
-| AC | Test | Pass |
-|----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
+| AC | Test | Pass | Notes |
+|----|------|------|-------|
+| AC-1 | 2 tests | ✓ | HomeScreen.tsx:55-97 |
+| AC-2 | 1 test | ✓ | Navigates to /daily |
+| AC-3 | 1 test | ✓ | Navigates to /practice (stub) |
+| AC-4 | 1 test | ✓ | Navigates to /settings |
+| AC-5 | 1 test | ✓ | Navigates to /archive |
+| AC-6 | 1 test | ✓ | Mobile-first CSS, 48px touch targets |
+| AC-7 | 3 tests | ✓ | Resume prompt conditional render |
+| EC-1 | 2 tests | ✓ | Play Daily disabled when offline |
+| EC-2 | 2 tests | ✓ | First launch via default props |
+
+**Test Results:** 14/14 passing
+
 **Issues:**
+- None
+
 **Suggestions:**
+- None
 
 ### Change Log
 > Append-only, chronological
@@ -229,3 +239,5 @@ function HomeScreen() {
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implementation complete |
+| 2026-01-26 | done | done | Reviewer | Review PASS - all ACs verified |

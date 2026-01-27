@@ -157,26 +157,43 @@ export function calculateBaseDamage(cards: readonly EvidenceCard[]): Result<numb
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Updated function to return Result<number, DamageError> with validation for 1-3 card limit
 **Decisions:**
-**Deviations:**
+- Return Result type instead of plain number for better error handling
+- Created DamageError class for typed errors
+- Empty submission now returns error instead of 0
+**Deviations:** AC-3 changed from returning 0 to returning error for empty submission (per ERR-1)
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/src/resolver/damage.ts`
+- `packages/engine-core/tests/resolver/damage.test.ts`
+**Test Count:** 5 ACs + 2 ECs + 1 ERR = 13 tests
+**Gotchas:** All existing consumers need to handle Result type
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | Sum card power values | ✓ |
+| AC-2 | Return total as resistance reduction | ✓ |
+| AC-3 | Handle empty submission → error | ✓ |
+| AC-4 | Handle single card | ✓ |
+| AC-5 | Pure Function | ✓ |
+| EC-1 | Cards with power 0 | ✓ |
+| EC-2 | Maximum Cards (3) | ✓ |
+| ERR-1 | Invalid Submission Size | ✓ |
+
+**Fixes Applied:**
+- Returns `Result<number, DamageError>` instead of plain number
+- Validates 1-3 card limit per ERR-1
+- Empty submission now returns error
+- 13 tests passing
+
+**Issues:** None - all issues resolved
 
 ### Change Log
 > Append-only, chronological

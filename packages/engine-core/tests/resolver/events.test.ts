@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   deriveState,
   deriveStatusFromEvents,
+  computeStateHash,
   runStarted,
   cardsSubmitted,
   concernAddressed,
@@ -391,6 +392,153 @@ describe('Task 009: Event System and State Derivation', () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value).toBe(RunStatus.IN_PROGRESS);
+      }
+    });
+  });
+
+  // ==========================================================================
+  // AC-8: Event Hash Chain
+  // ==========================================================================
+  describe('AC-8: Event Hash Chain', () => {
+    it('should include eventHash on events', () => {
+      const puzzle = createPuzzle();
+      const event = runStarted({ puzzle, dealtHand: [] });
+
+      expect(event.eventHash).toBeDefined();
+      expect(typeof event.eventHash).toBe('string');
+      expect(event.eventHash.length).toBeGreaterThan(0);
+    });
+
+    it('should include prevEventHash on events', () => {
+      const puzzle = createPuzzle();
+      const event = runStarted({ puzzle, dealtHand: [] });
+
+      expect(event.prevEventHash).toBeDefined();
+      expect(typeof event.prevEventHash).toBe('string');
+    });
+
+    it('should chain events with previous hash', () => {
+      const puzzle = createPuzzle();
+      const firstEvent = runStarted({ puzzle, dealtHand: [] });
+
+      // Create second event with first event's hash
+      const secondEvent = scrutinyIncreased(1, firstEvent.eventHash);
+
+      expect(secondEvent.prevEventHash).toBe(firstEvent.eventHash);
+    });
+
+    it('should produce different hashes for different events', () => {
+      const puzzle = createPuzzle();
+      const event1 = runStarted({ puzzle, dealtHand: [] });
+      const event2 = scrutinyIncreased(1);
+      const event3 = scrutinyIncreased(2);
+
+      expect(event1.eventHash).not.toBe(event2.eventHash);
+      expect(event2.eventHash).not.toBe(event3.eventHash);
+    });
+
+    it('should produce same hash for same event content', () => {
+      const puzzle = createPuzzle();
+
+      // Same payload should produce same hash
+      const event1 = runStarted({ puzzle, dealtHand: [] });
+      const event2 = runStarted({ puzzle, dealtHand: [] });
+
+      expect(event1.eventHash).toBe(event2.eventHash);
+    });
+  });
+
+  // ==========================================================================
+  // AC-9: State Snapshot Hash
+  // ==========================================================================
+  describe('AC-9: State Snapshot Hash', () => {
+    it('should compute deterministic hash for state', () => {
+      const puzzle = createPuzzle();
+      const events: GameEvent[] = [
+        runStarted({ puzzle, dealtHand: [] }),
+      ];
+
+      const result = deriveState(events);
+      expect(result.ok).toBe(true);
+
+      if (result.ok) {
+        const hash1 = computeStateHash(result.value);
+        const hash2 = computeStateHash(result.value);
+
+        expect(hash1).toBe(hash2);
+        expect(typeof hash1).toBe('string');
+        expect(hash1.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should produce same hash for same state', () => {
+      const puzzle = createPuzzle({ resistance: 10 });
+      const events1: GameEvent[] = [runStarted({ puzzle, dealtHand: [] })];
+      const events2: GameEvent[] = [runStarted({ puzzle, dealtHand: [] })];
+
+      const result1 = deriveState(events1);
+      const result2 = deriveState(events2);
+
+      expect(result1.ok).toBe(true);
+      expect(result2.ok).toBe(true);
+
+      if (result1.ok && result2.ok) {
+        const hash1 = computeStateHash(result1.value);
+        const hash2 = computeStateHash(result2.value);
+
+        expect(hash1).toBe(hash2);
+      }
+    });
+
+    it('should produce different hash for different state', () => {
+      const puzzle1 = createPuzzle({ resistance: 10 });
+      const puzzle2 = createPuzzle({ resistance: 20 });
+
+      const events1: GameEvent[] = [runStarted({ puzzle: puzzle1, dealtHand: [] })];
+      const events2: GameEvent[] = [runStarted({ puzzle: puzzle2, dealtHand: [] })];
+
+      const result1 = deriveState(events1);
+      const result2 = deriveState(events2);
+
+      expect(result1.ok).toBe(true);
+      expect(result2.ok).toBe(true);
+
+      if (result1.ok && result2.ok) {
+        const hash1 = computeStateHash(result1.value);
+        const hash2 = computeStateHash(result2.value);
+
+        expect(hash1).not.toBe(hash2);
+      }
+    });
+
+    it('should change hash when state changes', () => {
+      const puzzle = createPuzzle({ resistance: 10 });
+      const card = createCard('1', 3);
+
+      const events1: GameEvent[] = [
+        runStarted({ puzzle, dealtHand: [card] }),
+      ];
+
+      const events2: GameEvent[] = [
+        runStarted({ puzzle, dealtHand: [card] }),
+        cardsSubmitted({
+          cardIds: [card.id],
+          cards: [card],
+          damageDealt: 3,
+        }),
+      ];
+
+      const result1 = deriveState(events1);
+      const result2 = deriveState(events2);
+
+      expect(result1.ok).toBe(true);
+      expect(result2.ok).toBe(true);
+
+      if (result1.ok && result2.ok) {
+        const hash1 = computeStateHash(result1.value);
+        const hash2 = computeStateHash(result2.value);
+
+        expect(hash1).not.toBe(hash2);
       }
     });
   });

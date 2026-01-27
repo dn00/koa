@@ -1,6 +1,6 @@
 # Task 017: Run Screen (HUD, Hand, Story)
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** UI Layer
@@ -254,28 +254,43 @@ function RunScreen() {
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-| AC-9 | | |
-| AC-10 | | |
-| AC-11 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | "Layout shows all areas" | ✓ |
+| AC-2 | "Resistance with progress bar" | ✓ |
+| AC-3 | "Scrutiny indicator" | ✓ |
+| AC-4 | "Concerns with addressed state" | ✓ |
+| AC-5 | "Turns remaining" | ✓ |
+| AC-6 | "Hand displays 6 cards" | ✓ |
+| AC-7 | "Committed story timeline" | ✓ |
+| AC-8 | "Counter panel visible (FULL)" | ✓ |
+| AC-9 | "Counter panel hidden (HIDDEN)" | ✓ |
+| AC-10 | "Submit button visible/enabled" | ✓ |
+| AC-11 | "Mobile touch carousel" | ✓ |
+| EC-1 | "No cards selected (button disabled)" | ✓ |
+| EC-2 | "All concerns addressed" | ✓ |
+| EC-3 | "Scrutiny at 4 (warning)" | ✓ |
+| ERR-1 | "No active run (redirect)" | ✓ |
+
+**Tests:** 19 passed
+**Implementation Notes:**
+- All HUD components created: ResistanceBar, ScrutinyIndicator, ConcernChip, TurnsDisplay
+- HandCarousel with card selection (max 3)
+- StoryTimeline shows committed cards
+- CounterPanel with visibility modes
+- Redirect to home when no active run
+**Issues:** None
+**Suggestions:** Full resolver integration in Task 019
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Implemented RunScreen with HUD, Hand, Story, Counter components
+- 2026-01-26 [Reviewer] Review PASS - all ACs/ECs/ERR verified
 
 ---
 
@@ -284,3 +299,5 @@ function RunScreen() {
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | done | Reviewer | Review PASS |

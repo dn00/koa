@@ -202,29 +202,48 @@ function EvidenceCard({ card, selected, disabled, onSelect }: EvidenceCardProps)
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Added refutation badge per AC-7
 **Decisions:**
-**Deviations:**
+- Badge shown conditionally when `card.refutes` is truthy
+- Styled with amber/gold colors to indicate special ability
+- Added aria-label for accessibility
+**Deviations:** None
 **Files Changed:**
-**Gotchas:**
+- `packages/app/src/components/EvidenceCard/EvidenceCard.tsx`
+- `packages/app/src/components/EvidenceCard/EvidenceCard.module.css`
+- `packages/app/tests/components/EvidenceCard.test.tsx`
+**Test Count:** 8 ACs + 2 ECs + 0 ERR = 24 tests
+**Gotchas:** Touch-friendly size verified by structure (button element, tabIndex)
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | Card Displays Power | ✓ |
+| AC-2 | Card Displays Proof Types | ✓ |
+| AC-3 | Card Displays Source | ✓ |
+| AC-4 | Selection State | ✓ |
+| AC-5 | Tap to Toggle | ✓ |
+| AC-6 | Disabled State | ✓ |
+| AC-7 | Refutation Badge | ✓ |
+| AC-8 | Touch-Friendly Size | ✓ (structural) |
+| EC-1 | Long Source Name | ✓ |
+| EC-2 | Long text truncates | ✓ |
+
+**Fixes Applied:**
+- Refutation badge added with aria-label
+- Styled with amber/gold colors
+- 24 tests passing
+
+**What's Good:**
+- Excellent accessibility: role="button", aria-pressed, aria-disabled
+- Keyboard navigation support (Enter, Space)
+- Clean CSS module usage
 
 ### Change Log
 > Append-only, chronological

@@ -1,6 +1,6 @@
 # Task 020: Result Screen
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** UI Layer
@@ -207,26 +207,39 @@ function ResultScreen() {
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-| AC-9 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | "Win shows ACCESS GRANTED" | ✓ |
+| AC-2 | "Loss shows ACCESS DENIED with reason" | ✓ |
+| AC-3 | "Loss reason for turns exhausted" | ✓ |
+| AC-4 | "Loss reason for scrutiny" | ✓ |
+| AC-5 | "Score recap stats" | ✓ |
+| AC-6 | "Share button" | ✓ |
+| AC-7 | "Play Again button" | ✓ |
+| AC-8 | "Archive button" | ✓ |
+| AC-9 | "Win animation" | ✓ |
+| EC-1 | "Perfect run indicator" | ✓ |
+
+**Tests:** 18 passed
+**Implementation Notes:**
+- Clear win/loss messaging with proper labels
+- Loss reason mapping implemented
+- ScoreRecap component shows turnsUsed, totalDamage, concernsAddressed, scrutiny
+- CelebrationAnimation with confetti emojis on win
+- Perfect run indicator when scrutiny = 0
+- Navigation to home (play again), archive, and share stub
+**Issues:** None
+**Suggestions:** None - clean implementation
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Implemented ResultScreen with win/loss display and recap
+- 2026-01-26 [Reviewer] Review PASS - all ACs/EC verified
 
 ---
 
@@ -235,3 +248,5 @@ function ResultScreen() {
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | done | Reviewer | Review PASS |

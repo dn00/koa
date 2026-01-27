@@ -4,6 +4,8 @@ import { DailyStubScreen } from './screens/daily/DailyStubScreen.js';
 import { PracticeStubScreen } from './screens/practice/PracticeStubScreen.js';
 import { SettingsStubScreen } from './screens/settings/SettingsStubScreen.js';
 import { ArchiveStubScreen } from './screens/archive/ArchiveStubScreen.js';
+import { RunScreen } from './screens/run/index.js';
+import { ResultScreen } from './screens/results/index.js';
 
 /**
  * Application router configuration
@@ -35,5 +37,13 @@ export const router = createBrowserRouter([
   {
     path: '/archive',
     element: <ArchiveStubScreen />,
+  },
+  {
+    path: '/run',
+    element: <RunScreen />,
+  },
+  {
+    path: '/results',
+    element: <ResultScreen />,
   },
 ]);

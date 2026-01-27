@@ -1,6 +1,6 @@
 # Task 007: Refutation Mechanics
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Game Engine
@@ -199,24 +199,32 @@ export function calculateDamageWithRefutation(
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | "Detect refutation cards with matching counter IDs" | ✓ |
+| AC-2 | "Return false when no match" | ✓ |
+| AC-3 | "Mark counter as refuted" | ✓ |
+| AC-4 | "Refuted counters apply no penalty (integration)" | ✓ |
+| AC-5 | "Damage restoration when counter refuted" | ✓ |
+| AC-6 | "Refutation persists across turns" | ✓ |
+| AC-7 | "Immutable updated counters array" | ✓ |
+| EC-1 | "Cards without refutes field" | ✓ |
+| EC-2 | "Multiple refutations in single submission" | ✓ |
+| EC-3 | "Re-refuting already-refuted counter" | ✓ |
+
+**Tests:** 22 passed
+**Issues:** None
+**Suggestions:** None - clean implementation
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Implemented refutation.ts with canRefute, applyRefutations
+- 2026-01-26 [Reviewer] Review PASS - all ACs/ECs verified
 
 ---
 
@@ -225,3 +233,5 @@ export function calculateDamageWithRefutation(
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | done | Reviewer | Review PASS |

@@ -108,6 +108,13 @@ export function EvidenceCard({
       <div className={styles.claims} title={formatClaims(card.claims)}>
         {formatClaims(card.claims)}
       </div>
+
+      {/* AC-7: Refutation badge when card can refute counters */}
+      {card.refutes && (
+        <div className={styles.refuteBadge} aria-label="Can refute counter-evidence">
+          Refutes
+        </div>
+      )}
     </div>
   );
 }

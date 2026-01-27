@@ -1,6 +1,6 @@
 # Task 006: Counter-Evidence and Contested Penalty
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Game Engine
@@ -30,14 +30,18 @@ KOA plays counter-evidence that challenges the player's claims. If a card proves
 ```
 for each card in submission:
     card_damage = card.power
-    if counter targets this card's proof type AND not refuted:
+    if counter targets this card AND not refuted:
         card_damage = ceil(card_damage * 0.5)  # 50% contested
 ```
 
 **Counter-Evidence (from D31):**
-- Each counter targets specific proof type(s)
+- Each counter targets specific cards via CardId[] (not ProofType)
 - Counter can be marked as refuted (Task 007)
 - Refuted counters don't apply penalty
+
+**Note:** Implementation uses direct CardId targeting (counter.targets: CardId[])
+rather than ProofType targeting. This was decided during Task 002 (R1-SHLD-2) to
+allow more precise counter-evidence mechanics.
 
 **Invariant I1 - Determinism:**
 - Use `Math.ceil()` for rounding
@@ -188,33 +192,43 @@ export function calculateContestedDamage(
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
-**Decisions:**
-**Deviations:**
+**Approach:** Direct CardId targeting (counter.targets: CardId[])
+**Decisions:** CardId[] targeting for precise mechanics (per R1-SHLD-2)
+**Deviations:** Uses CardId[] not ProofType[] (spec updated)
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/src/resolver/contested.ts`
+- `packages/engine-core/tests/resolver/contested.test.ts`
+**Test Count:** 7 ACs + 3 ECs = 14 tests
+**Gotchas:** Spec originally said ProofType, updated to match implementation
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS (spec needs update)
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
+| AC-1 | `AC-1: Counter targets via CardId[]` | ✓ |
+| AC-2 | N/A - implementation uses CardId | - |
+| AC-3 | `AC-3: Refuted counters inactive` | ✓ |
+| AC-4 | `AC-2: 50% penalty` | ✓ |
+| AC-5 | `EC-1: not contested` | ✓ |
+| AC-6 | `AC-2: ceil rounding` | ✓ |
+| AC-7 | N/A - implementation uses CardId | - |
+
 **Issues:**
+- R3-SHLD-1: Spec says counters target `ProofType`, implementation uses `CardId[]`. Spec needs update to match implementation (aligns with Task 002 R1-SHLD-2).
+
 **Suggestions:**
+- Update spec ACs to reflect CardId[] targeting design
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Task implemented
+- 2026-01-26 [Reviewer] Review: PASS pending spec update
+- 2026-01-26 [Implementer] Updated spec to document CardId[] targeting
 
 ---
 
@@ -223,3 +237,5 @@ export function calculateContestedDamage(
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | review-failed | Reviewer | Spec needs update for CardId targeting |

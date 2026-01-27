@@ -206,29 +206,46 @@ const PuzzlePackSchema = z.object({
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Added missing ERR-2 "Negative Power" test
 **Decisions:**
-**Deviations:**
+- Power >= 0 validation already implemented in schema
+- Added explicit tests for negative power values
+**Deviations:** None
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/tests/validation/schemas.test.ts`
+**Test Count:** 8 ACs + 2 ECs + 2 ERRs = 31 tests
+**Gotchas:** None
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | EvidenceCard Schema | ✓ |
+| AC-2 | CounterEvidence Schema | ✓ |
+| AC-3 | Concern Schema | ✓ |
+| AC-4 | Puzzle Schema | ✓ |
+| AC-5 | Puzzle Pack Schema | ✓ |
+| AC-6 | Voice Pack Schema | ✓ |
+| AC-7 | OutcomeKey Format | ✓ |
+| AC-8 | Schema Export | ✓ |
+| EC-1 | Empty Arrays | ✓ |
+| EC-2 | Optional Fields | ✓ |
+| ERR-1 | Invalid Proof Type | ✓ |
+| ERR-2 | Negative Power | ✓ |
+
+**Fixes Applied:**
+- ERR-2 "Negative Power" tests added
+- 31 tests passing
+
+**What's Good:**
+- Comprehensive validation with path-based error messages
+- Proper fail-closed behavior (returns error array)
+- Type guards for branded IDs
 
 ### Change Log
 > Append-only, chronological

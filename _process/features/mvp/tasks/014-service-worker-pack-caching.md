@@ -1,6 +1,6 @@
 # Task 014: Service Worker and Pack Caching
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Content System
@@ -264,26 +264,40 @@ registerRoute(
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-| AC-9 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | "SW registers and controls page" (integration) | ✓ |
+| AC-2 | "App shell cached/served offline" (integration) | ✓ |
+| AC-3 | "Pack loader fetches, validates, caches" | ✓ |
+| AC-4 | "Cached packs served by hash" | ✓ |
+| AC-5 | "Hash mismatch detection" | ✓ |
+| AC-6 | "Manifest fetching with daily ID" | ✓ |
+| AC-7 | "Offline pack load from cache" | ✓ |
+| AC-8 | "Schema validation before caching" | ✓ |
+| AC-9 | "Cache cleanup" | ✓ |
+| EC-1 | "Network timeout handling" | ✓ |
+| EC-2 | "Partial cache scenario" | ✓ |
+| ERR-1 | "Pack not found (404)" | ✓ |
+| ERR-2 | "Validation failed" | ✓ |
+
+**Tests:** 22 passed
+**Implementation Notes:**
+- Used manual SW implementation (not Workbox) - simpler for the scope
+- Service worker has StaleWhileRevalidate for app shell, NetworkFirst for manifest
+- Pack loader verifies SHA256 hash via crypto.subtle
+- Packs stored in IndexedDB via Dexie
+**Issues:** None
+**Suggestions:** E2E tests would strengthen AC-1/AC-2 verification
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Implemented sw.js and pack-loader.ts
+- 2026-01-26 [Reviewer] Review PASS - all ACs/ECs/ERRs verified
 
 ---
 
@@ -292,3 +306,5 @@ registerRoute(
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | done | Reviewer | Review PASS |

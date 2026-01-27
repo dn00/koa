@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@hsh/engine-core": "*",
+    "dexie": "^4.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -21,6 +23,7 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^27.4.0",
     "vite": "^6.1.0"
   }

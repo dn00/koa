@@ -189,28 +189,42 @@ function rangesOverlap(range1: TimeRange, range2: TimeRange): boolean {
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Added EC-2 "Same Card" test - cards with same data don't contradict themselves
 **Decisions:**
-**Deviations:**
+- Same card ID check implicit (same data = no contradiction)
+- Time parsing returns null for invalid formats (R2-SHLD-3 deferred to future task if Result type needed)
+**Deviations:** ERR-1 not implemented as Result type (returns null instead), documented in review
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/tests/resolver/contradiction.test.ts`
+**Test Count:** 7 ACs + 3 ECs + 0 ERR = 24 tests
+**Gotchas:** Invalid time format handling is lenient (returns null, not error)
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | ContradictionSeverity Enum | ✓ |
+| AC-2 | No Contradiction | ✓ |
+| AC-3 | State Transition Too Fast | ✓ |
+| AC-4 | Location Transition Too Fast | ✓ |
+| AC-5 | Location Transition Allowed | ✓ |
+| AC-6 | Tight But Possible (MINOR) | ✓ |
+| AC-7 | Check Against Committed Story | ✓ |
+| EC-1 | Card With No Claims | ✓ |
+| EC-2 | Same Card | ✓ |
+| EC-3 | Only One Claim Type | ✓ |
+
+**Fixes Applied:**
+- EC-2 "Same Card" test added
+- 24 tests passing
+
+**Deferred:**
+- ERR-1: Invalid time format returns null (lenient behavior, documented)
 
 ### Change Log
 > Append-only, chronological

@@ -54,10 +54,13 @@ const moodLabels: Record<KOAMood, string> = {
  * AC-8: SMUG mood - player lost
  * AC-9: Mood prop controls display
  * EC-1: Smooth transition between moods (CSS animation)
+ * ERR-1: Unknown mood falls back to NEUTRAL
  */
 export function KOAAvatar({ mood, size = 'medium' }: KOAAvatarProps): ReactNode {
-  const moodColor = moodColors[mood];
-  const moodLabel = moodLabels[mood];
+  // ERR-1: Fall back to NEUTRAL for unknown moods at runtime
+  const safeMood = moodColors[mood] ? mood : KOAMood.NEUTRAL;
+  const moodColor = moodColors[safeMood];
+  const moodLabel = moodLabels[safeMood];
 
   return (
     <div

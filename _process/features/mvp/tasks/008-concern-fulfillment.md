@@ -195,28 +195,48 @@ export function allConcernsAddressed(
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Implemented all missing functions per spec
 **Decisions:**
-**Deviations:**
+- `allConcernsAddressed()` checks both pre-addressed and newly addressed concerns
+- `updateConcernStatus()` is immutable - returns new array
+- Existing `checkSubmissionConcernsFulfilled()` kept alongside new functions
+**Deviations:** None
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/src/resolver/concerns.ts`
+- `packages/engine-core/src/resolver/index.ts` (exports)
+- `packages/engine-core/tests/resolver/concerns.test.ts`
+**Test Count:** 7 ACs + 3 ECs + 0 ERR = 29 tests
+**Gotchas:** None
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | Card Addresses Concern | ✓ |
+| AC-2 | Card Does Not Address | ✓ |
+| AC-3 | Multi-Proof Card | ✓ |
+| AC-4 | Find Addressed Concerns | ✓ |
+| AC-5 | All Concerns Addressed | ✓ |
+| AC-6 | Some Concerns Not Addressed | ✓ |
+| AC-7 | Update Concern Status | ✓ |
+| EC-1 | Already Addressed Concern | ✓ |
+| EC-2 | One Card Multiple Concerns | ✓ |
+| EC-3 | No Cards | ✓ |
+
+**Fixes Applied:**
+- `allConcernsAddressed()` implemented per AC-5
+- `updateConcernStatus()` implemented per AC-7 (immutable)
+- 29 tests passing
+
+**What's Good:**
+- ALERTNESS state check (AWAKE/ALERT/ACTIVE requirement)
+- Case-insensitive state matching
+- Clean separation of single-card vs submission checking
 
 ### Change Log
 > Append-only, chronological

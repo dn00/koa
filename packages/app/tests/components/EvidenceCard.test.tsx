@@ -222,4 +222,51 @@ describe('Task 018: Evidence Card Component', () => {
       expect(screen.getByTitle(claimsText)).toBeInTheDocument();
     });
   });
+
+  // ==========================================================================
+  // AC-7: Refutation Badge
+  // ==========================================================================
+  describe('AC-7: Refutation Badge', () => {
+    it('should display refutation badge when card has refutes property', () => {
+      const card = createCard({ refutes: 'counter_1' as any });
+      render(<EvidenceCard card={card} />);
+
+      expect(screen.getByText('Refutes')).toBeInTheDocument();
+    });
+
+    it('should have aria-label for refutation badge', () => {
+      const card = createCard({ refutes: 'counter_1' as any });
+      render(<EvidenceCard card={card} />);
+
+      expect(screen.getByLabelText('Can refute counter-evidence')).toBeInTheDocument();
+    });
+
+    it('should not display refutation badge when card has no refutes property', () => {
+      const card = createCard({ refutes: undefined });
+      render(<EvidenceCard card={card} />);
+
+      expect(screen.queryByText('Refutes')).not.toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // AC-8: Touch-Friendly Size (visual test - verify structure)
+  // ==========================================================================
+  describe('AC-8: Touch-Friendly Size', () => {
+    it('should be a button element for accessibility', () => {
+      const card = createCard();
+      render(<EvidenceCard card={card} />);
+
+      const cardElement = screen.getByRole('button');
+      expect(cardElement).toBeInTheDocument();
+    });
+
+    it('should have proper tabIndex for keyboard navigation', () => {
+      const card = createCard();
+      render(<EvidenceCard card={card} />);
+
+      const cardElement = screen.getByRole('button');
+      expect(cardElement).toHaveAttribute('tabIndex', '0');
+    });
+  });
 });

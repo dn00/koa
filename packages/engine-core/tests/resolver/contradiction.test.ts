@@ -301,6 +301,38 @@ describe('Task 004: Contradiction Detection', () => {
   });
 
   // ==========================================================================
+  // EC-2: Same Card check
+  // ==========================================================================
+  describe('EC-2: Same Card check', () => {
+    it('should return null when checking card against itself in committed story', () => {
+      const card = createCard('1', {
+        state: 'ASLEEP',
+        timeRange: '2:00am-6:00am',
+      });
+
+      // When a card is in the committed story and we check the same card,
+      // it should not find a contradiction with itself
+      const result = detectContradictions(card, [card]);
+      // Same card cannot contradict itself (same data)
+      expect(result).toBeNull();
+    });
+
+    it('should return null for cards with same ID', () => {
+      const card1 = createCard('same', {
+        state: 'ASLEEP',
+        timeRange: '2:00am-6:00am',
+      });
+      const card2 = createCard('same', {
+        state: 'ASLEEP',
+        timeRange: '2:00am-6:00am',
+      });
+
+      const result = detectContradictions(card1, [card2]);
+      expect(result).toBeNull();
+    });
+  });
+
+  // ==========================================================================
   // Additional edge cases
   // ==========================================================================
   describe('Edge Cases', () => {

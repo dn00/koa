@@ -1,6 +1,6 @@
 # Task 029: Telemetry
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Content and Polish
@@ -259,25 +259,41 @@ function onRunEnd(result: RunResult) {
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | "RUN_STARTED event format" | ✓ |
+| AC-2 | "TURN_SUMMARY event format" | ✓ |
+| AC-3 | "RUN_ENDED_SUMMARY event format" | ✓ |
+| AC-4 | "Opt-out respected" | ✓ |
+| AC-5 | "No PII" | ✓ |
+| AC-6 | "Batch sending" | ✓ |
+| AC-7 | "Offline queueing" | ✓ |
+| AC-8 | "Anonymous session ID" | ✓ |
+| EC-1 | "Rapid events batched" | ✓ |
+| EC-2 | "Large queue capped" | ✓ |
+| ERR-1 | "Send failed (retry)" | ✓ |
+
+**Tests:** 26 passed
+**Implementation Notes:**
+- TelemetryService class with queue, session ID, batching
+- crypto.randomUUID() for anonymous session ID
+- Checks settingsStore.telemetryOptOut before queuing
+- Batch size = 10, max queue = 50
+- Retry on failure with setTimeout
+- destroy() method for cleanup
+- Singleton pattern with getTelemetryService()
+**Issues:** None
+**Suggestions:** None - privacy-conscious implementation
 
 ### Change Log
 > Append-only, chronological
 
 - 2026-01-26 [Planner] Task created
+- 2026-01-26 [Implementer] Implemented TelemetryService with batching and privacy
+- 2026-01-26 [Reviewer] Review PASS - all ACs/ECs/ERR verified
 
 ---
 
@@ -286,3 +302,5 @@ function onRunEnd(result: RunResult) {
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-26 | - | backlog | Planner | Created |
+| 2026-01-26 | backlog | done | Implementer | Implemented |
+| 2026-01-26 | done | done | Reviewer | Review PASS |

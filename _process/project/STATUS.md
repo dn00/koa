@@ -11,15 +11,15 @@
 |--------|-------|
 | Phase | Implementation |
 | Features | 1 (MVP) |
-| Tasks | 1/29 done |
-| Batches | 1/7 done |
-| Tests | 23 passing |
+| Tasks | 3/29 done |
+| Batches | 2/7 done |
+| Tests | 201 passing |
 
 ---
 
 ## Current Focus
 
-**Batch 1 Complete** - Monorepo scaffolding done, ready for Batch 2.
+**Batch 2 Complete and Reviewed** - Domain types and Home screen done.
 
 ### Completed
 - [x] Read all design docs (D01-D31)
@@ -31,13 +31,21 @@
 - [x] Write MVP discovery document
 - [x] Planner creates task breakdown for MVP
 - [x] Task 001: Monorepo Setup (Batch 1)
+- [x] Task 002: Domain Types (Batch 2) - Reviewed PASS WITH COMMENTS
+- [x] Task 016: Home Screen (Batch 2) - Reviewed PASS
 
-### Next Batch (Batch 2)
-- [ ] Task 002: Domain Types
-- [ ] Task 016: Home Screen
+### Next Batch (Batch 3)
+- [ ] Task 003: Basic Damage Calculation
+- [ ] Task 004: Contradiction Detection
+- [ ] Task 008: Concern Fulfillment Tracking
+- [ ] Task 009: Event System and State Derivation
+- [ ] Task 011: Pack Schemas
+- [ ] Task 018: Evidence Card Component
+- [ ] Task 023: KOA Avatar and Moods
 
 ### Following Batches
-- Batch 3: Tasks 003, 004, 008, 009, 011, 018, 023
+- Batch 4: Tasks 005, 006, 010, 012, 013, 015
+- Batch 5: Tasks 007, 014, 017, 020, 029
 
 ---
 
@@ -53,26 +61,26 @@
 
 | Phase | Name | Tasks | Status |
 |-------|------|-------|--------|
-| 1 | Foundation | 001, 002, 003 | 001 done, 002-003 ready |
-| 2 | Game Engine | 004-010 | backlog |
-| 3 | Content System | 011-014 | backlog |
-| 4 | UI Layer | 015-020 | 016 ready |
-| 5 | Integration | 021-024 | backlog |
+| 1 | Foundation | 001, 002, 003 | 001-002 done, 003 ready |
+| 2 | Game Engine | 004-010 | 004, 008, 009 ready |
+| 3 | Content System | 011-014 | 011 ready |
+| 4 | UI Layer | 015-020 | 016 done, 018 ready |
+| 5 | Integration | 021-024 | 023 ready |
 | 6 | Content & Polish | 025-029 | backlog |
 
 ---
 
 ## Batch Schedule
 
-| Batch | Tasks | Description |
-|-------|-------|-------------|
-| 1 | 001 | Monorepo scaffolding |
-| 2 | 002, 016 | Domain types, Home screen |
-| 3 | 003, 004, 008, 009, 011, 018, 023 | Core resolver, UI components |
-| 4 | 005, 006, 010, 012, 013, 015 | Damage modifiers, validation, persistence |
-| 5 | 007, 014, 017, 020, 029 | Refutation, caching, screens, telemetry |
-| 6 | 019, 021, 022, 024, 025 | Submit flow, daily service, resume, voice |
-| 7 | 026, 027, 028 | Voice pack, tutorial, share card |
+| Batch | Tasks | Description | Status |
+|-------|-------|-------------|--------|
+| 1 | 001 | Monorepo scaffolding | Done |
+| 2 | 002, 016 | Domain types, Home screen | Done (Reviewed) |
+| 3 | 003, 004, 008, 009, 011, 018, 023 | Core resolver, UI components | Ready |
+| 4 | 005, 006, 010, 012, 013, 015 | Damage modifiers, validation, persistence | Blocked |
+| 5 | 007, 014, 017, 020, 029 | Refutation, caching, screens, telemetry | Blocked |
+| 6 | 019, 021, 022, 024, 025 | Submit flow, daily service, resume, voice | Blocked |
+| 7 | 026, 027, 028 | Voice pack, tutorial, share card | Blocked |
 
 ---
 

@@ -225,30 +225,53 @@ function applyEvent(state: RunState | null, event: GameEvent): RunState {
 ### Implementation Notes
 > Written by Implementer
 
-**Approach:**
+**Approach:** Added event hash chain and computeStateHash per AC-8 and AC-9
 **Decisions:**
-**Deviations:**
+- Used djb2 hash algorithm for simplicity and determinism
+- Event hash includes type, payload, and prev hash
+- State hash includes puzzle ID, resistance, scrutiny, turns, concerns, committed story IDs
+- Sorted keys recursively for canonical JSON
+**Deviations:** None
 **Files Changed:**
-**Gotchas:**
+- `packages/engine-core/src/resolver/events.ts`
+- `packages/engine-core/src/resolver/index.ts` (exports)
+- `packages/engine-core/tests/resolver/events.test.ts`
+**Test Count:** 9 ACs + 2 ECs + 1 ERR = 28 tests
+**Gotchas:** Hash chain validation not enforced in deriveState (just computed)
 
 ### Review Notes
 > Written by Reviewer
 
-**Verdict:**
+**Verdict:** PASS
+**Date:** 2026-01-26 (Re-review after fixes)
+
 **AC Verification:**
 | AC | Test | Pass |
 |----|------|------|
-| AC-1 | | |
-| AC-2 | | |
-| AC-3 | | |
-| AC-4 | | |
-| AC-5 | | |
-| AC-6 | | |
-| AC-7 | | |
-| AC-8 | | |
-| AC-9 | | |
-**Issues:**
-**Suggestions:**
+| AC-1 | RUN_STARTED Event | ✓ |
+| AC-2 | CARDS_SUBMITTED Event | ✓ |
+| AC-3 | RUN_ENDED Event | ✓ |
+| AC-4 | Initial State | ✓ |
+| AC-5 | State After Move | ✓ |
+| AC-6 | Win Condition Check | ✓ |
+| AC-7 | Loss Condition Check | ✓ |
+| AC-8 | Event Hash Chain | ✓ |
+| AC-9 | State Snapshot Hash | ✓ |
+| EC-1 | Empty Event Log | ✓ |
+| EC-2 | Replay Produces Same State | ✓ |
+| ERR-1 | Invalid Event Sequence | ✓ |
+
+**Fixes Applied:**
+- Event hash chain implemented (eventHash, prevEventHash fields)
+- `computeStateHash()` implemented using djb2 hash
+- Canonical JSON with sorted keys for determinism
+- 28 tests passing
+
+**What's Good:**
+- Clean discriminated union pattern for events
+- Integer-only djb2 hash per Invariant I1
+- Proper exhaustiveness checking
+- All win/loss conditions handled correctly
 
 ### Change Log
 > Append-only, chronological

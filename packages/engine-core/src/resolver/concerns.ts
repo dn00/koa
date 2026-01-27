@@ -107,3 +107,64 @@ export function checkSubmissionConcernsFulfilled(
 
   return [...newlyAddressed];
 }
+
+/**
+ * Check if all concerns are addressed by the committed story.
+ *
+ * AC-5: Return true if ALL concerns are addressed
+ * AC-6: Return false if any concern is not addressed
+ *
+ * @param concerns - All concerns in the puzzle
+ * @param committedStory - Cards committed to the story
+ * @returns true if all concerns are addressed
+ */
+export function allConcernsAddressed(
+  concerns: readonly Concern[],
+  committedStory: readonly EvidenceCard[]
+): boolean {
+  for (const concern of concerns) {
+    // Check if concern is already marked addressed
+    if (concern.addressed) {
+      continue;
+    }
+
+    // Check if any committed card addresses this concern
+    const isAddressed = committedStory.some((card) =>
+      cardAddressesConcern(card, concern)
+    );
+
+    if (!isAddressed) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Update concern status based on newly addressed concern IDs.
+ * Returns new concern array with addressed = true for matched IDs.
+ * Immutable - does not modify input concerns.
+ *
+ * AC-7: Return concerns with addressed = true for matched IDs
+ *
+ * @param concerns - All concerns in the puzzle
+ * @param addressedIds - IDs of newly addressed concerns
+ * @returns New array of concerns with updated addressed status
+ */
+export function updateConcernStatus(
+  concerns: readonly Concern[],
+  addressedIds: readonly ConcernId[]
+): Concern[] {
+  return concerns.map((concern) => {
+    if (concern.addressed) {
+      return concern;
+    }
+
+    if (addressedIds.includes(concern.id)) {
+      return { ...concern, addressed: true };
+    }
+
+    return concern;
+  });
+}
