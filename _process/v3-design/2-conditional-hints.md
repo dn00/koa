@@ -79,3 +79,7 @@ Added `quality: 'specific' | 'vague'` to `ReactiveHint` interface.
 - The gap between probe and safe win rates represents the information value of probing
 - Overall loss rate should increase from 20% toward 30-40%
 - P3 should become harder than P1 (difficulty curve restored)
+
+## Follow-Up: Reduced Lie Penalty
+
+Playtest 3 showed that conditional hints work mechanically but the scoring math still prevents probing — eating any lie on T1 makes CLEARED nearly impossible. See `3-reduced-lie-penalty.md` for the follow-up fix: `-(strength - 1)` instead of `-strength`, plus a transparent probe mechanic.

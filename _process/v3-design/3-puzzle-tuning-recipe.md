@@ -1,5 +1,10 @@
 # Puzzle Tuning Recipe — V3 "The Statement"
 
+> **SUPERSEDED.** This doc predates Option C (split lies), conditional reactive hints, and the current validator (I1-I25, C1-C8). Invariant IDs, target ranges, and win rate bands are stale. For current puzzle authoring guidance, use:
+> - `_process/v3-design/puzzle-gen-invariants.md` — semantic invariants S1-S13 + backward generation process
+> - `_process/v3-design/design.md` — section 3.7 (card design constraints) + Appendix B (validator invariants)
+> - `scripts/prototype-v3.ts` — current validator
+
 Repeatable process for authoring V3 puzzles that pass all invariants.
 Extracted from tuning 3 prototype puzzles in `scripts/prototype-v3.ts`.
 

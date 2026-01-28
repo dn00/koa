@@ -1,6 +1,6 @@
 # Puzzle Generation Invariants
 
-Machine-checked invariants are in `scripts/prototype-v3.ts` (I1-I22, C1-C8). This document covers **semantic invariants** that the validator cannot enforce — rules the puzzle author (human or LLM) must follow and verify manually.
+Machine-checked invariants are in `scripts/prototype-v3.ts` (I1-I25, C1-C8). This document covers **semantic invariants** that the validator cannot enforce — rules the puzzle author (human or LLM) must follow and verify manually.
 
 ---
 

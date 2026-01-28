@@ -53,7 +53,7 @@ Each daily puzzle presents:
 ### 3.3 Scoring
 
 - TRUTH played: **+strength**
-- LIE played: **-strength**
+- LIE played: **-(strength - 1)** (partial credit — even a lie has some truth in it)
 - Final total ≥ target → **CLEARED**
 - Final total < target → **BUSTED**
 
@@ -87,6 +87,8 @@ Reactive hint quality is **conditional on T1 risk**:
 This creates the **probe-vs-protect tradeoff**:
 - Safe T1 = safe score but blind for T2/T3 (vague hint, must guess)
 - Risky T1 = might lose points (if you play the hint-group lie) but get actionable intelligence
+
+**Transparent probe:** Players are told upfront that their Turn 1 choice determines what KOA reveals. "Play a card KOA is watching — she'll tell you more." This makes the probe-vs-protect tradeoff an informed decision, not a hidden mechanic.
 
 Why this matters:
 - Turn 1 is no longer "pick the safest card" — it's "is the information worth the risk?"
@@ -247,9 +249,9 @@ The compound hint forces multi-attribute deduction. "Same device" → look for c
 
 | Stage | Behavior | Est. Win Rate |
 |-------|----------|---------------|
-| **Day 1** | Reads hint literally. Plays safe T1 (outside hint group). Gets vague hint. Guesses for T2/T3. | ~40% |
+| **Day 1** | Reads hint literally. Plays safe T1 (outside hint group). Gets vague hint. Guesses for T2/T3. Reduced lie penalty keeps them in the game. | ~40% |
 | **Day 5** | Understands hints describe shared attributes. Still plays safe. Crosses hint with card attributes for T2/T3. | ~55% |
-| **Day 10** | Learns that probing (T1 in hint group) yields specific hints. Starts probing on easy/medium puzzles. Reads reactive hints for narrowing. | ~70% |
+| **Day 10** | Learns that probing (T1 in hint group) yields specific hints. Reduced lie penalty makes probing survivable on easy/medium. Starts probing deliberately. | ~70% |
 | **Day 20** | Reads compound/oblique hints. Calculates probe risk vs. info value. Identifies red herrings. Probes strategically. | ~80% |
 | **Day 30** | Deduces both lies before playing from hint + attribute analysis. Uses T1 probe to confirm. Plays for max margin. | ~90% |
 
@@ -415,7 +417,7 @@ interface GameState {
 interface TurnResult {
   card: Card;
   isLie: boolean;
-  delta: number;            // +strength or -strength
+  delta: number;            // +strength or -(strength-1)
   score: number;            // Running total after this turn
 }
 ```
@@ -440,7 +442,7 @@ Machine-checked invariants are in `scripts/prototype-v3.ts`. Semantic invariants
 | I10 | Weaker lie T1 → CLOSE | Recovery ≥ target-2 |
 | I11 | Worst lie T1 survivable | Recovery ≥ target-4 |
 | I12 | Lie strengths differ | Lies have different strengths |
-| I13 | Win rate 15-70% | Random play simulation |
+| I13 | Win rate 15-80% | Random play simulation |
 | I14 | FLAWLESS rate 5-35% | Random play simulation |
 | I15 | Reactive hint coverage 6/6 | All cards have reactive hints |
 | I16 | Verdict quip coverage 6/6 | All cards have verdict quips |

@@ -1,5 +1,10 @@
 # Puzzle Archetype Spec — V3 "The Statement"
 
+> **SUPERSEDED.** This doc predates Option C (split lies), conditional reactive hints (quality: specific/vague), and the current validator (I1-I25, C1-C8). Target ranges, variance bands, and archetype definitions are stale. For current puzzle authoring guidance, use:
+> - `_process/v3-design/puzzle-gen-invariants.md` — semantic invariants S1-S13 + backward generation process
+> - `_process/v3-design/design.md` — section 3.7 (card design constraints) + Appendix C (difficulty scaling)
+> - `scripts/prototype-v3.ts` — current validator
+
 Defines the rules for authoring new V3 puzzles. Any puzzle matching this spec can be validated by the brute-force checker (`scripts/prototype-v3.ts`). Agent playtests are only needed when the spec itself changes.
 
 ---
