@@ -1,37 +1,33 @@
 # V3 Playtest Survey
 
-Complete this AFTER all 3 puzzles. Be honest — we need real reactions, not polite ones.
+Complete this AFTER the puzzle. Be honest — we need real reactions, not polite ones.
 
 ---
 
 ## Part 1: Quick Reactions (answer in under 30 seconds each)
 
-**QR1:** In one word, how did you feel after Puzzle 1?
+**QR1:** In one word, how did you feel after the puzzle?
 
-**QR2:** In one word, how did you feel after Puzzle 3?
+**QR2:** Would you play again tomorrow? (Yes / Maybe / No)
 
-**QR3:** Would you play again right now? (Yes / Maybe / No)
-
-**QR4:** Did you feel like you got better from P1 to P3? (Yes, clearly / A little / Not really / Got worse)
-
-**QR5:** Which puzzle was your favorite? (P1 / P2 / P3) Why, in one sentence?
+**QR3:** Did the puzzle feel like a complete experience? (Yes / Mostly / Not really)
 
 ---
 
 ## Part 2: Structured Assessment (1-7 scale, 1=strongly disagree, 7=strongly agree)
 
 ### Engagement
-**S1:** I wanted to keep playing after each puzzle.
+**S1:** I wanted to keep playing (or play another puzzle right away).
 **S2:** I felt tension when choosing which card to play.
-**S3:** The scenarios were interesting and I wanted to know what happened.
-**S4:** I found myself thinking about what I'd do differently after a loss.
+**S3:** The scenario was interesting and I wanted to know what happened.
+**S4:** I found myself thinking about what I'd do differently.
 **S5:** I lost track of time while playing.
 
 ### Clarity
 **S6:** I understood the rules after reading the briefing.
 **S7:** I understood what KOA's opening hint was telling me.
-**S8:** The scoring (truth adds, lie subtracts) was intuitive.
-**S9:** When I lost, I understood why.
+**S8:** The scoring (truth adds, lie subtracts strength-1) was intuitive.
+**S9:** When I saw the outcome, I understood why I got that result.
 **S10:** The feedback after each turn helped me make better decisions.
 
 ### Deduction
@@ -40,39 +36,36 @@ Complete this AFTER all 3 puzzles. Be honest — we need real reactions, not pol
 **S13:** I felt like I was solving a puzzle, not just guessing.
 **S14:** I could distinguish between "I know this is safe" and "I'm gambling" when playing a card.
 **S15:** The card attributes (location, time, source) were useful for deduction, not just decoration.
-**S16:** By Puzzle 3, I had a strategy for how to approach the hint.
 
 ### Difficulty
-**S17:** Puzzle 1 felt like a fair challenge.
-**S18:** Puzzle 3 felt harder than Puzzle 1.
-**S19:** The difficulty progression across puzzles felt right.
-**S20:** When I lost, it felt like MY mistake (not the game being unfair).
-**S21:** The game punished me for playing in a reasonable way. (reverse-scored)
+**S16:** The puzzle felt like a fair challenge.
+**S17:** The win/loss felt earned (not lucky or unfair).
+**S18:** The game punished me for playing in a reasonable way. (reverse-scored)
 
 ### KOA (the investigator character)
-**S22:** KOA felt like a real character, not just a game system.
-**S23:** KOA's lines were memorable or funny.
-**S24:** I enjoyed the back-and-forth with KOA.
-**S25:** KOA's responses influenced my decisions.
-**S26:** I paid attention to what KOA said (not just the score).
-**S27:** I wanted to "beat" KOA — it felt personal.
+**S19:** KOA felt like a real character, not just a game system.
+**S20:** KOA's lines were memorable or funny.
+**S21:** I enjoyed the back-and-forth with KOA.
+**S22:** KOA's responses influenced my decisions.
+**S23:** I paid attention to what KOA said (not just the score).
+**S24:** I wanted to "beat" KOA — it felt personal.
 
 ### Narration & Immersion
-**S28:** The player narration ("YOU: ...") added to the experience.
-**S29:** Playing a card felt like making a statement, not just selecting an option.
-**S30:** The game felt like an interrogation scene.
-**S31:** The scenario made me care about the outcome beyond just winning.
-**S32:** I read the full narration each time (not just the card ID and score).
+**S25:** The player narration ("YOU: ...") added to the experience.
+**S26:** Playing a card felt like making a statement, not just selecting an option.
+**S27:** The game felt like an interrogation scene.
+**S28:** The scenario made me care about the outcome beyond just winning.
+**S29:** I read the full narration each time (not just the card ID and score).
 
 ### Achievement & Tiers
-**S33:** Winning felt earned, not lucky.
-**S34:** I wanted FLAWLESS, not just CLEARED.
-**S35:** The tier system (FLAWLESS/CLEARED/CLOSE/BUSTED) motivated me to play carefully.
-**S36:** The lie reveal at the end was satisfying (or educational if I lost).
-**S37:** I cared about which specific cards were lies, not just my score.
+**S30:** Winning felt earned, not lucky.
+**S31:** I wanted FLAWLESS, not just CLEARED.
+**S32:** The tier system (FLAWLESS/CLEARED/CLOSE/BUSTED) motivated me to play carefully.
+**S33:** The lie reveal at the end was satisfying (or educational if I lost).
+**S34:** I cared about which specific cards were lies, not just my score.
 
 ### Net Promoter Score
-**S38:** On a scale of 0-10, how likely would you recommend this game to a friend?
+**S35:** On a scale of 0-10, how likely would you recommend this game to a friend?
 
 ---
 
@@ -116,13 +109,13 @@ Map your emotional state at each point (one word or short phrase per line):
 
 ## Part 5: Key Moments
 
-**K1:** What was the single moment that made you go "oh!" or "aha!" across all 3 puzzles? If no such moment, say "none."
+**K1:** What was the single moment that made you go "oh!" or "aha!"? If no such moment, say "none."
 
 **K2:** Was there a moment where the hint or reactive hint changed your mind about a card? Describe it.
 
-**K3:** What was the most satisfying moment across all 3 puzzles?
+**K3:** What was the most satisfying moment?
 
-**K4:** What was the most frustrating moment across all 3 puzzles?
+**K4:** What was the most frustrating moment?
 
 **K5:** Did you ever feel like you were just guessing, with no real information to go on? When?
 
@@ -136,13 +129,13 @@ Map your emotional state at each point (one word or short phrase per line):
 
 ## Part 6: Strategy & Learning
 
-**L1:** Describe your Turn 1 strategy. Did it change across puzzles?
+**L1:** Describe your Turn 1 strategy. Why did you pick that card first?
 
-**L2:** How did you use KOA's opening hint? Walk through your reasoning for any puzzle.
+**L2:** How did you use KOA's opening hint? Walk through your reasoning.
 
 **L3:** Did the reactive hint after Turn 1 actually help? Give an example or say "not really."
 
-**L4:** Did you notice any pattern across puzzles about what makes a card a lie?
+**L4:** Did you notice anything about what makes a card a lie vs. a truth?
 
 **L5:** If you played again, what would you do differently?
 
@@ -205,7 +198,7 @@ Map your emotional state at each point (one word or short phrase per line):
 (open-ended)
 
 ### Session Length
-**M9:** How long did each puzzle FEEL like it took?
+**M9:** How long did the puzzle FEEL like it took?
 - (a) Under 2 minutes
 - (b) 2-5 minutes
 - (c) 5-10 minutes
@@ -261,27 +254,7 @@ Map your emotional state at each point (one word or short phrase per line):
 
 ## Part 8: Run Log
 
-For each puzzle, record:
-
-### Puzzle 1: "The Power Outage"
-- Cards played (T1, T2, T3):
-- Verdicts (Truth/Lie per turn):
-- Final score / target:
-- Tier:
-- Did you use the hint? How?
-- Did the reactive hint help? How?
-- One sentence — what did you learn?
-
-### Puzzle 2: "The Thermostat War"
-- Cards played (T1, T2, T3):
-- Verdicts (Truth/Lie per turn):
-- Final score / target:
-- Tier:
-- Did you use the hint? How?
-- Did the reactive hint help? How?
-- One sentence — what did you learn?
-
-### Puzzle 3: "The Hot Tub Incident"
+### Today's Puzzle: "The Thermostat War"
 - Cards played (T1, T2, T3):
 - Verdicts (Truth/Lie per turn):
 - Final score / target:
