@@ -180,8 +180,24 @@ Rotated weekly to prevent staleness:
 - 8 mood states: NEUTRAL, CURIOUS, SUSPICIOUS, BLOCKED, GRUDGING, IMPRESSED, RESIGNED, SMUG
 - Comedy comes from forensic intensity applied to domestic triviality
 - Banned words: any courtroom language (objection, verdict, guilty, etc.)
+- Preferred framing for high-stakes checks is **“flag/system check on your story”**, not courtroom metaphors (use language like “logs,” “record,” “roll back,” “keep on file”).
 - All lines must pass: screenshot test, read-aloud test, skip test, personality test
 - Under 2 sentences per beat
+
+---
+
+## V5 Micro-Daily Insights (from Playtest-1 — applies across modes)
+
+Recent V5 micro-daily playtests with LLM personas surfaced some cross-cutting design lessons that also apply to the fuller D31 system:
+
+- **Lies must be deducible, not random.** In every puzzle, players must be able to explain each lie in terms of Known Facts + claims after the fact. “It contradicts Fact #2” or “it proves my guilt given the scenario” should be sayable in one short sentence.
+- **Known Facts must matter.** Facts should meaningfully constrain play and help identify lies; if players can win by ignoring facts and just using strength or vibes, the puzzle feels like guessing.
+- **Turn 1 shouldn’t be blind.** There should be at least one clearly safe “anchor” play that a cautious / methodical player can justify using only what’s visible at start.
+- **Lie patterns must vary.** Avoid formulaic patterns across days like “highest-strength card is always a lie” or “lies are always timeline contradictions.” Mix direct contradictions with relational / self-incriminating lies.
+- **KOA as flavor + optional tutor.** During play, KOA should highlight axes (timeline, coherence, channel reliance) and tension, but not directly call out specific lies. After play, optional epilogue/teaching lines that map lies back to the facts they broke are welcome, especially for more literal players.
+- **Progression via difficulty and variety, not grind.** Daily interest comes from varied incidents, lie flavors, and difficulty bands (including occasional “hard mode” days), plus soft meta like streaks and near-miss feedback — not from adding more meters or punitive failure modes.
+
+These reinforce, rather than replace, the D31 invariants: keep puzzles winnable, logically fair, and varied, with KOA as a compliance gate and commentator, not a courtroom judge.
 
 ---
 
