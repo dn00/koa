@@ -57,6 +57,6 @@ export interface GameState {
 export interface TurnResult {
   card: Card;
   isLie: boolean;
-  delta: number;
+  delta: number; // +strength for truth, -(strength-1) for lie
   score: number;
 }

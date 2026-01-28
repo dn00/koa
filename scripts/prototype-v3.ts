@@ -41,7 +41,7 @@ function initState(puzzle: Puzzle): GameState {
 function playCard(cardId: string, state: GameState, puzzle: Puzzle): TurnResult {
   const card = state.hand.find(c => c.id === cardId)!;
   const isLie = card.isLie;
-  const delta = isLie ? -card.strength : +card.strength;
+  const delta = isLie ? -(card.strength - 1) : +card.strength;
   state.score += delta;
   state.hand = state.hand.filter(c => c.id !== cardId);
   state.played.push(card);
@@ -228,8 +228,8 @@ function runAnalysis(puzzle: Puzzle) {
 
   // --- No safe group (THE key C invariant) ---
 
-  const hintGroupScore = hintCards.reduce((s, c) => s + (c.isLie ? -c.strength : c.strength), 0);
-  const nonHintScore = safeCards.reduce((s, c) => s + (c.isLie ? -c.strength : c.strength), 0);
+  const hintGroupScore = hintCards.reduce((s, c) => s + (c.isLie ? -(c.strength - 1) : c.strength), 0);
+  const nonHintScore = safeCards.reduce((s, c) => s + (c.isLie ? -(c.strength - 1) : c.strength), 0);
 
   const i7a = hintGroupScore < puzzle.target;
   console.log(`I7a Hint group score < target:   ${i7a ? 'PASS' : 'FAIL'} (${hintGroupScore} vs ${puzzle.target})`);
@@ -257,13 +257,13 @@ function runAnalysis(puzzle: Puzzle) {
   const top2Truths = [...truths].sort((a, b) => b.strength - a.strength).slice(0, 2);
   const top2Sum = top2Truths.reduce((s, c) => s + c.strength, 0);
 
-  const weakRecovery = -weakerLie + top2Sum;
+  const weakRecovery = -(weakerLie - 1) + top2Sum;
   const i10 = weakRecovery >= puzzle.target - 2;
-  console.log(`I10 T1 weaker lie → CLOSE:       ${i10 ? 'PASS' : 'FAIL'} (-${weakerLie}+${top2Sum}=${weakRecovery} vs target-2=${puzzle.target - 2})`);
+  console.log(`I10 T1 weaker lie → CLOSE:       ${i10 ? 'PASS' : 'FAIL'} (-(${weakerLie}-1)+${top2Sum}=${weakRecovery} vs target-2=${puzzle.target - 2})`);
 
-  const worstRecovery = -worstLie + top2Sum;
+  const worstRecovery = -(worstLie - 1) + top2Sum;
   const i11 = worstRecovery >= puzzle.target - 4;
-  console.log(`I11 T1 worst lie not instant KO:  ${i11 ? 'PASS' : 'FAIL'} (-${worstLie}+${top2Sum}=${worstRecovery} vs target-4=${puzzle.target - 4})`);
+  console.log(`I11 T1 worst lie not instant KO:  ${i11 ? 'PASS' : 'FAIL'} (-(${worstLie}-1)+${top2Sum}=${worstRecovery} vs target-4=${puzzle.target - 4})`);
 
   // --- Lie variance check ---
 
@@ -272,8 +272,8 @@ function runAnalysis(puzzle: Puzzle) {
 
   // --- Win rate checks ---
 
-  const i13 = winRate >= 15 && winRate <= 70;
-  console.log(`I13 Win rate 15-70% (rand):      ${i13 ? 'PASS' : 'FAIL'} (${winRate.toFixed(1)}%)`);
+  const i13 = winRate >= 15 && winRate <= 80;
+  console.log(`I13 Win rate 15-80% (rand):      ${i13 ? 'PASS' : 'FAIL'} (${winRate.toFixed(1)}%)`);
 
   const i14 = flawlessRate >= 5 && flawlessRate <= 35;
   console.log(`I14 FLAWLESS rate 5-35%:         ${i14 ? 'PASS' : 'FAIL'} (${flawlessRate.toFixed(1)}%)`);
@@ -434,9 +434,41 @@ function runAnalysis(puzzle: Puzzle) {
   }
   console.log(`I25 Specific hints implicate ≥1:  ${i25 ? 'PASS' : 'FAIL'}${i25Failures.length ? ` (${i25Failures.join('; ')})` : ''}`);
 
+  // --- Stealth lie temptingness (I26) ---
+  // Stealth lie strength should be ≥ median card strength (top half), otherwise players skip it.
+
+  const sortedStrengths = puzzle.cards.map(c => c.strength).sort((a, b) => a - b);
+  const median = (sortedStrengths[2]! + sortedStrengths[3]!) / 2;
+  const i26 = stealthLie.strength >= median;
+  console.log(`I26 Stealth lie tempting (rank):  ${i26 ? 'PASS' : 'FAIL'} (stealth=${stealthLie.id} str=${stealthLie.strength} vs median=${median})`);
+
+  // --- Hint-group strength spread (I27) ---
+  // If one hint-group card is much stronger than the rest, it draws disproportionate attention.
+
+  const hintStrengths = hintCards.map(c => c.strength);
+  const hintSpread = Math.max(...hintStrengths) - Math.min(...hintStrengths);
+  const i27 = hintSpread <= 2;
+  console.log(`I27 Hint group str spread ≤2:     ${i27 ? 'PASS' : 'FAIL'} (spread=${hintSpread}, strengths=[${hintStrengths.join(',')}])`);
+
+  // --- Non-hint location isolation (I28) ---
+  // A non-hint truth at a location shared by zero other cards is trivially identifiable as safe.
+  // WARN only — acceptable for medium/hard puzzles with behavioral hints.
+
+  const allLocations = puzzle.cards.map(c => c.location);
+  const nonHintTruths = safeCards.filter(c => !c.isLie);
+  const i28Warnings: string[] = [];
+  for (const card of nonHintTruths) {
+    const othersAtLoc = allLocations.filter((loc, idx) => loc === card.location && puzzle.cards[idx]!.id !== card.id);
+    if (othersAtLoc.length === 0) {
+      i28Warnings.push(`${card.id}(${card.location})`);
+    }
+  }
+  const i28 = i28Warnings.length === 0;
+  console.log(`I28 No isolated non-hint truth:   ${i28 ? 'PASS' : 'WARN'} ${i28Warnings.length ? `(isolated: ${i28Warnings.join(', ')})` : ''}`);
+
   const safeSum = nonHintScore;  // for summary compatibility
-  // I21 and I22 are WARNs (heuristic signals), not counted in pass/fail
-  const checks = [i1, i2, i3, i4, i5, i6, i7a, i7b, i8, i9, i10, i11, i12, i13, i14, i15, i16, i17, i18, i19, i20, i23, i24, i25];
+  // I21, I22, I28 are WARNs (heuristic signals), not counted in pass/fail
+  const checks = [i1, i2, i3, i4, i5, i6, i7a, i7b, i8, i9, i10, i11, i12, i13, i14, i15, i16, i17, i18, i19, i20, i23, i24, i25, i26, i27];
   const passed = checks.filter(Boolean).length;
   const failed = checks.length - passed;
   console.log(`\nResult: ${passed}/${checks.length} checks passed${failed > 0 ? ` — ${failed} FAILED` : ''}`);

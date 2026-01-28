@@ -23,7 +23,7 @@ import type { Puzzle } from './v3-types.js';
 //   Target: 5 | Top 3 truths: 4+4+3=11 | Avg lie 4.0 > avg truth 3.25
 //   Hint group score: 3-5+4=2 < 5 | Non-hint score: 4-3+2=3 < 5
 //   Neither group is safe.
-//   Weak lie T1: -3+4+4=5=target (CLEARED) | Worst lie T1: -5+4+4=3 (CLOSE)
+//   Weak lie T1: -(3-1)+4+4=6 (CLEARED) | Worst lie T1: -(5-1)+4+4=4 (CLOSE)
 //   Random win rate: ~25%, FLAWLESS: ~20%
 
 const THE_POWER_OUTAGE: Puzzle = {
@@ -184,17 +184,18 @@ You say you were upstairs the entire evening. KOA has questions.`,
 // ============================================================================
 // STRUCTURE:
 //   Hint: "One lie is trying too hard to explain why nothing happened."
-//   Hint group (living room sensors): light_lr(T:5), motion_lr(L:4), temp_lr(T:3) → 1L + 2T
-//   Outside: phone(T:1), smartwatch(L:3), doorbell(T:4) → 1L + 2T
+//   Hint group (living room sensors): light_lr(T:5), motion_lr(L:3), temp_lr(T:3) → 1L + 2T
+//   Outside: phone(T:1), smartwatch(L:4), hallway_cam(T:4) → 1L + 2T
 //   Stealth lie = smartwatch (BEDROOM, SMARTWATCH) — personal device
 //   NOTE: Hint text is deliberately broader than matchFn (S13 compliance).
 //   Non-hint cards also "explain nothing happened" — this is the ambiguity.
+//   hallway_cam (HALLWAY) also sounds like it could be "trying too hard" (S13 improvement).
 //
 // BALANCE:
 //   Target: 7 | Top 3 truths: 5+4+3=12 | Avg lie 3.5 > avg truth 3.25
-//   Hint group score: 5-4+3=4 < 7 | Non-hint score: 1-3+4=2 < 7
+//   Hint group score: 5-(3-1)+3=6 < 7 | Non-hint score: 1-(4-1)+4=2 < 7
 //   Neither group is safe.
-//   Weak lie T1: -3+5+4=6 (CLOSE) | Worst lie T1: -4+5+4=5 (CLOSE)
+//   Weak lie T1: -(3-1)+5+4=7 (CLEARED) | Worst lie T1: -(4-1)+5+4=6 (CLOSE)
 //   Random win rate: ~20%, FLAWLESS: ~20%
 
 const THE_THERMOSTAT_WAR: Puzzle = {
@@ -226,7 +227,7 @@ You were "sleeping." KOA would like a word.`,
     },
     {
       id: 'smartwatch',
-      strength: 3,
+      strength: 4,
       location: 'BEDROOM',
       time: '2:15 AM',
       source: 'SMARTWATCH',
@@ -235,13 +236,13 @@ You were "sleeping." KOA would like a word.`,
       isLie: true, // STEALTH LIE — outside hint group (bedroom, not living room sensor)
     },
     {
-      id: 'doorbell',
+      id: 'hallway_cam',
       strength: 4,
-      location: 'FRONT_DOOR',
+      location: 'HALLWAY',
       time: '12:30 AM',
-      source: 'DOORBELL',
-      claim: 'Doorbell cam: front hallway empty, no one passed after 12:30 AM',
-      narration: 'The hallway was empty after 12:30. Doorbell cam saw nothing. Nobody walked to the living room.',
+      source: 'SECURITY_CAM',
+      claim: 'Hallway camera: no one walked toward the living room after 12:30 AM',
+      narration: 'The hallway camera covers the only path to the living room. Nobody walked past it. Check the footage — I was in bed.',
       isLie: false,
     },
     {
@@ -250,18 +251,18 @@ You were "sleeping." KOA would like a word.`,
       location: 'LIVING_ROOM',
       time: '1:45 AM',
       source: 'LIGHT_SENSOR',
-      claim: 'Living room light sensor: ambient light unchanged — no one turned on a lamp',
-      narration: 'The living room was dark all night. Light sensor confirms it — no lamps, no screens, no one in there.',
+      claim: 'Living room light sensor: zero light events registered — the room stayed completely dark',
+      narration: 'The light sensor says the living room was pitch black all night. No lamps, no phone screens, nothing. Nobody was in there.',
       isLie: false, // Red herring — living room sensor but truth
     },
     {
       id: 'motion_lr',
-      strength: 4,
+      strength: 3,
       location: 'LIVING_ROOM',
       time: '2:00 AM',
       source: 'MOTION_SENSOR',
-      claim: 'Living room motion sensor: no presence detected between 1 AM and 3 AM',
-      narration: 'The motion sensor in the living room saw nothing between 1 and 3 AM. The room was empty. Ask the sensor.',
+      claim: 'Living room motion sensor: no motion events logged during overnight hours',
+      narration: 'The motion sensor was on all night. It logged nothing. No motion, no presence, no one was in the living room.',
       isLie: true, // HINT LIE — living room sensor
     },
     {
@@ -270,8 +271,8 @@ You were "sleeping." KOA would like a word.`,
       location: 'LIVING_ROOM',
       time: '1:50 AM',
       source: 'TEMP_SENSOR',
-      claim: 'Living room temp sensor: thermostat adjustment came from the scheduled program, not manual input',
-      narration: 'The thermostat change was scheduled. It\'s a program — it does that. Nobody got up to crank it to 85.',
+      claim: 'Living room temp sensor: no manual override detected — the system ran its scheduled program',
+      narration: 'The temp sensor logged a scheduled adjustment. That\'s the program — it runs every night. No one touched the thermostat manually.',
       isLie: false, // Red herring — living room sensor but truth
     },
   ],
@@ -282,8 +283,8 @@ You were "sleeping." KOA would like a word.`,
       implicates: [],
       quality: 'vague',
     },
-    doorbell: {
-      text: '"Nobody came in. So whoever did this was already here. Interesting night."',
+    hallway_cam: {
+      text: '"The hallway was empty. Noted. So whoever changed the thermostat didn\'t walk past the camera. Or did they."',
       implicates: [],
       quality: 'vague',
     },
@@ -319,21 +320,21 @@ You were "sleeping." KOA would like a word.`,
       truth: '"Unbroken sleep. Your wrist doesn\'t lie. Unlike some rooms in this house."',
       lie: '"Light sleep at 2:15? Your watch begs to differ. So does KOA."',
     },
-    doorbell: {
-      truth: '"Empty hallway. Nobody came in. Which means whoever did this was already here."',
-      lie: '"The doorbell cam lied? That\'s a first. Usually it just judges your delivery habits."',
+    hallway_cam: {
+      truth: '"Hallway camera is clean. Nobody walked past. But someone still got to that thermostat."',
+      lie: '"The hallway camera lied? Nobody walked past? KOA checked the footage. Someone did."',
     },
     light_lr: {
-      truth: '"No lamps. The living room was dark and honest. KOA approves."',
-      lie: '"Ambient light unchanged? Someone was in there with the lights OFF. Sneaky. Wrong, but sneaky."',
+      truth: '"Zero light events. The living room was dark and honest. KOA approves."',
+      lie: '"Zero light events? Someone was in there with the lights OFF. Sneaky. Wrong, but sneaky."',
     },
     motion_lr: {
-      truth: '"No motion in the living room. Good. Clean. KOA likes clean."',
-      lie: '"No presence detected? KOA detected LIES. The motion sensor is a fraud."',
+      truth: '"No motion events. Good. Clean. KOA likes clean."',
+      lie: '"No motion events logged? KOA logged plenty. The motion sensor is a fraud."',
     },
     temp_lr: {
-      truth: '"Scheduled program. Boring. Trustworthy. KOA accepts."',
-      lie: '"A scheduled program set itself to 85 at 2 AM. KOA is not an idiot."',
+      truth: '"Scheduled program, no manual override. Boring. Trustworthy. KOA accepts."',
+      lie: '"No manual override? The system cranked itself to 85 at 2 AM? KOA is not an idiot."',
     },
   },
   dialogue: {
@@ -357,7 +358,7 @@ You were "sleeping." KOA would like a word.`,
 //   Target: 8 | Top 3 truths: 5+4+3=12 | Avg lie 4.0 > avg truth 3.5
 //   Hint group score: -5+4+5=4 < 8 | Non-hint score: 2+3-3=2 < 8
 //   Neither group is safe.
-//   Weak lie T1: -3+5+4=6 (CLOSE) | Worst lie T1: -5+5+4=4 (CLOSE-ish)
+//   Weak lie T1: -(3-1)+5+4=7 (CLOSE) | Worst lie T1: -(5-1)+5+4=5 (BUSTED)
 //   Random win rate: ~20%, FLAWLESS: ~20%
 
 const THE_HOT_TUB_INCIDENT: Puzzle = {

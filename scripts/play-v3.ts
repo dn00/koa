@@ -20,7 +20,7 @@ import { PUZZLES_BY_SLUG } from './v3-puzzles.js';
 function playCard(cardId: string, state: GameState, puzzle: Puzzle): TurnResult {
   const card = state.hand.find(c => c.id === cardId)!;
   const isLie = card.isLie;
-  const delta = isLie ? -card.strength : +card.strength;
+  const delta = isLie ? -(card.strength - 1) : +card.strength;
   state.score += delta;
   state.hand = state.hand.filter(c => c.id !== cardId);
   state.played.push(card);
@@ -137,7 +137,7 @@ function printOutcome(state: GameState, puzzle: Puzzle) {
   for (let i = 0; i < state.played.length; i++) {
     const c = state.played[i]!;
     const verdict = c.isLie ? 'LIE' : 'TRUTH';
-    const delta = c.isLie ? -c.strength : +c.strength;
+    const delta = c.isLie ? -(c.strength - 1) : +c.strength;
     const sign = delta > 0 ? '+' : '';
     log(`  Turn ${i + 1}: ${c.id} → ${verdict} (${sign}${delta})`);
   }
