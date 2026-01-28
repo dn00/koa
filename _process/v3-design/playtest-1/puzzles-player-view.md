@@ -82,26 +82,26 @@ You were "sleeping." KOA would like a word.
 | ID | Str | Location | Time | Source | Claim |
 |----|-----|----------|------|--------|-------|
 | phone | 1 | BEDROOM | 1:00 AM | PHONE | Phone screen time: zero activity from 12:30 AM onward |
-| smartwatch | 3 | BEDROOM | 2:15 AM | SMARTWATCH | Smartwatch: sleep tracking shows unbroken light sleep at 2:15 AM |
-| doorbell | 4 | FRONT_DOOR | 12:30 AM | DOORBELL | Doorbell cam: front hallway empty, no one passed after 12:30 AM |
-| light_lr | 5 | LIVING_ROOM | 1:45 AM | LIGHT_SENSOR | Living room light sensor: ambient light unchanged — no one turned on a lamp |
-| motion_lr | 4 | LIVING_ROOM | 2:00 AM | MOTION_SENSOR | Living room motion sensor: no presence detected between 1 AM and 3 AM |
-| temp_lr | 3 | LIVING_ROOM | 1:50 AM | TEMP_SENSOR | Living room temp sensor: thermostat adjustment came from the scheduled program, not manual input |
+| smartwatch | 4 | BEDROOM | 2:15 AM | SMARTWATCH | Smartwatch: sleep tracking shows unbroken light sleep at 2:15 AM |
+| hallway_cam | 4 | HALLWAY | 12:30 AM | SECURITY_CAM | Hallway camera: no one walked toward the living room after 12:30 AM |
+| light_lr | 5 | LIVING_ROOM | 1:45 AM | LIGHT_SENSOR | Living room light sensor: zero light events registered — the room stayed completely dark |
+| motion_lr | 3 | LIVING_ROOM | 2:00 AM | MOTION_SENSOR | Living room motion sensor: no motion events logged during overnight hours |
+| temp_lr | 3 | LIVING_ROOM | 1:50 AM | TEMP_SENSOR | Living room temp sensor: no manual override detected — the system ran its scheduled program |
 
 ### Narrations
 
 - **phone:** "My phone was dead to the world after 12:30. Zero screen time. I wasn't up scrolling — I was sleeping."
 - **smartwatch:** "My watch tracked my sleep. Unbroken light sleep at 2:15 AM. I didn't get up. I didn't touch the thermostat."
-- **doorbell:** "The hallway was empty after 12:30. Doorbell cam saw nothing. Nobody walked to the living room."
-- **light_lr:** "The living room was dark all night. Light sensor confirms it — no lamps, no screens, no one in there."
-- **motion_lr:** "The motion sensor in the living room saw nothing between 1 and 3 AM. The room was empty. Ask the sensor."
-- **temp_lr:** "The thermostat change was scheduled. It's a program — it does that. Nobody got up to crank it to 85."
+- **hallway_cam:** "The hallway camera covers the only path to the living room. Nobody walked past it. Check the footage — I was in bed."
+- **light_lr:** "The light sensor says the living room was pitch black all night. No lamps, no phone screens, nothing. Nobody was in there."
+- **motion_lr:** "The motion sensor was on all night. It logged nothing. No motion, no presence, no one was in the living room."
+- **temp_lr:** "The temp sensor logged a scheduled adjustment. That's the program — it runs every night. No one touched the thermostat manually."
 
 ### KOA's Reactive Hints
 
 - **phone:** "Phone was off. Noted. KOA has other things to think about tonight."
 - **smartwatch:** "Sleep tracking data? Fabricated. One lie found. The other? It's a sensor in the living room."
-- **doorbell:** "Nobody came in. So whoever did this was already here. Interesting night."
+- **hallway_cam:** "The hallway was empty. Noted. So whoever changed the thermostat didn't walk past the camera. Or did they."
 - **light_lr:** "The light sensor is honest. But not every sensor in this house is — and I'm not just talking about the living room."
 - **motion_lr:** "The motion sensor lied. One down. The other lie? It's not in the living room. Check what was on your person."
 - **temp_lr:** "The temp sensor is clean. One living room device cleared — but KOA suspects something personal is off."
@@ -112,10 +112,10 @@ You were "sleeping." KOA would like a word.
 |------|----------|--------|
 | phone | "Phone was off. KOA respects a good night's sleep. Allegedly." | "Zero screen time? KOA checked. That was a lie. Put the phone down." |
 | smartwatch | "Unbroken sleep. Your wrist doesn't lie. Unlike some rooms in this house." | "Light sleep at 2:15? Your watch begs to differ. So does KOA." |
-| doorbell | "Empty hallway. Nobody came in. Which means whoever did this was already here." | "The doorbell cam lied? That's a first. Usually it just judges your delivery habits." |
-| light_lr | "No lamps. The living room was dark and honest. KOA approves." | "Ambient light unchanged? Someone was in there with the lights OFF. Sneaky. Wrong, but sneaky." |
-| motion_lr | "No motion in the living room. Good. Clean. KOA likes clean." | "No presence detected? KOA detected LIES. The motion sensor is a fraud." |
-| temp_lr | "Scheduled program. Boring. Trustworthy. KOA accepts." | "A scheduled program set itself to 85 at 2 AM. KOA is not an idiot." |
+| hallway_cam | "Hallway camera is clean. Nobody walked past. But someone still got to that thermostat." | "The hallway camera lied? Nobody walked past? KOA checked the footage. Someone did." |
+| light_lr | "Zero light events. The living room was dark and honest. KOA approves." | "Zero light events? Someone was in there with the lights OFF. Sneaky. Wrong, but sneaky." |
+| motion_lr | "No motion events. Good. Clean. KOA likes clean." | "No motion events logged? KOA logged plenty. The motion sensor is a fraud." |
+| temp_lr | "Scheduled program, no manual override. Boring. Trustworthy. KOA accepts." | "No manual override? The system cranked itself to 85 at 2 AM? KOA is not an idiot." |
 
 ### KOA's Closing Lines
 

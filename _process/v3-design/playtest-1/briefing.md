@@ -1,5 +1,7 @@
 # HOME SMART HOME — "The Statement" — Player Briefing
 
+**Home Smart Home is a daily puzzle game** — like Wordle, you get one new puzzle each day. Each puzzle is a self-contained 3-5 minute experience. Today is your first day.
+
 You are a suspect. KOA — your home's AI system — has detected something suspicious. You need to prove your innocence.
 
 ---
@@ -31,7 +33,7 @@ You have **6 alibi cards**. Each card is a piece of smart home evidence — a do
 ## Scoring
 
 - **Truth cards** ADD their strength to your score
-- **Lie cards** SUBTRACT their strength from your score
+- **Lie cards** SUBTRACT **(strength - 1)** from your score — even a lie has some truth in it
 - You need to reach the **target score** to be cleared
 
 ---
@@ -50,8 +52,9 @@ You have **6 alibi cards**. Each card is a piece of smart home evidence — a do
 ## Tips
 
 - Use KOA's opening **hint** to think about which cards might be lies
-- Your **Turn 1 play** triggers a reactive hint from KOA — pay attention to it
+- **Your Turn 1 choice determines what KOA reveals.** Play a card KOA is watching — she'll tell you more. Play it safe — she might not.
 - The reactive hint gives you NEW information to help with Turns 2 and 3
+- A lie costs you **(strength - 1)** points, not the full strength — so a risky probe won't always end your run
 
 ---
 
@@ -71,13 +74,4 @@ KOA: "Locked tight. Good. But locks aren't the only way in."
 
 ---
 
-## Session
-
-You will play **3 puzzles** in order:
-1. **"The Power Outage"**
-2. **"The Thermostat War"**
-3. **"The Hot Tub Incident"**
-
-After all 3 puzzles, you'll fill out a short survey about your experience.
-
-**Think aloud** as you play — narrate what you're noticing, what you're thinking, and why you're making each choice.
+*Session structure, puzzle assignments, think-aloud instructions, and survey are provided separately in the playtest prompt.*

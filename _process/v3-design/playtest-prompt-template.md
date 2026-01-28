@@ -56,8 +56,8 @@ The following is the truth about which cards are lies. You must simulate realist
 - You are a FIRST-TIME player. You have no knowledge of game meta, lie patterns, or optimal strategies.
 - Play authentically to your persona. Don't over-analyze if your character wouldn't.
 - The reactive hint after Turn 1 may be VAGUE or SPECIFIC depending on what you played. This is intentional — react to whatever you get.
-- This is a SINGLE daily puzzle, not a multi-puzzle session. Evaluate the experience as a standalone 3-5 minute game.
-- For the survey: since you only played one puzzle, answer puzzle-specific questions about that one puzzle. For questions referencing "P1/P2/P3" or progression, note that you only played one puzzle and answer accordingly.
+- This is a DAILY PUZZLE GAME (like Wordle). You get one new puzzle each day. This is your first day. Evaluate the experience as a standalone daily puzzle — the game is designed to be played once per day, not in long sessions.
+- The survey is designed for single-puzzle sessions. Answer all questions about the puzzle you just played.
 - Write your complete survey to: {{OUTPUT_PATH}}
 ```
 
@@ -67,14 +67,14 @@ The following is the truth about which cards are lies. You must simulate realist
 
 | Variable | Source |
 |----------|--------|
-| `{{PERSONA_NAME}}` | Agent name (Sarah, Marcus, etc.) |
+| `{{PERSONA_NAME}}` | Agent name (Kai, Marcus, Rio, David, Aisha) |
 | `{{PERSONA_CONTENT}}` | Full content of `persona-{name}.md` |
 | `{{BRIEFING_CONTENT}}` | Full content of `briefing.md` (update "Session" section for single puzzle) |
 | `{{PUZZLE_NAME}}` | Puzzle name from puzzles file |
 | `{{PUZZLE_PLAYER_VIEW}}` | Relevant section from `puzzles-player-view.md` |
 | `{{LIE_ASSIGNMENTS}}` | Which cards are lies (from `v3-puzzles.ts`) |
 | `{{SURVEY_CONTENT}}` | Full content of `survey.md` |
-| `{{OUTPUT_PATH}}` | Where the agent writes its survey (e.g., `logs/sarah-survey.md`) |
+| `{{OUTPUT_PATH}}` | Where the agent writes its survey (e.g., `logs/kai-survey.md`) |
 
 ---
 
