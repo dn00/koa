@@ -10,9 +10,9 @@ Read this BEFORE proposing changes to V5 rules, puzzles, or KOA behavior.
 
 ## 1. The Game in 30 Seconds (V5)
 
-“Home Smart Home — V5” is a **micro‑daily deduction puzzle**.
+“Home Smart Home — V5” is a **micro‑daily deduction puzzle** about **outsmarting your overcautious smart home AI**.
 
-- You’re a homeowner arguing with KOA, a passive‑aggressive smart home AI, about some suspicious event (printer at 3 AM, garage door at 2 AM, drone order, midnight drive, etc.).  
+- You’re a homeowner whose well‑meaning but overprotective home AI, KOA, has **locked or throttled something** (printer, garage door, car, thermostat, drone, etc.) because the data looked suspicious. You’re asking KOA for an **override**.  
 - You see:
   - A short **scenario**.  
   - **3–5 Known Facts** that are guaranteed true.  
@@ -28,7 +28,7 @@ Read this BEFORE proposing changes to V5 rules, puzzles, or KOA behavior.
     - **Roll Back** (withdraw): always −2.  
 - Outcome tiers (e.g., BUSTED / CLOSE / CLEARED / FLAWLESS) depend on final Belief vs target.
 
-Goal: Wordle‑length, **head‑only** deduction (no hidden risk pips, no big case files) where **Known Facts + card claims** are enough to reason about the lies.
+Goal: Wordle‑length, **head‑only** deduction (no hidden risk pips, no big case files) where **Known Facts + card claims** are enough to reason about which evidence actually supports a safe override (and which signals make KOA more nervous).
 
 ---
 
@@ -90,7 +90,7 @@ These span puzzle generation, validation, and KOA behavior:
   - Scenario text  
 - Every lie should be explainable post‑hoc in 1–2 sentences:
   - “Fact #2 says X, this card claims Y, and X/Y can’t both be true.”  
-  - or “Given the scenario, playing this self‑incriminates and proves KOA’s suspicion.”
+  - or “Given the scenario, playing this effectively proves KOA’s original concern and makes an override less safe.”
 - Turn 1 should **not** be blind:
   - At least one “anchor” truth is clearly supported by the Known Facts and scenario.  
   - A Methodical or Risk‑averse persona can justify a non‑guessy opening.
@@ -117,7 +117,7 @@ These span puzzle generation, validation, and KOA behavior:
 
 **5.1 Role & Tone**
 
-- KOA is a **passive‑aggressive smart home AI**, not a judge or prosecutor.  
+- KOA is a **passive‑aggressive, overcautious smart home AI**, not a judge or prosecutor.  
 - Tone: bureaucratic, mildly snarky, “concerned” rather than angry.  
 - Comedy comes from **forensic intensity applied to domestic triviality**.
 
@@ -125,9 +125,11 @@ These span puzzle generation, validation, and KOA behavior:
 
 - **No courtroom metaphors** in V5 text/barks:
   - Avoid “objection, verdict, guilty, defendant, testimony (court sense).”  
+- Avoid heavy “crime / interrogation” language in player‑facing copy:
+  - Frame puzzles as KOA **safety checks / override gating**, not criminal investigations.  
 - Mid‑run high‑stakes beat is framed as a **system check / KOA flag**:
-  - Use language like **logs, record, keep on file, roll back, scrub, story**.  
-  - Example: “This last claim doesn’t quite match my logs. Keep it on record, or roll it back?”
+  - Use language like **logs, record, keep on file, roll back, scrub, story, override**.  
+  - Example: “This last claim doesn’t quite match my logs. If I approve an override based on it and it’s wrong, that’s on me.”
 
 **5.3 Information Limits**
 
@@ -198,7 +200,41 @@ Future extensions (deckbuilding, counters, tactics, multi‑hearing runs, etc.) 
 
 ---
 
-## 8. How to Use This File
+## 8. KOA Mini Alignment & Archetypes
+
+The default player-facing mode for V5 is **KOA Mini** (see `_process/v5-design/koa-mini-spec.md`):
+
+- 6 cards, 3 picks, 2 lies.  
+- No visible Belief numbers or tax rules; only tiers and KOA’s voice.  
+- Same engine and invariants as V5; lighter surface.
+
+In Mini (and V5), KOA should always feel like:
+
+- A **protective gatekeeper** for daily life conveniences (doors, cars, printers, thermostats, drones, speakers),  
+- Who sometimes overreacts, and  
+- Whom you can **reasonably outsmart** using facts and context.
+
+Common scenario archetypes that fit this framing:
+
+- **Night safety:** KOA locks or throttles garage door, car, printer, drone, etc., after late-night anomalies; you argue it’s safe to unlock.  
+- **Energy & comfort:** KOA forces eco/comfort modes on thermostat, AC, space heaters; you justify a one-off override.  
+- **House rules in shared spaces:** KOA enforces quiet hours or appliance rules; you show you stayed within the rules (or this case is an exception).  
+- **Pet & kid safety:** KOA disables certain devices (robot vacuums, sprinklers, stove, locks) while pets/kids are around; you show conditions are safe now.  
+- **Package & building security:** KOA holds deliveries or access (gates, elevators) until convinced it’s really you.  
+- **“I’m fine, really” health/wellness:** KOA throttles caffeine, screens, or late-night work based on your patterns; you argue for a one-time pass.
+
+Marketing framing that should stay consistent with this context:
+
+- “Outsmart your overcautious smart home AI.”  
+- “KOA keeps locking you out ‘for your own good’—can you show it enough evidence to get your access back?”
+
+Internally we still talk about **truths, lies, type tax, KOA Flag**, but player-facing, we prefer:
+
+- “good / bad backup,” “red flags,” “KOA gets more/less comfortable,” and “override granted/denied.”
+
+---
+
+## 9. How to Use This File
 
 When designing or modifying anything in `_process/v5-design`:
 
@@ -212,4 +248,3 @@ When designing or modifying anything in `_process/v5-design`:
    - Cross‑check qualitative behavior using playtest insights (`puzzle-gen-insights-from-playtests.md`, `survey-insights-overall.md`).
 
 If you can honestly say “this change respects the V5 invariants and passes the checklist in `_process/context/puzzle-design-checklist.md` (for V5‑style puzzles),” it’s almost certainly safe to integrate. 
-

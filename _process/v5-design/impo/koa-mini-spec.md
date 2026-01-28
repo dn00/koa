@@ -17,15 +17,16 @@
 
 **KOA Mini** is the **default daily puzzle**: a 2–4 minute, phone-first, “three picks and a verdict” experience.
 
-- You read a short **scenario** and a few **Known Facts**.  
-- You see **6 evidence cards**. Exactly **2 are lies** (hidden).  
+- KOA is your slightly overprotective smart home AI. When your data looks weird, KOA **turns things off or locks you out** “for your own good.”  
+- Each day you read a short **scenario** and a few **Known Facts** (what KOA already knows from its logs).  
+- You see **6 evidence cards**. Exactly **2 are “bad signals”** (lies/red flags) that make KOA more nervous.  
 - You **play 3 cards total**; KOA reacts after each one.  
-- At the end, KOA reveals which cards were lies and gives a **tier verdict** (BUSTED / CLOSE / CLEARED / FLAWLESS) with a short quip.  
+- At the end, KOA reveals which played cards were bad signals and gives a **tier verdict** (BUSTED / CLOSE / CLEARED / FLAWLESS) with a short quip.  
 - There are **no visible numbers**, no explicit scoring formula, and no explicit KOA Flag choice; all numeric mechanics stay under the hood.
 
 KOA Mini is meant to feel as simple to explain as:
 
-> “Pick 3 evidence cards that fit the facts; KOA tells you if your story holds up.”
+> “KOA turned something off. Pick 3 cards that fit the facts and show it it’s safe to turn things back on.”
 
 V5 Advanced mode exposes the full Belief bar, Type Tax rule, and KOA Flag decision for players who want deeper mechanics.
 
@@ -36,7 +37,7 @@ V5 Advanced mode exposes the full Belief bar, Type Tax rule, and KOA Flag decisi
 Everything a KOA Mini player needs to know should fit on one screen:
 
 1. **Scenario & Facts**
-   - Scenario: 1–2 sentences about what KOA is suspicious of (“The printer ran at 3 AM; you claim you were asleep.”).  
+   - Scenario: 1–2 sentences about what KOA has locked or throttled and why it’s concerned (“The printer ran at 3 AM, so I paused print jobs until I’m sure this wasn’t you sleepwalking.”).  
    - Known Facts: 3–5 bullet points that are guaranteed true.
 
 2. **Evidence Cards**
@@ -49,7 +50,7 @@ Everything a KOA Mini player needs to know should fit on one screen:
    - You know 2 of these are lies, but not which ones.
 
 3. **Your Task**
-   - “Pick **3 evidence cards** that best support your story and fit the Known Facts.”  
+   - “Pick **3 evidence cards** that best support your story and fit the Known Facts so KOA feels safe turning things back on.”  
    - You tap cards one at a time; KOA responds after each.
 
 4. **Outcome**

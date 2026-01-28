@@ -8,7 +8,7 @@
 
 ## The Game in 30 Seconds
 
-"Home Smart Home" is a daily puzzle card game. You're a homeowner trying to convince KOA (a snarky AI owl home assistant) that you didn't commit a petty domestic "crime" (raiding the fridge at 2am, changing the thermostat, etc.). You have 6 evidence cards and must build a testimony across turns. KOA cross-examines you with counters, catches contradictions, and narrates with comedy. 3-12 minute sessions, casual players, mobile-first.
+"Home Smart Home" is a daily puzzle card game. You're a homeowner whose well‑meaning but overcautious home AI, KOA, keeps **locking or throttling things "for your own good"** (fridge at 2am, garage door at night, thermostat wars, etc.). You have 6 evidence cards and must build a **short story across turns** that persuades KOA it's safe to **turn things back on**. KOA cross-checks your story against its logs, catches contradictions, and narrates with comedy. 3‑12 minute sessions, casual players, mobile-first.
 
 ---
 
@@ -197,7 +197,7 @@ Recent V5 micro-daily playtests with LLM personas surfaced some cross-cutting de
 - **KOA as flavor + optional tutor.** During play, KOA should highlight axes (timeline, coherence, channel reliance) and tension, but not directly call out specific lies. After play, optional epilogue/teaching lines that map lies back to the facts they broke are welcome, especially for more literal players.
 - **Progression via difficulty and variety, not grind.** Daily interest comes from varied incidents, lie flavors, and difficulty bands (including occasional “hard mode” days), plus soft meta like streaks and near-miss feedback — not from adding more meters or punitive failure modes.
 
-These reinforce, rather than replace, the D31 invariants: keep puzzles winnable, logically fair, and varied, with KOA as a compliance gate and commentator, not a courtroom judge.
+These reinforce, rather than replace, the D31 invariants: keep puzzles winnable, logically fair, and varied, with KOA as a compliance gate and commentator, not a courtroom judge or interrogator.
 
 ---
 

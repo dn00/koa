@@ -74,9 +74,10 @@ Tick items as `[x]` when satisfied.
 
 ## 6. KOA Voice & Narrative
 
-- [ ] **KOA tone matches brief:** passive‑aggressive bureaucrat, forensic about trivial domestic events; never a judge, never a prosecutor.
+- [ ] **KOA tone matches brief:** passive‑aggressive bureaucrat, forensic about trivial domestic events; never a judge, never a prosecutor, never a cop.
 - [ ] **No courtroom language:** Banned words are respected in puzzle text and barks (no “objection,” “verdict,” “guilty,” “testimony” in the courtroom sense, etc.).
-- [ ] **High-stakes beat framed as system check:** The mid‑run decision is framed as a **KOA flag / system check on your story**, with language like “logs,” “record,” “keep on file,” “roll back,” not legal metaphors.
+- [ ] **High-stakes beat framed as system check:** The mid‑run decision is framed as a **KOA flag / system check on your story**, with language like “logs,” “record,” “keep on file,” “roll back,” “turn this back on,” not legal metaphors.
+- [ ] **Framing is about safety & access, not crime:** Scenarios and KOA lines talk about KOA being overprotective or cautious (locking things “for your own good”), not accusing you of crimes or moral failure.
 - [ ] **KOA dialogue never solves the puzzle:** During play, KOA comments on axes (timeline, coherence, channel reliance) and tension, but never explicitly says “this card is a lie” or “you should play X next.”
 - [ ] **Barks are short and skippable:** Under 2 sentences per beat, pass the screenshot/read-aloud/skip/personality tests.
 - [ ] **Optional epilogue (if present) reinforces logic:** Any post-game explanation or epilogue:
