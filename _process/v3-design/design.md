@@ -8,14 +8,14 @@
 
 ## 1. One-Paragraph Pitch
 
-You are a suspect. KOA, a smart-home AI investigator, is interrogating you about last night. You have **6 alibi cards** — but KOA knows that **exactly 2 of them are lies**. She hints at what the lies share in her opening statement. You must play **3 cards**, one per turn. After each play, KOA reveals whether that card was a **Truth** or a **Lie**. Truths add their strength to your defense; Lies subtract it. Reach KOA's target to be cleared. The twist: after Turn 1, KOA gives a **reactive hint** — a second clue that depends on WHICH card you played — creating branching deduction paths where your Turn 1 choice determines what information you get for Turns 2-3.
+You are a suspect. KOA, a smart-home AI investigator, is interrogating you about last night. You have **6 alibi cards** — but KOA knows that **exactly 2 of them are lies**. She hints at what the lies share in her opening statement. You must play **3 cards**, one per turn. After each play, KOA reveals whether that card was a **Truth** or a **Lie**. Truths add their strength to your defense; Lies subtract (strength - 1). Reach KOA's target to be cleared. The twist: after Turn 1, KOA gives a **reactive hint** — a second clue that depends on WHICH card you played — creating branching deduction paths where your Turn 1 choice determines what information you get for Turns 2-3.
 
 ---
 
 ## 2. Rules in 3 Sentences
 
 1. You have 6 alibi cards (each with visible strength 1-5 and attributes); exactly 2 are secretly Lies.
-2. Play 1 card per turn for 3 turns — Truths add strength, Lies subtract it — KOA reveals the verdict after each play.
+2. Play 1 card per turn for 3 turns — Truths add strength, Lies subtract (strength - 1) — KOA reveals the verdict after each play.
 3. Reach the target score in 3 plays; use KOA's opening hint, her reactive Turn 1 response, and card attributes to deduce which cards are safe.
 
 ---
@@ -130,10 +130,11 @@ Everything is fixed per puzzle. Two players making identical choices get identic
 
 ## 4-6. Example Puzzles (Pre-Split-Lie Design)
 
-> **Note:** These examples were written before the Option C split-lie structure and conditional reactive hints were adopted. They illustrate general concepts (hint types, difficulty scaling, attribute deduction) but do NOT reflect the current implementation:
+> **Note:** These examples were written before the Option C split-lie structure, conditional reactive hints, and reduced lie penalty were adopted. They illustrate general concepts (hint types, difficulty scaling, attribute deduction) but do NOT reflect the current implementation:
 > - Both lies are in the hint group (no stealth lie)
 > - No split-lie structure (no hint lie + stealth lie)
 > - No reactive hint quality tiers (no probe-vs-protect tradeoff)
+> - Lie penalty uses old `-strength` formula (current: `-(strength - 1)`)
 > - Targets are below the current 5-13 range
 >
 > For current puzzle examples, see `scripts/v3-puzzles.ts` and `puzzles-player-view.md`.

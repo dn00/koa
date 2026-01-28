@@ -15,16 +15,17 @@ import type { Puzzle } from './v3-types.js';
 // ============================================================================
 // STRUCTURE:
 //   Hint: "One lie claims something happened after 11 PM."
-//   Hint group (after 11 PM): fitbit(T:3), breaker_log(L:5), motion_base(T:4) → 1L + 2T
-//   Outside: doorbell(T:4), wifi_log(L:3), thermostat(T:2) → 1L + 2T
+//   Hint group (after 11 PM): fitbit(T:3), breaker_log(L:5), motion_base(T:5) → 1L + 2T
+//   Outside: doorbell(T:2), wifi_log(L:3), thermostat(T:2) → 1L + 2T
 //   Stealth lie = wifi_log (BASEMENT, 8:30 PM) — contextual clue: basement device
 //
 // BALANCE:
-//   Target: 5 | Top 3 truths: 4+4+3=11 | Avg lie 4.0 > avg truth 3.25
-//   Hint group score: 3-5+4=2 < 5 | Non-hint score: 4-3+2=3 < 5
+//   Target: 8 | Top 3 truths: 5+3+2=10 | Avg lie 4.0 > avg truth 3.0
+//   Hint group score: 3-(5-1)+5=4 < 8 | Non-hint score: 2-(3-1)+2=2 < 8
 //   Neither group is safe.
-//   Weak lie T1: -(3-1)+4+4=6 (CLEARED) | Worst lie T1: -(5-1)+4+4=4 (CLOSE)
-//   Random win rate: ~25%, FLAWLESS: ~20%
+//   Weak lie T1: -(3-1)+5+3=6 (CLOSE) | Worst lie T1: -(5-1)+5+3=4 (BUSTED)
+//   Random win rate: ~20%, FLAWLESS: ~15%
+//   Truth combos: 3/4 clear (fail: doorbell+fitbit+thermostat=7)
 
 const THE_POWER_OUTAGE: Puzzle = {
   name: 'The Power Outage',
@@ -32,7 +33,7 @@ const THE_POWER_OUTAGE: Puzzle = {
   scenario: `The breaker tripped at 9:14 PM. The whole house went dark for eleven minutes.
 Your gaming PC — mid-ranked-match — did not survive. Someone was in the basement.
 You say you were upstairs the entire evening. KOA has questions.`,
-  target: 5,
+  target: 8,
   hint: '"One of the lies claims something happened after 11 PM. The other one? You\'re on your own."',
   hintMatchingIds: ['fitbit', 'breaker_log', 'motion_base'],
   hintDimension: {
@@ -51,7 +52,7 @@ You say you were upstairs the entire evening. KOA has questions.`,
   cards: [
     {
       id: 'doorbell',
-      strength: 4,
+      strength: 2,
       location: 'FRONT_DOOR',
       time: '7:00 PM',
       source: 'DOORBELL',
@@ -101,7 +102,7 @@ You say you were upstairs the entire evening. KOA has questions.`,
     },
     {
       id: 'motion_base',
-      strength: 4,
+      strength: 5,
       location: 'BASEMENT',
       time: '11:30 PM',
       source: 'MOTION_SENSOR',
@@ -192,11 +193,12 @@ You say you were upstairs the entire evening. KOA has questions.`,
 //   hallway_cam (HALLWAY) also sounds like it could be "trying too hard" (S13 improvement).
 //
 // BALANCE:
-//   Target: 7 | Top 3 truths: 5+4+3=12 | Avg lie 3.5 > avg truth 3.25
-//   Hint group score: 5-(3-1)+3=6 < 7 | Non-hint score: 1-(4-1)+4=2 < 7
+//   Target: 9 | Top 3 truths: 5+4+3=12 | Avg lie 3.5 > avg truth 3.25
+//   Hint group score: 5-(3-1)+3=6 < 9 | Non-hint score: 1-(4-1)+4=2 < 9
 //   Neither group is safe.
-//   Weak lie T1: -(3-1)+5+4=7 (CLEARED) | Worst lie T1: -(4-1)+5+4=6 (CLOSE)
-//   Random win rate: ~20%, FLAWLESS: ~20%
+//   Weak lie T1: -(3-1)+5+4=7 (CLOSE) | Worst lie T1: -(4-1)+5+4=6 (BUSTED)
+//   Random win rate: ~15%, FLAWLESS: ~15%
+//   Truth combos: 3/4 clear (fail: phone+hallway_cam+temp_lr=8)
 
 const THE_THERMOSTAT_WAR: Puzzle = {
   name: 'The Thermostat War',
@@ -204,7 +206,7 @@ const THE_THERMOSTAT_WAR: Puzzle = {
   scenario: `It's August. The energy bill just hit $412. Someone cranked the thermostat to 85°F at 2 AM.
 The cat has been blamed. The cat weighs six pounds and does not have opposable thumbs.
 You were "sleeping." KOA would like a word.`,
-  target: 7,
+  target: 9,
   hint: '"One of the lies is trying too hard to explain why nothing happened. The other one isn\'t."',
   hintMatchingIds: ['light_lr', 'motion_lr', 'temp_lr'],
   hintDimension: {
@@ -350,16 +352,17 @@ You were "sleeping." KOA would like a word.`,
 // ============================================================================
 // STRUCTURE:
 //   Hint: "One lie flat-out denies something happened — it protests too much."
-//   Hint group (denials): spa_pump(L:5), smart_lock(T:4), motion_hall(T:5) → 1L + 2T
-//   Outside: fitbit(T:2), thermostat(T:3), water_meter(L:3) → 1L + 2T
+//   Hint group (denials): spa_pump(L:5), smart_lock(T:3), motion_hall(T:5) → 1L + 2T
+//   Outside: fitbit(T:2), thermostat(T:2), water_meter(L:3) → 1L + 2T
 //   Stealth lie = water_meter (UTILITY, WATER_METER) — data that contradicts physical evidence
 //
 // BALANCE:
-//   Target: 8 | Top 3 truths: 5+4+3=12 | Avg lie 4.0 > avg truth 3.5
-//   Hint group score: -5+4+5=4 < 8 | Non-hint score: 2+3-3=2 < 8
+//   Target: 8 | Top 3 truths: 5+3+2=10 | Avg lie 4.0 > avg truth 3.0
+//   Hint group score: -(5-1)+3+5=4 < 8 | Non-hint score: 2+2-(3-1)=2 < 8
 //   Neither group is safe.
-//   Weak lie T1: -(3-1)+5+4=7 (CLOSE) | Worst lie T1: -(5-1)+5+4=5 (BUSTED)
-//   Random win rate: ~20%, FLAWLESS: ~20%
+//   Weak lie T1: -(3-1)+5+3=6 (CLOSE) | Worst lie T1: -(5-1)+5+3=4 (BUSTED)
+//   Random win rate: ~15%, FLAWLESS: ~15%
+//   Truth combos: 3/4 clear (fail: fitbit+thermostat+smart_lock=7)
 
 const THE_HOT_TUB_INCIDENT: Puzzle = {
   name: 'The Hot Tub Incident',
@@ -390,7 +393,7 @@ Someone was out there. KOA is not amused.`,
     },
     {
       id: 'thermostat',
-      strength: 3,
+      strength: 2,
       location: 'HALLWAY',
       time: '1:00 AM',
       source: 'THERMOSTAT',
@@ -420,7 +423,7 @@ Someone was out there. KOA is not amused.`,
     },
     {
       id: 'smart_lock',
-      strength: 4,
+      strength: 3,
       location: 'BACK_DOOR',
       time: '2:45 AM',
       source: 'SMART_LOCK',
