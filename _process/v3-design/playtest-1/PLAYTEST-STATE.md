@@ -241,11 +241,12 @@ Probe-safe gap: +13.3pp, +11.7pp, +10.0pp — probing has positive EV on all puz
 - `_process/v3-design/3-reduced-lie-penalty.md` — reduced penalty decision doc
 - `_process/v3-design/puzzle-gen-invariants.md` — 13 semantic invariants + backward generation
 - `_process/v3-design/playtest-prompt-template.md` — agent prompt template
+- `_process/v3-design/playtest-readiness-checklist.md` — pre-launch checklist (reusable)
 
 ### Playtest files
 - `_process/v3-design/playtest-1/briefing.md` — game rules
-- `_process/v3-design/playtest-1/puzzles-player-view.md` — card data (needs sync with P2 changes)
-- `_process/v3-design/playtest-1/survey.md` — 9-part survey template
+- `_process/v3-design/playtest-1/puzzles-player-view.md` — card data (synced with current puzzles)
+- `_process/v3-design/playtest-1/survey.md` — 9-part survey template (single-puzzle format)
 - `_process/v3-design/playtest-1/persona-{kai,marcus,rio,david,aisha}.md` — active personas
 - `_process/v3-design/playtest-1/persona-{sarah,jen}.md` — retired personas (preserved)
 - `_process/v3-design/playtest-1/protocol.md` — pass criteria (H1-H4, S1-S10)
@@ -253,6 +254,25 @@ Probe-safe gap: +13.3pp, +11.7pp, +10.0pp — probing has positive EV on all puz
 - `_process/v3-design/playtest-1/results-pt3.md` — playtest 3 compiled results
 - `_process/v3-design/playtest-1/logs/` — agent surveys
 - `_process/v3-design/playtest-1/_archive/` — older playtest logs
+
+## PT4 Readiness Audit
+
+Ran full checklist (`playtest-readiness-checklist.md`) + adversarial audit. Issues found and fixed:
+
+| Issue | Severity | Fix |
+|-------|----------|-----|
+| Survey assumed 3-puzzle sessions | CRITICAL | Rewrote survey.md for single-puzzle |
+| Protocol said agents NOT told about probe; briefing tells them | CRITICAL | Updated protocol information rules |
+| Stale TODOs in "What's Next" (sync + probe text) | CRITICAL | Removed (both done) |
+| design.md examples used old `-strength` penalty | MODERATE | Added to disclaimer note |
+| design.md pitch said "subtract it" (ambiguous) | MODERATE | Changed to "subtract (strength - 1)" |
+| Protocol S4 threshold trivially easy with transparent probe | MODERATE | Raised to ≥2 agents actually probe |
+| Prompt template referenced retired persona "sarah" | MODERATE | Updated to "kai" |
+| Prompt template had stale multi-puzzle survey note | MODERATE | Simplified for single-puzzle |
+
+**Result: All issues resolved. Ready to launch.**
+
+---
 
 ## What's Next
 
