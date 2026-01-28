@@ -4,6 +4,8 @@ Defines the rules for authoring new V4 puzzles. Any puzzle matching this spec ca
 
 **Depends on:** 9-pair-play-design.md, puzzle-gen-invariants.md (V4)
 
+**Design Identity:** Card battler without combat. KOA is the opponent with telegraphed patterns (stance), stateful attacks (pressure), and a turning point (The Objection).
+
 ---
 
 ## Fixed Constants
@@ -16,11 +18,44 @@ Defines the rules for authoring new V4 puzzles. Any puzzle matching this spec ca
 | Turns | 3 | Play 1 pair per turn — 3-act narrative arc |
 | Cards per turn | 2 (pair) | Composition creates emergent scoring via combos |
 | Cards left unplayed | 2 | Player's deduction expressed as "leave these out" |
-| Reactive hints | After Turn 1 and Turn 2 | No hint after Turn 3 (final pair, no more decisions) |
+| Reactive tells | After Turn 1 and Turn 2 | Pattern commentary, no direct hints after Turn 3 |
+| The Objection | After Turn 2 | KOA challenges highest-strength played card |
 | Strengths | 1–8, all unique | Canonical deck — every card has a distinct value |
 | Evidence types | 4 types, 2 cards each | DIGITAL, PHYSICAL, TESTIMONY, SENSOR |
 | Locations | 4 locations, 2 cards each | Tied to scenario |
 | Times | 8 sequential slots | One per card |
+
+### Stance System (per-puzzle)
+
+Each puzzle declares a stance that shifts combo values:
+
+| Stance | Reinforcement | Coverage | Corroboration | Timeline |
+|--------|---------------|----------|---------------|----------|
+| SKEPTIC | 1 | 4 | 3 | 2 |
+| TRADITIONALIST | 4 | 0 | 4 | 2 |
+| NEUTRAL | 3 | 2 | 3 | 2 |
+
+Stance is announced at puzzle start — "I don't trust evidence that all says the same thing" (SKEPTIC) tells the player to diversify evidence types.
+
+### Pressure System (order matters)
+
+Play order affects scoring through accumulated pressure:
+
+| Rule | Trigger | Penalty |
+|------|---------|---------|
+| HIGH STRENGTH | Previous pair > 10 combined strength | -1 |
+| TYPE ECHO | Evidence type played in previous turn | -1 per card |
+| LOCATION CHAIN | Continuing clustered location from previous pair | -1 |
+
+**Note:** With 2 cards per location, LOCATION CHAIN can only trigger if puzzle has 3+ cards in some locations.
+
+### The Objection (after T2)
+
+KOA challenges the highest-strength card played after T1+T2:
+- **Stand By**: +2 if truth, -3 if lie
+- **Withdraw**: -2 regardless
+
+This creates a turning point where the player must evaluate their confidence in a specific card.
 
 ---
 
@@ -70,11 +105,24 @@ Playing 1 lie should be recoverable. Playing 2 lies should be close. Playing 3 l
 - **2-lie best play ≥ target − 3** (I10) — close enough to feel "if only I'd..."
 - **3-lie best play > 0** (I11) — not a total wipeout
 
-### 7. Decisive Reactive Hints
-Hints after T1 and T2 must provide information that narrows lie candidates. Without this, the hint system is decorative.
-- **Hint-group pair play (risky T1):** Specific hint — narrows toward remaining lies
-- **Non-hint pair play (safe T1):** Vague hint — atmosphere only, rewards risk-taking with less info
-- **Lie-in-pair play:** Explicit direction — "that evidence contradicts X"
+### 7. Reactive Tells (Helpful AND Dangerous)
+KOA's pattern commentary after T1 and T2 must be ambiguous — helpful for deduction but not actionable instructions.
+
+**What reactive tells should do:**
+- Comment on play patterns (same type, same location, high strength)
+- React to detected lies without revealing which card
+- Vary based on stance (SKEPTIC cares about type diversity, TRADITIONALIST about consistency)
+
+**What reactive tells should NOT do:**
+- Name specific cards as suspicious
+- Provide actionable instructions ("play X next")
+- Give clean deduction paths that agents can exploit
+
+Examples:
+- ✓ "Two DIGITAL sources? That's a lot of eggs in one basket." (pattern commentary)
+- ✓ "Something about that didn't quite add up." (lie detected, not identified)
+- ✗ "The email_log seems suspicious." (names card)
+- ✗ "You should pair testimonies next turn." (instruction)
 
 ---
 
@@ -99,16 +147,21 @@ Each natural pair (1+2, 3+4, 5+6, 7+8) shares type AND location → +3 corrobora
 
 This creates **high-reward natural pairs** that the lie assignment deliberately disrupts.
 
-### Combo Bonuses
+### Combo Bonuses (stance-dependent)
 
-| Combo | Condition | Bonus | Requires |
-|-------|-----------|-------|----------|
-| Corroboration | Same location | +3 | Both truth |
-| Reinforcement | Same evidence type | +3 | Both truth |
-| Coverage | Different evidence types | +2 | Both truth |
-| Timeline | Adjacent time slots | +2 | Both truth |
+| Combo | Condition | NEUTRAL | SKEPTIC | TRADITIONALIST |
+|-------|-----------|---------|---------|----------------|
+| Corroboration | Same location | +3 | +3 | +4 |
+| Reinforcement | Same evidence type | +3 | +1 | +4 |
+| Coverage | Different evidence types | +2 | +4 | +0 |
+| Timeline | Adjacent time slots | +2 | +2 | +2 |
 
-Combos only fire on double-truth pairs. This is the core risk/reward: chasing +6 on a natural pair is tempting, but if one card is a lie, you get 0 bonus AND the lie penalty.
+Combos only fire on double-truth pairs. This is the core risk/reward: chasing a +7 natural pair (TRADITIONALIST) is tempting, but if one card is a lie, you get 0 bonus AND the lie penalty.
+
+**Stance interaction with strategy:**
+- SKEPTIC rewards mixed-type pairs → natural pairs (same type) are weaker
+- TRADITIONALIST rewards consistent evidence → cross-type pairs give no coverage bonus
+- NEUTRAL is balanced → all strategies viable
 
 ---
 
@@ -187,6 +240,38 @@ Player must connect the metaphor to the scenario and card claims. Multiple inter
 
 ---
 
+## Stance Design Guidelines
+
+### When to Use Each Stance
+
+| Stance | Best For | Pressure Interaction |
+|--------|----------|---------------------|
+| SKEPTIC | Puzzles where lies cluster by type | TYPE ECHO hurts same-type plays, but SKEPTIC already penalizes reinforcement — double pressure |
+| TRADITIONALIST | Puzzles where lies scatter across types | Coverage gives +0, so cross-type pairs are pure base score — pressure matters more |
+| NEUTRAL | Balanced puzzles, tutorial/teaching | All combos viable, pressure is the main order constraint |
+
+### Stance + Pressure Synergy
+
+The stance shifts what's "optimal" while pressure creates order constraints:
+
+1. **SKEPTIC + HIGH STRENGTH**: Players want coverage (different types), but playing strong cards early triggers high-strength pressure. Tension: diverse types vs. pacing strength.
+
+2. **TRADITIONALIST + TYPE ECHO**: Players want reinforcement (same type), but repeating types triggers echo pressure. Tension: combo value vs. type spreading.
+
+3. **NEUTRAL + LOCATION CHAIN**: With 2 cards per location, chains can't trigger. Consider 3+ cards in key locations for advanced puzzles.
+
+### The Objection Considerations
+
+The Objection challenges the highest-strength card after T1+T2. When designing:
+
+- **High-strength truths in T1/T2**: Player can confidently stand by
+- **High-strength lies in T1/T2**: Creates decision pressure — did they play it?
+- **Moderate-strength plays**: Objection targets a "meh" card — less dramatic
+
+For maximum drama, ensure the highest-strength lie is tempting to play T1 or T2.
+
+---
+
 ## Session Sequencing Rules
 
 When puzzles are played in a daily/weekly session:
@@ -222,10 +307,17 @@ When puzzles are played in a daily/weekly session:
 
 ## Backward Generation Process (V4)
 
+### Step 0: Choose stance
+- Pick SKEPTIC, TRADITIONALIST, or NEUTRAL based on puzzle theme
+- SKEPTIC: varied evidence puzzle, scattered lies
+- TRADITIONALIST: corroborating evidence puzzle, clustered lies
+- NEUTRAL: balanced, good for teaching
+
 ### Step 1: Choose the lie triple
 - Pick 3 strengths from [1–8] for lies
 - Verify the triple is viable: run validator or check against the 54/56 known-viable triples
 - Consider the experience: low lies = forgiving, high lies = punishing, mixed = asymmetric risk
+- **Objection consideration**: Which lie has highest strength? If played T1/T2, it will be challenged.
 
 ### Step 2: Define the desired experience
 - How many cards should the player seriously suspect? (minimum 4 for V4)
@@ -243,17 +335,19 @@ When puzzles are played in a daily/weekly session:
 - Verify ≥1 truth also matches the hint (red herring)
 - Test: read the hint, then each card — can you suspect at least 4–5? If only 3, broaden the hint
 
-### Step 5: Write reactive hints backward
-- For each possible T1 pair, decide what information the player should get
-- **Hint-group pair (risky T1):** Specific hint narrowing toward remaining lies
-- **Non-hint pair (safe T1):** Vague hint — atmosphere only
-- **Lie-in-pair (triggered T1):** Explicit direction toward lie cluster
-- Test: does the specific hint create a path to the stealth lie without naming it?
+### Step 5: Write reactive tells backward
+- For each possible T1/T2 state, decide what pattern commentary KOA gives
+- **Same-type pair**: Comment on evidence concentration
+- **Same-location pair**: Comment on location focus
+- **Lie detected**: Ambiguous "something didn't add up" (don't identify)
+- **Stance-relevant**: SKEPTIC comments on type diversity, TRADITIONALIST on consistency
+- Test: are tells helpful for deduction without being instructions?
 
 ### Step 6: Design cards around the constraints
 - Set target so the best 1-lie play clears comfortably, best 0-lie play reaches FLAWLESS
 - Ensure strength-first play ≠ optimal play (combos must shift the answer)
 - Verify pairing matters: different pairings of the same 6 cards produce different scores
+- **Pressure check**: Ensure order creates score variance (≥30% of sequences have different scores based on order)
 
 ### Step 7: Write pair narrations
 - For all 28 pairs (C(8,2)), write playerStatement + koaResponse
@@ -267,8 +361,10 @@ When puzzles are played in a daily/weekly session:
 - Motivate why someone would fabricate this evidence
 
 ### Step 9: Validate
-- Run semantic checklist (S1–S13)
-- Run `npx tsx scripts/prototype-v4.ts` for mechanical checks (I1–I22)
+- Run semantic checklist (S1–S16)
+- Run `npx tsx scripts/prototype-v4.ts` for mechanical checks (I1–I23, 2520 sequences)
+- Run `npx tsx scripts/prototype-v4.ts --training` to verify training mode balance (420 sequences)
+- Key metrics: Win rate 10–50%, FLAWLESS 5–30%, order matters ≥30%
 
 ---
 
@@ -306,18 +402,32 @@ Carried forward from V3 with V4 adaptations:
 
 For each new puzzle:
 
-1. **Author** writes scenario, 8 cards, hint, reactive hints, pair narrations, target within variance bands
-2. **Validator** (`scripts/prototype-v4.ts`) runs enumeration of all 420 scoring outcomes:
-   - All I1–I22 pass
+1. **Author** writes scenario, 8 cards, stance, reactive tells, pair narrations, target within variance bands
+2. **Validator** (`scripts/prototype-v4.ts`) runs enumeration of all 2520 scoring outcomes (28 leave-outs × 15 pairings × 6 orderings):
+   - All I1–I23 pass (including I9b: order matters ≥30%)
    - Win rate and FLAWLESS rate within bands
-   - Pairing matters, strength-first fails, lies are combo-eligible
-3. **Semantic checks** (manual or LLM-assisted):
+   - Pairing matters, order matters, strength-first fails, lies are combo-eligible
+3. **Training mode validation** (`--training`): Run validator with pressure/objection disabled to verify base game balance
+4. **Semantic checks** (manual or LLM-assisted):
    - S1–S16 checklist
    - Read all hint-group claims — do they feel equally suspicious?
    - Read pair narrations — do they leak truth/lie status?
-   - Read reactive hints — do they create logical deduction paths?
-4. If all pass → puzzle ships
-5. If any fail → adjust target, lie assignment, hint, or card claims
+   - Read reactive tells — are they helpful AND dangerous (not instructional)?
+5. If all pass → puzzle ships
+6. If any fail → adjust target, lie assignment, stance, or card claims
+
+### Validator Modes
+
+```bash
+# Full mode (pressure + objection): 2520 sequences
+npx tsx scripts/prototype-v4.ts
+
+# Training mode (no pressure, no objection): 420 sequences
+npx tsx scripts/prototype-v4.ts --training
+
+# Pressure only (no objection)
+npx tsx scripts/prototype-v4.ts --no-objection
+```
 
 ---
 
@@ -325,21 +435,36 @@ For each new puzzle:
 
 Before running `npx tsx scripts/prototype-v4.ts`, verify:
 
+### Semantic Checks (S1–S16)
 - [ ] S1: Scenario does not name the mechanism a lie card denies
 - [ ] S2: All hint-group cards (4–6) are plausibly suspicious
 - [ ] S3: No truth-truth contradictions in claims
-- [ ] S4: Every reactive hint text conveys its implicates
-- [ ] S5: Truth-play reactive hints don't name specific lies
+- [ ] S4: Every reactive tell conveys pattern information without instruction
+- [ ] S5: Reactive tells don't name specific lies
 - [ ] S6: Red herrings have genuine misdirection value
-- [ ] S7: Stealth lie is reachable via reactive hint reasoning
+- [ ] S7: Stealth lie is deducible from elimination/reactive tells
 - [ ] S8: Narrations (individual + pair) match claims
 - [ ] S9: Closing dialogue doesn't reveal structure
 - [ ] S10: Hint text matches hintDimension
 - [ ] S11: Difficulty increases across puzzle sequence
-- [ ] S12: Vague reactive hints don't identify specific cards
-- [ ] S13: Opening hints don't cleanly partition by single attribute (medium/hard)
+- [ ] S12: Reactive tells don't identify specific cards
+- [ ] S13: Opening hints don't cleanly partition by single attribute
 - [ ] S14: Pair narrations don't leak truth/lie status
 - [ ] S15: Each lie disrupts at least one natural combo pair
 - [ ] S16: Each lie's combo partner is a truth (combo bait is genuine)
 
-Then run `npx tsx scripts/prototype-v4.ts` for mechanical checks (I1–I22).
+### Stance/Pressure Checks
+- [ ] Stance choice fits puzzle theme (SKEPTIC for scattered evidence, TRADITIONALIST for corroboration puzzles)
+- [ ] Claim styles don't leak truth/lie status (no "proactive denial" patterns)
+- [ ] High-strength cards are distributed across types/locations (pressure creates order decisions)
+
+Then run `npx tsx scripts/prototype-v4.ts` for mechanical checks (I1–I23).
+
+### Key Mechanical Invariants
+| ID | Check | Target |
+|----|-------|--------|
+| I3 | Sequence count | 2520 (full) or 420 (training) |
+| I9 | Pairing matters | ≥50% of leave-outs have variance |
+| I9b | Order matters | ≥30% of sequences |
+| I12 | Win rate | 10–50% |
+| I13 | FLAWLESS rate | 5–30% |

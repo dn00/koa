@@ -27,10 +27,33 @@ Load this file into a fresh session to become an expert on the game design. Read
 | Truth score | +strength |
 | Lie penalty | -(strength - 1) |
 | Combos | Only if BOTH cards in pair are truths |
-| Combo types | Corroboration(+3, same loc), Reinforcement(+3, same type), Coverage(+2, diff type), Timeline(+2, adjacent time) |
+| Combo types | Corroboration(+3), Reinforcement(+3), Coverage(+2), Timeline(+2) — values shift by stance |
 | Tiers | FLAWLESS(≥target+5), CLEARED(≥target), CLOSE(≥target-3), BUSTED |
-| Reactive hints | After Turn 1 and Turn 2 |
+| Reactive tells | After Turn 1 and Turn 2 (pattern commentary, not instructions) |
+| The Objection | After Turn 2, KOA challenges highest-strength played card |
+| Pressure | Order matters: HIGH STRENGTH(-1), TYPE ECHO(-1 per card) |
 | Evidence types | DIGITAL, PHYSICAL, TESTIMONY, SENSOR (2 each) |
+
+### Stance System
+
+| Stance | Reinforcement | Coverage | Corroboration | Timeline |
+|--------|---------------|----------|---------------|----------|
+| SKEPTIC | 1 | 4 | 3 | 2 |
+| TRADITIONALIST | 4 | 0 | 4 | 2 |
+| NEUTRAL | 3 | 2 | 3 | 2 |
+
+### Pressure System
+
+| Rule | Trigger | Penalty |
+|------|---------|---------|
+| HIGH STRENGTH | Previous pair > 10 combined strength | -1 this turn |
+| TYPE ECHO | Evidence type used in previous turn | -1 per card |
+
+### The Objection (after T2)
+
+KOA challenges highest-strength played card. Player chooses:
+- **Stand By**: +2 if truth, -3 if lie
+- **Withdraw**: -2 regardless
 
 **Full spec:** `_process/v4-design/9-pair-play-design.md`
 

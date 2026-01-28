@@ -8,16 +8,33 @@
  *   - Order the 3 pairs: 3! = 6
  *   Total: 28 × 15 × 6 = 2520 play sequences
  *
- * For scoring, pair ORDER doesn't matter (no escalation), so
- * unique scoring outcomes = 28 × 15 = 420.
+ * With PRESSURE SYSTEM, pair order now affects scoring through:
+ *   - HIGH STRENGTH: -1 if previous pair > 10 combined strength
+ *   - TYPE ECHO: -1 per card if type was played in previous turns
+ *   - LOCATION CHAIN: -1 if continuing a location cluster
+ *
+ * With THE OBJECTION after T2:
+ *   - KOA challenges highest-strength played card
+ *   - Stand By: +2 if truth, -3 if lie
+ *   - Withdraw: -2 regardless
  *
  * Validates balance invariants adapted for V4 pair play.
  *
  * Usage: npx tsx scripts/prototype-v4.ts
  */
 
-import type { Card, ComboResult, PairResult, V4Puzzle } from './v4-types.js';
+import type { Card, ComboResult, PairResult, V4Puzzle, StanceConfig, PressureState } from './v4-types.js';
+import { STANCES } from './v4-types.js';
 import { ALL_V4_PUZZLES } from './v4-puzzles.js';
+
+// ============================================================================
+// Mode Flags
+// ============================================================================
+
+const trainingMode = process.argv.includes('--training');
+const noPressure = trainingMode || process.argv.includes('--no-pressure');
+const noObjection = trainingMode || process.argv.includes('--no-objection');
+const compareMode = process.argv.includes('--compare'); // Show both training and full stats
 
 // ============================================================================
 // Combinatorics
@@ -49,14 +66,79 @@ function partitionIntoPairs(cards: Card[]): [Card, Card][][] {
   return result;
 }
 
+/** Generate all permutations of an array */
+function permutations<T>(arr: T[]): T[][] {
+  if (arr.length <= 1) return [arr];
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const perm of permutations(rest)) {
+      result.push([arr[i]!, ...perm]);
+    }
+  }
+  return result;
+}
+
 // ============================================================================
-// Combo Scoring (mirrors play-v4.ts)
+// Pressure System
 // ============================================================================
 
-function getCombos(a: Card, b: Card): ComboResult[] {
+function initPressure(): PressureState {
+  return {
+    previousPairStrength: 0,
+    typesPlayedBefore: new Set(),
+    lastPairLocation: null,
+  };
+}
+
+function calculatePressurePenalty(pair: [Card, Card], pressure: PressureState): number {
+  let penalty = 0;
+  const [a, b] = pair;
+
+  // HIGH STRENGTH: previous pair > 10 strength
+  if (pressure.previousPairStrength > 10) {
+    penalty -= 1;
+  }
+
+  // TYPE ECHO: playing a type you've played in a PREVIOUS turn
+  if (pressure.typesPlayedBefore.has(a.evidenceType)) {
+    penalty -= 1;
+  }
+  if (pressure.typesPlayedBefore.has(b.evidenceType)) {
+    penalty -= 1;
+  }
+
+  // SAME-LOCATION CHAIN: previous pair clustered, this pair continues
+  if (pressure.lastPairLocation) {
+    if (a.location === pressure.lastPairLocation || b.location === pressure.lastPairLocation) {
+      penalty -= 1;
+    }
+  }
+
+  return penalty;
+}
+
+function updatePressure(pair: [Card, Card], oldPressure: PressureState): PressureState {
+  const [a, b] = pair;
+  const newTypesPlayed = new Set(oldPressure.typesPlayedBefore);
+  newTypesPlayed.add(a.evidenceType);
+  newTypesPlayed.add(b.evidenceType);
+
+  return {
+    previousPairStrength: a.strength + b.strength,
+    typesPlayedBefore: newTypesPlayed,
+    lastPairLocation: a.location === b.location ? a.location : null,
+  };
+}
+
+// ============================================================================
+// Combo Scoring (mirrors play-v4.ts, uses stance)
+// ============================================================================
+
+function getCombos(a: Card, b: Card, stance: StanceConfig): ComboResult[] {
   const combos: ComboResult[] = [];
-  if (a.location === b.location) {
-    combos.push({ name: 'Corroboration', bonus: 3, description: `Same location: ${a.location}` });
+  if (a.location === b.location && stance.corroboration > 0) {
+    combos.push({ name: 'Corroboration', bonus: stance.corroboration, description: `Same location: ${a.location}` });
   }
   const timeToMinutes = (t: string): number => {
     const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -69,31 +151,31 @@ function getCombos(a: Card, b: Card): ComboResult[] {
     return h * 60 + m;
   };
   const diff = Math.abs(timeToMinutes(a.time) - timeToMinutes(b.time));
-  if (diff > 0 && diff <= 90) {
-    combos.push({ name: 'Timeline', bonus: 2, description: `Adjacent times: ${a.time} & ${b.time}` });
+  if (diff > 0 && diff <= 90 && stance.timeline > 0) {
+    combos.push({ name: 'Timeline', bonus: stance.timeline, description: `Adjacent times: ${a.time} & ${b.time}` });
   }
-  if (a.evidenceType !== b.evidenceType) {
-    combos.push({ name: 'Coverage', bonus: 2, description: `Different types: ${a.evidenceType} + ${b.evidenceType}` });
+  if (a.evidenceType !== b.evidenceType && stance.coverage > 0) {
+    combos.push({ name: 'Coverage', bonus: stance.coverage, description: `Different types: ${a.evidenceType} + ${b.evidenceType}` });
   }
-  if (a.evidenceType === b.evidenceType) {
-    combos.push({ name: 'Reinforcement', bonus: 3, description: `Same type: ${a.evidenceType}` });
+  if (a.evidenceType === b.evidenceType && stance.reinforcement > 0) {
+    combos.push({ name: 'Reinforcement', bonus: stance.reinforcement, description: `Same type: ${a.evidenceType}` });
   }
   return combos;
 }
 
-function scorePair(a: Card, b: Card): PairResult {
+function scorePair(a: Card, b: Card, stance: StanceConfig, pressurePenalty: number = 0): PairResult {
   const aScore = a.isLie ? -(a.strength - 1) : a.strength;
   const bScore = b.isLie ? -(b.strength - 1) : b.strength;
   const baseScore = aScore + bScore;
   const bothTruth = !a.isLie && !b.isLie;
-  const combos = bothTruth ? getCombos(a, b) : [];
+  const combos = bothTruth ? getCombos(a, b, stance) : [];
   const comboTotal = combos.reduce((s, c) => s + c.bonus, 0);
   return {
     cards: [a, b],
     baseScore,
     combos,
     comboTotal,
-    totalScore: baseScore + comboTotal,
+    totalScore: baseScore + comboTotal + pressurePenalty,
     liesInPair: (a.isLie ? 1 : 0) + (b.isLie ? 1 : 0),
   };
 }
@@ -105,18 +187,50 @@ function scorePair(a: Card, b: Card): PairResult {
 interface PlaySequence {
   pairs: [Card, Card][];
   pairResults: PairResult[];
-  totalScore: number;
+  totalScore: number;           // Before objection
+  scoreWithObjection: number;   // After optimal objection choice
+  objectionCard: Card | null;   // Card challenged by KOA
+  objectionChoice: 'stand_by' | 'withdraw';  // Optimal choice
+  objectionDelta: number;       // Score change from objection
   liesPlayed: number;
   leftOut: Card[];
   liesDodged: number;
+  pressurePenalties: number[];  // Penalty applied each turn
+  orderMatters: boolean;        // True if this ordering differs from others
 }
 
 // ============================================================================
-// Enumeration
+// The Objection Logic
 // ============================================================================
 
-function enumerateAll(puzzle: V4Puzzle): PlaySequence[] {
+function calculateObjection(playedCards: Card[]): { card: Card; standByDelta: number; withdrawDelta: number; optimalChoice: 'stand_by' | 'withdraw'; optimalDelta: number } {
+  // Challenge the highest-strength card played after T2 (first 4 cards)
+  const t1t2Cards = playedCards.slice(0, 4);
+  const sortedByStrength = [...t1t2Cards].sort((a, b) => b.strength - a.strength);
+  const challengedCard = sortedByStrength[0]!;
+
+  const standByDelta = challengedCard.isLie ? -3 : +2;
+  const withdrawDelta = -2;
+
+  // Optimal choice: stand by if truth, withdraw if lie
+  const optimalChoice = challengedCard.isLie ? 'withdraw' : 'stand_by';
+  const optimalDelta = challengedCard.isLie ? withdrawDelta : standByDelta;
+
+  return { card: challengedCard, standByDelta, withdrawDelta, optimalChoice, optimalDelta };
+}
+
+// ============================================================================
+// Enumeration (with pressure and objection)
+// ============================================================================
+
+interface EnumerationConfig {
+  usePressure: boolean;
+  useObjection: boolean;
+}
+
+function enumerateAll(puzzle: V4Puzzle, config: EnumerationConfig = { usePressure: true, useObjection: true }): PlaySequence[] {
   const cards = [...puzzle.cards];
+  const stance = STANCES[puzzle.stance];
   const results: PlaySequence[] = [];
 
   // Choose 2 cards to leave out: C(8,2) = 28
@@ -129,13 +243,67 @@ function enumerateAll(puzzle: V4Puzzle): PlaySequence[] {
     // Partition 6 cards into 3 pairs: 15 ways
     const partitions = partitionIntoPairs(played);
 
-    for (const pairs of partitions) {
-      const pairResults = pairs.map(([a, b]) => scorePair(a, b));
-      const totalScore = pairResults.reduce((s, pr) => s + pr.totalScore, 0);
-      const liesPlayed = pairResults.reduce((s, pr) => s + pr.liesInPair, 0);
-      const liesDodged = leftOut.filter(c => c.isLie).length;
+    for (const pairing of partitions) {
+      // Order the 3 pairs: 3! = 6 ways (order matters due to pressure)
+      // If pressure disabled, only need 1 ordering per pairing
+      const orderings = config.usePressure ? permutations(pairing) : [pairing];
 
-      results.push({ pairs, pairResults, totalScore, liesPlayed, leftOut, liesDodged });
+      for (const pairs of orderings) {
+        let pressure = initPressure();
+        const pairResults: PairResult[] = [];
+        const pressurePenalties: number[] = [];
+
+        // Score each pair in order with pressure
+        for (const pair of pairs) {
+          const penalty = config.usePressure ? calculatePressurePenalty(pair, pressure) : 0;
+          pressurePenalties.push(penalty);
+          const result = scorePair(pair[0], pair[1], stance, penalty);
+          pairResults.push(result);
+          pressure = updatePressure(pair, pressure);
+        }
+
+        const totalScore = pairResults.reduce((s, pr) => s + pr.totalScore, 0);
+        const liesPlayed = pairResults.reduce((s, pr) => s + pr.liesInPair, 0);
+        const liesDodged = leftOut.filter(c => c.isLie).length;
+
+        // The Objection after T2 (if enabled)
+        const playedFlat = pairs.flat();
+        const objection = calculateObjection(playedFlat);
+        const objectionDelta = config.useObjection ? objection.optimalDelta : 0;
+
+        results.push({
+          pairs,
+          pairResults,
+          totalScore,
+          scoreWithObjection: totalScore + objectionDelta,
+          objectionCard: config.useObjection ? objection.card : null,
+          objectionChoice: objection.optimalChoice,
+          objectionDelta,
+          liesPlayed,
+          leftOut,
+          liesDodged,
+          pressurePenalties,
+          orderMatters: false, // Will be set later
+        });
+      }
+    }
+  }
+
+  // Mark sequences where ordering matters (different scores for same pairing)
+  if (config.usePressure) {
+    const byPairingKey = new Map<string, PlaySequence[]>();
+    for (const seq of results) {
+      // Key by left-out + unordered pairing
+      const pairingKey = seq.leftOut.map(c => c.id).sort().join('+') + '|' +
+        seq.pairs.map(([a, b]) => [a.id, b.id].sort().join(',')).sort().join(';');
+      if (!byPairingKey.has(pairingKey)) byPairingKey.set(pairingKey, []);
+      byPairingKey.get(pairingKey)!.push(seq);
+    }
+    for (const [_, seqs] of byPairingKey) {
+      const scores = new Set(seqs.map(s => s.scoreWithObjection));
+      if (scores.size > 1) {
+        for (const s of seqs) s.orderMatters = true;
+      }
     }
   }
 
@@ -160,11 +328,13 @@ function getTier(score: number, target: number): Tier {
 // ============================================================================
 
 function runAnalysis(puzzle: V4Puzzle) {
-  console.log('V4 Pair Play — Prototype Checker');
+  console.log('V4 Pair Play — Prototype Checker (with Pressure + Objection)');
   console.log('═'.repeat(65) + '\n');
 
+  const stance = STANCES[puzzle.stance];
   console.log(`Puzzle: ${puzzle.name}`);
   console.log(`Target: ${puzzle.target} | Cards: ${puzzle.cards.length} | Lies: ${puzzle.cards.filter(c => c.isLie).length}`);
+  console.log(`Stance: ${puzzle.stance} (reinf:${stance.reinforcement} cov:${stance.coverage} corr:${stance.corroboration} time:${stance.timeline})`);
   console.log(`Hint: ${puzzle.hint}\n`);
 
   console.log('CARDS:');
@@ -173,29 +343,36 @@ function runAnalysis(puzzle: V4Puzzle) {
     console.log(`  ${c.id.padEnd(22)} str:${c.strength} type:${c.evidenceType.padEnd(10)} loc:${c.location.padEnd(12)} time:${c.time}${lie}`);
   }
 
-  console.log('\nEnumerating all play sequences...');
+  const config = { usePressure: !noPressure, useObjection: !noObjection };
+  const expectedCount = config.usePressure ? 2520 : 420;
+  const modeDesc = noPressure && noObjection ? 'TRAINING' :
+    noPressure ? 'NO PRESSURE' :
+    noObjection ? 'NO OBJECTION' : 'FULL';
+
+  console.log(`\nMode: ${modeDesc} (pressure: ${config.usePressure ? 'ON' : 'OFF'}, objection: ${config.useObjection ? 'ON' : 'OFF'})`);
+  console.log(`Enumerating all play sequences (28 leave-outs × 15 pairings${config.usePressure ? ' × 6 orderings' : ''} = ${expectedCount})...`);
   const start = Date.now();
-  const all = enumerateAll(puzzle);
+  const all = enumerateAll(puzzle, config);
   const elapsed = Date.now() - start;
   console.log(`Found ${all.length} sequences in ${elapsed}ms`);
 
-  // Deduplicate by score (pair order doesn't matter for scoring)
-  const uniqueScores = new Set(all.map(s => s.totalScore));
+  // Unique scores (with objection)
+  const uniqueScores = new Set(all.map(s => s.scoreWithObjection));
   console.log(`Unique score outcomes: ${uniqueScores.size}\n`);
 
-  // Tier distribution
+  // Tier distribution (using scoreWithObjection = optimal objection choice)
   const tiers: Record<Tier, number> = { FLAWLESS: 0, CLEARED: 0, CLOSE: 0, BUSTED: 0 };
-  for (const seq of all) tiers[getTier(seq.totalScore, puzzle.target)]++;
+  for (const seq of all) tiers[getTier(seq.scoreWithObjection, puzzle.target)]++;
 
-  const wins = all.filter(s => getTier(s.totalScore, puzzle.target) === 'FLAWLESS' || getTier(s.totalScore, puzzle.target) === 'CLEARED');
-  const flawless = all.filter(s => getTier(s.totalScore, puzzle.target) === 'FLAWLESS');
-  const close = all.filter(s => getTier(s.totalScore, puzzle.target) === 'CLOSE');
-  const busted = all.filter(s => getTier(s.totalScore, puzzle.target) === 'BUSTED');
+  const wins = all.filter(s => getTier(s.scoreWithObjection, puzzle.target) === 'FLAWLESS' || getTier(s.scoreWithObjection, puzzle.target) === 'CLEARED');
+  const flawless = all.filter(s => getTier(s.scoreWithObjection, puzzle.target) === 'FLAWLESS');
+  const close = all.filter(s => getTier(s.scoreWithObjection, puzzle.target) === 'CLOSE');
+  const busted = all.filter(s => getTier(s.scoreWithObjection, puzzle.target) === 'BUSTED');
 
   const winRate = (wins.length / all.length) * 100;
   const flawlessRate = (flawless.length / all.length) * 100;
 
-  console.log('=== TIER DISTRIBUTION ===');
+  console.log('=== TIER DISTRIBUTION (with optimal objection) ===');
   console.log(`FLAWLESS:  ${flawless.length} (${flawlessRate.toFixed(1)}%)`);
   console.log(`CLEARED:   ${tiers.CLEARED} (${((tiers.CLEARED / all.length) * 100).toFixed(1)}%)`);
   console.log(`CLOSE:     ${close.length} (${((close.length / all.length) * 100).toFixed(1)}%)`);
@@ -203,10 +380,25 @@ function runAnalysis(puzzle: V4Puzzle) {
   console.log(`Win rate:  ${winRate.toFixed(1)}% (FLAWLESS + CLEARED)`);
 
   // Score distribution
-  const scores = all.map(s => s.totalScore).sort((a, b) => a - b);
+  const scores = all.map(s => s.scoreWithObjection).sort((a, b) => a - b);
   const pct = (p: number) => scores[Math.floor(scores.length * p)]!;
-  console.log('\n=== SCORE DISTRIBUTION ===');
+  console.log('\n=== SCORE DISTRIBUTION (with objection) ===');
   console.log(`  min=${scores[0]} p25=${pct(0.25)} p50=${pct(0.5)} p75=${pct(0.75)} max=${scores[scores.length - 1]}`);
+
+  // Pressure statistics
+  const orderMattersCount = all.filter(s => s.orderMatters).length;
+  const totalPressure = all.reduce((s, seq) => s + seq.pressurePenalties.reduce((a, b) => a + b, 0), 0);
+  const avgPressure = totalPressure / all.length;
+  console.log('\n=== PRESSURE STATISTICS ===');
+  console.log(`Order matters: ${orderMattersCount}/${all.length} (${((orderMattersCount / all.length) * 100).toFixed(1)}%)`);
+  console.log(`Avg pressure penalty: ${avgPressure.toFixed(2)} per game`);
+
+  // Objection statistics
+  const objectionStandByCount = all.filter(s => s.objectionChoice === 'stand_by').length;
+  const objectionWithdrawCount = all.filter(s => s.objectionChoice === 'withdraw').length;
+  console.log('\n=== OBJECTION STATISTICS ===');
+  console.log(`Optimal stand-by: ${objectionStandByCount} (${((objectionStandByCount / all.length) * 100).toFixed(1)}%)`);
+  console.log(`Optimal withdraw: ${objectionWithdrawCount} (${((objectionWithdrawCount / all.length) * 100).toFixed(1)}%)`);
 
   // Lies played distribution
   const liesCounts: Record<number, number> = {};
@@ -225,27 +417,37 @@ function runAnalysis(puzzle: V4Puzzle) {
     console.log(`  ${c.id.padEnd(22)} ${pctInWins.padStart(3)}% of wins${lie}`);
   }
 
-  // Best and worst sequences
-  const sorted = [...all].sort((a, b) => b.totalScore - a.totalScore);
+  // Best and worst sequences (by scoreWithObjection)
+  const sorted = [...all].sort((a, b) => b.scoreWithObjection - a.scoreWithObjection);
   const best = sorted[0]!;
   const worst = sorted[sorted.length - 1]!;
 
   console.log('\n=== BEST SEQUENCE ===');
-  console.log(`  Score: ${best.totalScore} | Tier: ${getTier(best.totalScore, puzzle.target)} | Lies played: ${best.liesPlayed}`);
+  console.log(`  Score: ${best.scoreWithObjection}${config.useObjection ? ` (${best.totalScore} before objection)` : ''} | Tier: ${getTier(best.scoreWithObjection, puzzle.target)} | Lies played: ${best.liesPlayed}`);
   console.log(`  Left out: ${best.leftOut.map(c => `${c.id}(${c.isLie ? 'L' : 'T'}:${c.strength})`).join(', ')}`);
-  for (const pr of best.pairResults) {
+  for (let i = 0; i < best.pairResults.length; i++) {
+    const pr = best.pairResults[i]!;
     const [a, b] = pr.cards;
     const comboStr = pr.combos.length > 0 ? ` + ${pr.combos.map(c => `${c.name}(+${c.bonus})`).join(' + ')}` : '';
-    console.log(`  [${a.id}](${a.isLie ? 'L' : 'T'}) + [${b.id}](${b.isLie ? 'L' : 'T'}) → ${pr.totalScore}${comboStr}`);
+    const pressureStr = best.pressurePenalties[i]! < 0 ? ` [pressure: ${best.pressurePenalties[i]}]` : '';
+    console.log(`  T${i + 1}: [${a.id}](${a.isLie ? 'L' : 'T'}) + [${b.id}](${b.isLie ? 'L' : 'T'}) → ${pr.totalScore}${comboStr}${pressureStr}`);
+  }
+  if (best.objectionCard) {
+    console.log(`  Objection: [${best.objectionCard.id}] → ${best.objectionChoice} (${best.objectionDelta > 0 ? '+' : ''}${best.objectionDelta})`);
   }
 
   console.log('\n=== WORST SEQUENCE ===');
-  console.log(`  Score: ${worst.totalScore} | Tier: ${getTier(worst.totalScore, puzzle.target)} | Lies played: ${worst.liesPlayed}`);
+  console.log(`  Score: ${worst.scoreWithObjection}${config.useObjection ? ` (${worst.totalScore} before objection)` : ''} | Tier: ${getTier(worst.scoreWithObjection, puzzle.target)} | Lies played: ${worst.liesPlayed}`);
   console.log(`  Left out: ${worst.leftOut.map(c => `${c.id}(${c.isLie ? 'L' : 'T'}:${c.strength})`).join(', ')}`);
-  for (const pr of worst.pairResults) {
+  for (let i = 0; i < worst.pairResults.length; i++) {
+    const pr = worst.pairResults[i]!;
     const [a, b] = pr.cards;
     const comboStr = pr.combos.length > 0 ? ` + ${pr.combos.map(c => `${c.name}(+${c.bonus})`).join(' + ')}` : '';
-    console.log(`  [${a.id}](${a.isLie ? 'L' : 'T'}) + [${b.id}](${b.isLie ? 'L' : 'T'}) → ${pr.totalScore}${comboStr}`);
+    const pressureStr = worst.pressurePenalties[i]! < 0 ? ` [pressure: ${worst.pressurePenalties[i]}]` : '';
+    console.log(`  T${i + 1}: [${a.id}](${a.isLie ? 'L' : 'T'}) + [${b.id}](${b.isLie ? 'L' : 'T'}) → ${pr.totalScore}${comboStr}${pressureStr}`);
+  }
+  if (worst.objectionCard) {
+    console.log(`  Objection: [${worst.objectionCard.id}] → ${worst.objectionChoice} (${worst.objectionDelta > 0 ? '+' : ''}${worst.objectionDelta})`);
   }
 
   // ============================================================================
@@ -272,8 +474,8 @@ function runAnalysis(puzzle: V4Puzzle) {
 
   check('I1', 'Exactly 8 cards', puzzle.cards.length === 8, `(${puzzle.cards.length} cards)`);
   check('I2', 'Exactly 3 lies', lies.length === 3, `(${lies.length} lies)`);
-  // C(8,2)=28 leave-outs × 15 pair partitions = 420 unique plays (pair order irrelevant for scoring)
-  check('I3', 'Sequence count (28×15=420)', all.length === 420, `(${all.length})`);
+  // Sequence count depends on whether pressure is enabled
+  check('I3', `Sequence count (${expectedCount})`, all.length === expectedCount, `(${all.length})`);
 
   // All strengths unique 1-8
   const strengths = puzzle.cards.map(c => c.strength).sort((a, b) => a - b);
@@ -287,28 +489,34 @@ function runAnalysis(puzzle: V4Puzzle) {
 
   // --- Winnability checks ---
 
-  // Best possible score clears target
-  check('I6', 'Best play clears target', best.totalScore >= puzzle.target, `(best=${best.totalScore} vs target=${puzzle.target})`);
+  // Best possible score clears target (with objection)
+  check('I6', 'Best play clears target', best.scoreWithObjection >= puzzle.target, `(best=${best.scoreWithObjection} vs target=${puzzle.target})`);
 
   // Best play reaches FLAWLESS
-  check('I7', 'Best play reaches FLAWLESS', best.totalScore >= puzzle.target + 5, `(best=${best.totalScore} vs flawless=${puzzle.target + 5})`);
+  check('I7', 'Best play reaches FLAWLESS', best.scoreWithObjection >= puzzle.target + 5, `(best=${best.scoreWithObjection} vs flawless=${puzzle.target + 5})`);
 
-  // --- Pairing matters ---
+  // --- Pairing/Ordering matters ---
 
-  // Different pairings of the same 6 cards produce different scores
+  // Different pairings/orderings of the same 6 cards produce different scores
   // Group by left-out pair, check score variance within each group
   const byLeftOut = new Map<string, number[]>();
   for (const seq of all) {
     const key = seq.leftOut.map(c => c.id).sort().join('+');
     if (!byLeftOut.has(key)) byLeftOut.set(key, []);
-    byLeftOut.get(key)!.push(seq.totalScore);
+    byLeftOut.get(key)!.push(seq.scoreWithObjection);
   }
   let pairingVariance = 0;
-  for (const [_, scores] of byLeftOut) {
-    const unique = new Set(scores);
+  for (const [_, leaveScores] of byLeftOut) {
+    const unique = new Set(leaveScores);
     if (unique.size > 1) pairingVariance++;
   }
-  check('I9', 'Pairing matters (score variance)', pairingVariance >= byLeftOut.size * 0.5, `(${pairingVariance}/${byLeftOut.size} leave-outs have variance)`);
+  check('I9', 'Pairing/order matters (score variance)', pairingVariance >= byLeftOut.size * 0.5, `(${pairingVariance}/${byLeftOut.size} leave-outs have variance)`);
+
+  // Order specifically matters (not just pairing) — only check if pressure is enabled
+  if (config.usePressure) {
+    const orderMattersRate = (orderMattersCount / all.length) * 100;
+    check('I9b', 'Order matters (≥30% of sequences)', orderMattersRate >= 30, `(${orderMattersRate.toFixed(1)}%)`);
+  }
 
   // Not always safe: even dodging 2 lies (best leave-out), bad pairing can still lose
   let alwaysWinLeaveOuts = 0;
@@ -321,12 +529,12 @@ function runAnalysis(puzzle: V4Puzzle) {
 
   // With 2 lies played, best score still reachable (CLOSE)
   const twoLiePlays = all.filter(s => s.liesPlayed === 2);
-  const twoLieBest = twoLiePlays.length > 0 ? Math.max(...twoLiePlays.map(s => s.totalScore)) : -Infinity;
+  const twoLieBest = twoLiePlays.length > 0 ? Math.max(...twoLiePlays.map(s => s.scoreWithObjection)) : -Infinity;
   check('I10', 'Lie recoverable (2-lie best ≥ target-3)', twoLieBest >= puzzle.target - 3, `(best 2-lie=${twoLieBest} vs close=${puzzle.target - 3})`);
 
   // With 3 lies played, not instant KO (can still get some points)
   const threeLiePlays = all.filter(s => s.liesPlayed === 3);
-  const threeLieBest = threeLiePlays.length > 0 ? Math.max(...threeLiePlays.map(s => s.totalScore)) : -Infinity;
+  const threeLieBest = threeLiePlays.length > 0 ? Math.max(...threeLiePlays.map(s => s.scoreWithObjection)) : -Infinity;
   check('I11', '3-lie play not catastrophic (> 0)', threeLieBest > 0, `(best 3-lie=${threeLieBest})`, true);
 
   // --- Win rate checks ---
@@ -354,11 +562,25 @@ function runAnalysis(puzzle: V4Puzzle) {
   // Playing the 6 strongest cards doesn't guarantee best score
   const byStrength = [...puzzle.cards].sort((a, b) => b.strength - a.strength).slice(0, 6);
   const sfPartitions = partitionIntoPairs(byStrength);
-  const sfBest = Math.max(...sfPartitions.map(p => {
-    const results = p.map(([a, b]) => scorePair(a, b));
-    return results.reduce((s, pr) => s + pr.totalScore, 0);
-  }));
-  check('I16', 'Strength-first not oracle', sfBest < best.totalScore, `(strength-first best=${sfBest} vs actual best=${best.totalScore})`);
+  // For strength-first, try all orderings and pick best with objection
+  let sfBest = -Infinity;
+  for (const pairing of sfPartitions) {
+    for (const ordering of permutations(pairing)) {
+      let pressure = initPressure();
+      let total = 0;
+      const playedCards: Card[] = [];
+      for (const pair of ordering) {
+        const penalty = calculatePressurePenalty(pair, pressure);
+        total += scorePair(pair[0], pair[1], stance, penalty).totalScore;
+        pressure = updatePressure(pair, pressure);
+        playedCards.push(...pair);
+      }
+      const objection = calculateObjection(playedCards);
+      total += objection.optimalDelta;
+      if (total > sfBest) sfBest = total;
+    }
+  }
+  check('I16', 'Strength-first not oracle', sfBest < best.scoreWithObjection, `(strength-first best=${sfBest} vs actual best=${best.scoreWithObjection})`);
 
   // --- Combo checks ---
 

@@ -25,7 +25,155 @@
  *   Total: 30.  Target: 20.
  */
 
-import type { Card, V4Puzzle, ReactiveHint, PairNarration } from './v4-types.js';
+import type { Card, V4Puzzle, ReactiveHint, PairNarration, Stance } from './v4-types.js';
+
+// ============================================================================
+// Hint Generator — Computes KOA's suspicion from lie distribution
+// ============================================================================
+
+interface HintPattern {
+  dimension: 'time' | 'type' | 'location';
+  description: string;
+  matchingCards: Card[];
+  liesMatched: number;
+  truthsMatched: number;
+}
+
+function parseTimeToMinutes(timeStr: string): number {
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1]!);
+  const minutes = parseInt(match[2]!);
+  const isPM = match[3]!.toUpperCase() === 'PM';
+  if (isPM && hours !== 12) hours += 12;
+  if (!isPM && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+function findTimeWindows(cards: Card[]): { start: number; end: number; label: string }[] {
+  // Define possible time windows to check
+  return [
+    { start: 22 * 60, end: 25 * 60, label: 'between 10 PM and 1 AM' },      // 10 PM - 1 AM
+    { start: 22 * 60 + 30, end: 25 * 60, label: 'between 10:30 PM and 1 AM' },
+    { start: 23 * 60, end: 26 * 60, label: 'between 11 PM and 2 AM' },      // 11 PM - 2 AM
+    { start: 0, end: 4 * 60, label: 'in the early morning hours' },         // midnight - 4 AM
+    { start: 1 * 60, end: 5 * 60, label: 'between 1 AM and 5 AM' },
+    { start: 21 * 60, end: 24 * 60, label: 'between 9 PM and midnight' },
+  ];
+}
+
+function isInWindow(timeMinutes: number, start: number, end: number): boolean {
+  // Handle overnight windows (e.g., 10 PM to 1 AM = 22*60 to 25*60)
+  if (end > 24 * 60) {
+    return timeMinutes >= start || timeMinutes < (end - 24 * 60);
+  }
+  return timeMinutes >= start && timeMinutes < end;
+}
+
+export function generateHint(cards: readonly Card[]): string {
+  const lies = cards.filter(c => c.isLie);
+  const truths = cards.filter(c => !c.isLie);
+
+  const patterns: HintPattern[] = [];
+
+  // Check TYPE clustering
+  const types = ['DIGITAL', 'PHYSICAL', 'TESTIMONY', 'SENSOR'] as const;
+  for (const type of types) {
+    const matching = cards.filter(c => c.evidenceType === type);
+    const liesMatched = matching.filter(c => c.isLie).length;
+    const truthsMatched = matching.filter(c => !c.isLie).length;
+    if (liesMatched >= 2 && truthsMatched >= 1) {
+      patterns.push({
+        dimension: 'type',
+        description: `${type.toLowerCase()} evidence`,
+        matchingCards: [...matching],
+        liesMatched,
+        truthsMatched,
+      });
+    }
+  }
+
+  // Check LOCATION clustering
+  const locations = [...new Set(cards.map(c => c.location))];
+  for (const loc of locations) {
+    const matching = cards.filter(c => c.location === loc);
+    const liesMatched = matching.filter(c => c.isLie).length;
+    const truthsMatched = matching.filter(c => !c.isLie).length;
+    if (liesMatched >= 2 && truthsMatched >= 1) {
+      patterns.push({
+        dimension: 'location',
+        description: `the ${loc.toLowerCase()}`,
+        matchingCards: [...matching],
+        liesMatched,
+        truthsMatched,
+      });
+    }
+  }
+
+  // Check TIME WINDOW clustering
+  const windows = findTimeWindows(cards);
+  for (const window of windows) {
+    const matching = cards.filter(c => {
+      const mins = parseTimeToMinutes(c.time);
+      return isInWindow(mins, window.start, window.end);
+    });
+    const liesMatched = matching.filter(c => c.isLie).length;
+    const truthsMatched = matching.filter(c => !c.isLie).length;
+    // Good hint: 2+ lies, 1+ truths, total 4+ cards
+    if (liesMatched >= 2 && truthsMatched >= 1 && matching.length >= 4) {
+      patterns.push({
+        dimension: 'time',
+        description: window.label,
+        matchingCards: [...matching],
+        liesMatched,
+        truthsMatched,
+      });
+    }
+  }
+
+  // Score patterns: prefer those with good ambiguity (3 lies + 1-2 truths ideal)
+  // and not matching ALL lies (should have a "stealth lie" outside)
+  const scored = patterns.map(p => {
+    let score = 0;
+    // Prefer matching 2 lies (leaves 1 stealth lie)
+    if (p.liesMatched === 2) score += 10;
+    else if (p.liesMatched === 3) score += 5;
+    // Prefer having 1-2 red herring truths
+    if (p.truthsMatched === 1 || p.truthsMatched === 2) score += 5;
+    // Prefer time-based (most natural for narrative)
+    if (p.dimension === 'time') score += 3;
+    return { pattern: p, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) {
+    // Fallback: no good clustering found
+    return '"Something\'s off about your story. I just haven\'t figured out what yet."';
+  }
+
+  const best = scored[0]!.pattern;
+  const stealthLies = lies.length - best.liesMatched;
+
+  // Generate KOA's suspicion based on the pattern
+  let hint = '';
+  if (best.dimension === 'time') {
+    hint = `"I'm looking hard at everything ${best.description}. That window doesn't sit right with me.`;
+  } else if (best.dimension === 'type') {
+    hint = `"I don't trust ${best.description}. Too easy to fabricate.`;
+  } else if (best.dimension === 'location') {
+    hint = `"Something about ${best.description} bothers me. Too many claims from one place.`;
+  }
+
+  // Add stealth lie teaser if applicable
+  if (stealthLies > 0) {
+    hint += ` But that's not the only thing bothering me tonight."`;
+  } else {
+    hint += `"`;
+  }
+
+  return hint;
+}
 
 const P1_CARDS: Card[] = [
   {
@@ -34,8 +182,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'DIGITAL',
     location: 'OFFICE',
     time: '10:45 PM',
-    claim: 'Browser history: last page loaded was a recipe site at 10:45 PM, then the laptop was closed',
-    narration: 'I was looking up a pasta recipe around quarter to eleven. Closed the laptop after that. Didn\'t touch it again.',
+    claim: 'Browser history: no searches or downloads after 10:45 PM — the laptop went idle and stayed idle until morning',
+    narration: 'The browser history goes dead after 10:45. Nothing loaded, nothing searched. The laptop sat there idle until morning.',
     isLie: false,
   },
   {
@@ -44,8 +192,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'DIGITAL',
     location: 'OFFICE',
     time: '11:30 PM',
-    claim: 'Email server log: zero outbound connections from the home network after 11 PM — no files were sent',
-    narration: 'Check the email server. Zero outbound connections after 11. Nothing was sent, nothing was downloaded. The network was dead quiet.',
+    claim: 'Email server log: an automated backup ran at 11:15 PM, uploaded 2.3 GB to the cloud, then the connection closed normally',
+    narration: 'The email server shows a scheduled backup at 11:15. Uploaded 2.3 gigs to the cloud, closed the connection. Standard nightly routine.',
     isLie: true,
   },
   {
@@ -54,8 +202,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'PHYSICAL',
     location: 'GARAGE',
     time: '9:30 PM',
-    claim: 'Garage workbench: project materials untouched, no sawdust disturbed — nobody used the garage overnight',
-    narration: 'The workbench is exactly how I left it yesterday morning. Sawdust pattern hasn\'t changed. Nobody was in the garage.',
+    claim: 'Garage workbench: no dust disturbance since yesterday — the half-finished birdhouse and the sawdust ring around it are exactly where I left them',
+    narration: 'The birdhouse project is sitting right where I left it yesterday. Sawdust ring around the base, same pattern. Nobody touched that bench.',
     isLie: false,
   },
   {
@@ -64,8 +212,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'PHYSICAL',
     location: 'GARAGE',
     time: '11:15 PM',
-    claim: 'Toolbox inventory: nothing missing, lock intact — no tools were used to force the office door',
-    narration: 'I checked the toolbox. Everything\'s there, lock\'s intact. Nobody grabbed a screwdriver to jimmy the office door. It wasn\'t forced.',
+    claim: 'Toolbox inventory: the Phillips head was left on the bench at 9 PM, returned to the box by 10 — I put it back after tightening a cabinet hinge',
+    narration: 'I used the Phillips head around 9 to fix a kitchen cabinet hinge. Put it back in the toolbox by 10. Everything else was untouched.',
     isLie: true,
   },
   {
@@ -74,8 +222,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'TESTIMONY',
     location: 'KITCHEN',
     time: '12:30 AM',
-    claim: 'Partner\'s testimony: got up for water at 12:30 AM, saw you asleep on the couch in the living room',
-    narration: 'Ask my partner. She got up for water around 12:30. I was passed out on the couch. She\'ll tell you.',
+    claim: 'Partner\'s testimony: woke up for water at 12:30 AM, walked through the living room, confirms you were asleep on the couch with the TV still on',
+    narration: 'My partner got up for water around 12:30. Walked right past me — I was out cold on the couch, TV still running. She\'ll confirm it.',
     isLie: false,
   },
   {
@@ -84,8 +232,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'TESTIMONY',
     location: 'KITCHEN',
     time: '2:00 AM',
-    claim: 'Neighbor\'s testimony: saw kitchen light on at 2 AM from across the street, assumed someone was getting a snack',
-    narration: 'The neighbor across the street — ask him. He saw the kitchen light on at 2. I was just getting a glass of milk. That\'s it.',
+    claim: 'Neighbor\'s testimony: noticed the kitchen light flick on at 2 AM from across the street, stayed on for about ten minutes, then went off',
+    narration: 'The neighbor saw the kitchen light come on around 2. Said it stayed on maybe ten minutes, then went dark. That was me getting milk.',
     isLie: false,
   },
   {
@@ -94,8 +242,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'SENSOR',
     location: 'BACKYARD',
     time: '3:00 AM',
-    claim: 'Backyard motion sensor: inactive all night — no one went outside between 10 PM and 6 AM',
-    narration: 'The backyard motion sensor was armed all night. Nothing tripped it. Not a person, not even the dog. Nobody went outside.',
+    claim: 'Backyard motion sensor: armed at 10 PM, logged a cat at 11:20 PM, then recorded nothing else until the 6 AM disarm',
+    narration: 'The motion sensor was armed at 10. Caught a cat at 11:20 — I saw the alert on my phone. After that, nothing until I disarmed it at 6.',
     isLie: true,
   },
   {
@@ -104,8 +252,8 @@ const P1_CARDS: Card[] = [
     evidenceType: 'SENSOR',
     location: 'BACKYARD',
     time: '3:15 AM',
-    claim: 'Smart floodlight log: no activation events recorded — the backyard stayed dark all night',
-    narration: 'The smart floodlight didn\'t kick on once. If someone was in the backyard, the light would\'ve triggered. It didn\'t. The yard was empty.',
+    claim: 'Smart floodlight log: no activation events between 10 PM and 6 AM — the yard stayed completely dark overnight',
+    narration: 'The floodlight log is clean from 10 PM to 6 AM. Zero activations. If anyone stepped out there, the light would have caught them.',
     isLie: false,
   },
 ];
@@ -436,7 +584,8 @@ merger document sit in the output tray — printed at 3:12 AM. The office door
 was supposedly locked. You were "asleep since 11." The document wasn't
 supposed to leave the company server. KOA has questions about your evening.`,
   target: 20,
-  hint: '"Some of these claims go out of their way to explain an absence. They tell me what DIDN\'T happen — unprompted. People who aren\'t hiding something don\'t usually volunteer that."',
+  stance: 'NEUTRAL' as Stance,
+  hint: generateHint(P1_CARDS),
   cards: P1_CARDS,
   pairNarrations: P1_PAIR_NARRATIONS,
   reactiveHints: P1_HINTS,
