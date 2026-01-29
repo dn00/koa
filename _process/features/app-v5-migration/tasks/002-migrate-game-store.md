@@ -1,6 +1,6 @@
 # Task 002: Migrate Game Store
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** 001
 **Phase:** Phase 1: Type Compilation
