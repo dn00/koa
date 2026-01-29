@@ -20,13 +20,13 @@
 - KOA is your slightly overprotective smart home AI. When your data looks weird, KOA **turns things off or locks you out** “for your own good.”  
 - Each day you read a short **scenario** and a few **Known Facts** (what KOA already knows from its logs).  
 - You see **6 evidence cards**. Exactly **2 are “bad signals”** (lies/red flags) that make KOA more nervous.  
-- You **play 3 cards total**; KOA reacts after each one.  
-- At the end, KOA reveals which played cards were bad signals and gives a **tier verdict** (BUSTED / CLOSE / CLEARED / FLAWLESS) with a short quip.  
+- You **play 3 cards total**; after each one, KOA reacts with a short bark that comments on **patterns and axes** in your story (timeline, channel reliance, coherence), but does **not** explicitly say whether that card was truth or lie.  
+- At the end, KOA summarizes how your cards landed, reveals which ones were bad signals, and gives a **tier verdict** (BUSTED / CLOSE / CLEARED / FLAWLESS) with a short quip.  
 - There are **no visible numbers**, no explicit scoring formula, and no explicit KOA Flag choice; all numeric mechanics stay under the hood.
 
 KOA Mini is meant to feel as simple to explain as:
 
-> “KOA turned something off. Pick 3 cards that fit the facts and show it it’s safe to turn things back on.”
+> “KOA turned something off. Pick 3 cards that fit the facts and see if you can convince it to turn things back on.”
 
 V5 Advanced mode exposes the full Belief bar, Type Tax rule, and KOA Flag decision for players who want deeper mechanics.
 
@@ -51,7 +51,7 @@ Everything a KOA Mini player needs to know should fit on one screen:
 
 3. **Your Task**
    - “Pick **3 evidence cards** that best support your story and fit the Known Facts so KOA feels safe turning things back on.”  
-   - You tap cards one at a time; KOA responds after each.
+   - You tap cards one at a time; after each, KOA responds with a short bark that **notes what kind of evidence you’re leaning on** and how your story is shaping up, but does not label individual cards as truth/lie or show numeric effects.
 
 4. **Outcome**
    - After you pick 3 cards, KOA:
@@ -85,18 +85,18 @@ No mention of Belief numbers, type tax, or KOA Flag appears in the KOA Mini rule
 - Same as above:
   - Player taps second card.  
   - Card moves to Story strip.  
-  - KOA bark again.
+  - KOA bark again, often escalating tone or calling out a **pattern** (“more logs,” “everything so far is from one room/one time window”).  
 - After card 2, KOA may deliver a slightly heightened “system check” line:
-  - E.g., “If this last claim doesn’t match my logs, your whole night leans on it.”
+  - E.g., “Everything so far lives in logs. If one of them is wrong, your whole story tips over.”  
 - Indicator: `Step 2 of 3` → `Step 3 of 3`.
 
 **Step 5: Pick Card 3**
 - Player taps third card:
   - Card moves to Story strip.  
-  - KOA short reaction bark.
+  - KOA short reaction bark, ideally highlighting a new axis or unresolved tension (“finally a human witness,” “this doesn’t quite fix your timeline”).  
 - Immediately transition into the verdict presentation.
 
-**Step 6: Verdict Screen**
+- **Step 6: Verdict Screen**
 - Show:
   - Tier: BUSTED / CLOSE / CLEARED / FLAWLESS (with color).  
   - One KOA verdict line (from puzzle verdicts).  
@@ -172,11 +172,29 @@ Validator (`prototype-v5.ts`) + human/agent review ensure:
 
 KOA is the main way Mini regains depth and drama without exposing mechanics.
 
+**6.0 Bark Types (Mini)**
+
+For KOA Mini, we distinguish three bark types:
+
+- **Opening barks** (before any card is played):  
+  - Set the scene and KOA’s “stance of the day” (what she’s worried about).  
+  - May reference the suspicious event and broad axes (“I’m watching late-night kitchen traffic”), but must not name specific cards as lies/safe.
+
+- **Mid-run reactive barks** (after each card, during play):  
+  - Comment on the **story so far** and highlight axes/patterns (timeline, channels, locations, Fact tension).  
+  - Must not label individual cards as truth/lie or tell the player what to play next.
+
+- **Result barks** (verdict & teaching, after the game ends):  
+  - Are free to reference specific cards, name lies, and map them to Known Facts.  
+  - This is where KOA can be explicit: “`email_draft` contradicted Fact #2,” “`printer_queue` proved my suspicion,” etc.
+
+Only mid-run barks function as “reactive hints.” Opening and result barks are pure framing/responding and may be more specific.
+
 **6.1 Mid-run Barks**
 
 After each card:
 
-- KOA uses `PRE_REVEAL_BARK` and `PATTERN_CALLOUT` slots to comment on:
+- KOA uses `PRE_REVEAL_BARK` and `PATTERN_CALLOUT` slots to comment on the **story so far** (all cards you’ve played, not just the last one):
   - Timeline (late/early, gaps).  
   - Channel reliance (too many logs, not enough testimony).  
   - Coherence (story feels rehearsed vs messy).  
@@ -187,6 +205,95 @@ Requirements:
 - Barks must never name “truth” or “lie” directly.  
 - Barks should sometimes be **double-edged**:
   - Helpful hints but easy to misread if the player overreacts.
+
+**6.1.1 Lessons from V3 Reactive Hints**
+
+From V3 playtests, the earlier “reactive hint” system was identified as both:
+
+- The **core innovation** (players loved that KOA responded to their specific choices), and  
+- A **structural risk** (opening hint + specific reactive hint collapsed the lie space so much that a safe-play algorithm emerged: “play safe truth T1 → react hint → play remaining truths → guaranteed top tier”).
+
+For KOA Mini this means:
+
+- Mid-run barks must **never directly identify or eliminate specific cards** as lies/safe.  
+- Hints should stay at the **axis/pattern level** (“everything so far is logs,” “your whole story lives in a 5-minute window”) rather than “this particular card is wrong.”  
+- Any attempt to reintroduce card-specific hints must be tested against V3’s dominant-strategy failure mode.
+
+**6.1.2 Safe Bark Patterns (Mini)**
+
+For KOA Mini, “safe” barks are those that:
+
+- Talk about **axes and patterns**, not card IDs or types.  
+- Point back to **Known Facts** or obvious tensions without declaring a lie.  
+- Often suggest a *kind* of missing evidence (e.g., “human witness,” “something outside that time window”) without instructing the player which card to play.
+
+Examples of safe mid-run barks:
+
+- Channel reliance:
+  - “Everything so far lives in logs. If just one of them is wrong, your whole story tips over.”  
+  - “You do love your screenshots. Do you have anything a person actually saw?”
+
+- Timeline clustering:
+  - “All your cards are crammed between 2:50 and 3:05am. Convenient. Do you remember anything outside that spike?”  
+  - “Right now your story only exists in a five‑minute blur. That’s… ambitious.”
+
+- Fact tension (without naming a lie):
+  - “This is a very confident claim for someone who told me they were in bed by 11.”  
+  - “If I trust this, I have to squint at what you said in Fact #2.”
+
+These barks:
+
+- **Help** by focusing the player’s attention on relevant Facts/axes.  
+- Remain **dangerous** if over‑interpreted (several cards might address the hinted axis; some might be risky).  
+- Do **not** remove the need to read and reason about the cards themselves.
+
+**6.1.3 Reactive Buildup (Story-Level Barks)**
+
+KOA’s barks should feel like she is **building a case** over the three turns, not reacting in isolation:
+
+- **T1:** React to the *opening angle*.  
+  - “Starting with logs. Noted.”  
+  - “We’re leading with a human witness. Brave.”
+
+- **T2:** React to the *pattern created by the first two cards*.  
+  - “Everything so far lives in logs. If one of them is wrong, your whole story tips over.”  
+  - “Both cards are crammed into the same five‑minute window. Convenient.”
+
+- **T3:** React to how the third card changes or fails to change that pattern.  
+  - “Finally something outside that 3am spike. I was wondering if your world ended there.”  
+  - “This doesn’t fix the bedtime problem. Your 11pm story is still wobbling.”
+
+Design constraints:
+
+- Barks should always be phrased in terms of **what you’ve already shown KOA** (“so far…”) to reinforce that she’s tracking the whole story, not just single moves.  
+- They may **narrow focus** to specific Facts or axes, but must not turn into instructions (“now play X type”) or explicit card labels.  
+- The goal is to make each turn feel different and escalating, not to hand out a guaranteed safe sequence. 
+
+**6.1.4 Bark Families & Selection**
+
+To avoid bespoke authoring for every puzzle while still making barks feel reactive, KOA Mini should use **bark families**:
+
+- For each axis (e.g., channel reliance, timeline clustering, location fixation, Fact #2 tension), author a small **T1 → T2 → T3 sequence**:
+  - Channel-heavy family:  
+    - T1: “Starting with logs. Noted.”  
+    - T2: “Everything so far lives in logs. If one is wrong, your story tips over.”  
+    - T3: “Still only logs. Nothing anyone actually saw. Interesting choice.”
+  - Timeline-clustered family:  
+    - T1: “That’s right in the suspicious window.”  
+    - T2: “Both cards crammed into the same five minutes. Convenient.”  
+    - T3: “You never left that spike. Nothing before, nothing after.”
+
+- The engine derives simple **pattern keys** from the story so far, per turn, such as:
+  - `channel_mix`: `all_digital | mixed | no_digital`  
+  - `timeline_clustered`: `true | false`  
+  - `fact2_tension`: `none | brushes | clashes`  
+  (Exact schema is up to implementation.)
+
+- On each turn, KOA:
+  - Picks the **most relevant axis family** based on current patterns.  
+  - Chooses the appropriate step (T1/T2/T3) within that family.
+
+Puzzle-specific overrides are allowed (a puzzle can define its own custom sequence), but the default behavior should come from these reusable families so barks feel coherent and reactive without per-puzzle scripting. 
 
 **6.2 System Check Beat (Card 2)**
 

@@ -9,6 +9,7 @@
  *
  * Usage:
  *   Interactive:   npx tsx scripts/play-v5.ts --puzzle midnight-print
+ *   Mini mode:     npx tsx scripts/play-v5.ts --puzzle midnight-print --mode mini
  *   Turn-by-turn:  npx tsx scripts/play-v5.ts --puzzle midnight-print --state /tmp/game.json --pick browser_history
  *   With objection: npx tsx scripts/play-v5.ts --state /tmp/game.json --objection stand
  *   Hard mode:     npx tsx scripts/play-v5.ts --puzzle midnight-print --difficulty hard
@@ -16,10 +17,11 @@
  *
  * Flags:
  *   --puzzle [slug]       Select puzzle (default: midnight-print)
+ *   --mode [mode]         mini|advanced (default: advanced)
  *   --difficulty [level]  easy|standard|hard (default: standard)
  *   --state [path]        Turn-by-turn state file
  *   --pick [card_id]      Play this card
- *   --objection [choice]  stand|withdraw
+ *   --objection [choice]  stand|withdraw (ignored in mini mode)
  *   --seed [number]       Deterministic seed for reproducibility
  *   --json                JSON output for agent testing
  *   --log [path]          Write transcript to file
@@ -35,6 +37,10 @@ import { DEFAULT_CONFIG, EASY_CONFIG, HARD_CONFIG } from './v5-types.js';
 import { V5_PUZZLES_BY_SLUG } from './v5-puzzles.js';
 import { stitchNarration, pickKoaLine, pickPuzzleBark } from './v5-dialogue.js';
 import { scoreCard, checkTypeTax, getTier, resolveObjection, shouldTriggerObjection, detectAxis } from './v5-rules.js';
+// Mode system imports
+import { MINI_MODE, ADVANCED_MODE, type ModeConfig } from './v5-engine/types.js';
+import { autoResolveObjection } from './v5-engine/engine.js';
+import { pickKoaLineFiltered } from './v5-engine/dialogue-filter.js';
 
 // ============================================================================
 // CLI Args
@@ -81,6 +87,19 @@ function buildConfig(): GameConfig {
 }
 
 const CONFIG = buildConfig();
+
+// Mode configuration
+function buildModeConfig(): ModeConfig {
+  const modeArg = getArg('mode') || 'advanced';
+  if (modeArg !== 'mini' && modeArg !== 'advanced') {
+    console.error(`Invalid mode: ${modeArg}. Use 'mini' or 'advanced'.`);
+    process.exit(1);
+  }
+  return modeArg === 'mini' ? MINI_MODE : ADVANCED_MODE;
+}
+
+const MODE_CONFIG = buildModeConfig();
+const IS_MINI = MODE_CONFIG.mode === 'mini';
 
 // Deterministic seed for reproducible runs
 const seedArg = getArg('seed');
@@ -170,17 +189,24 @@ function printOpening(puzzle: V5Puzzle) {
 
   KNOWN FACTS:
 ${puzzle.knownFacts.map(f => `    • ${f}`).join('\n')}
-
-  Target Belief: ${puzzle.target}
-  Cards: ${puzzle.cards.length} (play 3, leave 3)
-  Turns: 3
 `);
 
-  if (CONFIG.typeTax.enabled) {
-    log(`  Type Tax: Repeat evidence type = ${CONFIG.typeTax.penalty} on next play`);
-  }
-  if (CONFIG.objection.enabled) {
-    log(`  Objection: After Turn 2, KOA challenges your last card`);
+  if (IS_MINI) {
+    // Mini mode: no target number, simplified rules
+    log(`  Cards: ${puzzle.cards.length} (play 3, leave 3)`);
+    log(`  Turns: 3`);
+  } else {
+    // Advanced mode: full rules display
+    log(`  Target Belief: ${puzzle.target}`);
+    log(`  Cards: ${puzzle.cards.length} (play 3, leave 3)`);
+    log(`  Turns: 3`);
+
+    if (CONFIG.typeTax.enabled) {
+      log(`  Type Tax: Repeat evidence type = ${CONFIG.typeTax.penalty} on next play`);
+    }
+    if (CONFIG.objection.enabled) {
+      log(`  Objection: After Turn 2, KOA challenges your last card`);
+    }
   }
   log('');
 }
@@ -196,14 +222,21 @@ function printHand(hand: Card[]) {
 }
 
 function printStatus(state: GameState, puzzle: V5Puzzle) {
-  const bar = (val: number, max: number, width: number) => {
-    const filled = Math.min(width, Math.max(0, Math.round((Math.max(0, val) / max) * width)));
-    return '█'.repeat(filled) + '░'.repeat(width - filled);
-  };
   const tier = getTier(state.belief, puzzle.target, CONFIG);
 
-  log(`\n  Belief: [${bar(state.belief, 100, 20)}] ${state.belief}/100 (${tier})`);
-  log(`  Target: ${puzzle.target} | Turn: ${state.turnsPlayed + 1}/${CONFIG.turnsPerGame}`);
+  if (IS_MINI) {
+    // Mini mode: no numbers, just tier indicator
+    const comfortIcon = state.belief >= puzzle.target ? '✓' : state.belief >= puzzle.target - 5 ? '~' : '✗';
+    log(`\n  Status: ${comfortIcon} (Turn ${state.turnsPlayed + 1}/${CONFIG.turnsPerGame})`);
+  } else {
+    // Advanced mode: full belief bar with numbers
+    const bar = (val: number, max: number, width: number) => {
+      const filled = Math.min(width, Math.max(0, Math.round((Math.max(0, val) / max) * width)));
+      return '█'.repeat(filled) + '░'.repeat(width - filled);
+    };
+    log(`\n  Belief: [${bar(state.belief, 100, 20)}] ${state.belief}/100 (${tier})`);
+    log(`  Target: ${puzzle.target} | Turn: ${state.turnsPlayed + 1}/${CONFIG.turnsPerGame}`);
+  }
 }
 
 function printTurnResult(result: TurnResult, turnNum: number) {
@@ -211,11 +244,17 @@ function printTurnResult(result: TurnResult, turnNum: number) {
 
   log(`\n  YOU: "${result.narration}"`);
 
-  const outcome = result.wasLie ? 'CONTRADICTION' : 'SOLID';
-  const changeStr = result.beliefChange >= 0 ? `+${result.beliefChange}` : `${result.beliefChange}`;
-  const taxNote = result.typeTaxApplied ? ' (includes type tax)' : '';
-
-  log(`\n  [${result.card.id}] → ${outcome} (${changeStr} Belief${taxNote})`);
+  if (IS_MINI) {
+    // Mini mode: no numbers, no lie indication, comfort feedback only
+    const comfortIcon = result.beliefChange >= 0 ? '👍' : '👎';
+    log(`\n  ${comfortIcon}`);
+  } else {
+    // Advanced mode: full outcome with numbers
+    const outcome = result.wasLie ? 'CONTRADICTION' : 'SOLID';
+    const changeStr = result.beliefChange >= 0 ? `+${result.beliefChange}` : `${result.beliefChange}`;
+    const taxNote = result.typeTaxApplied ? ' (includes type tax)' : '';
+    log(`\n  [${result.card.id}] → ${outcome} (${changeStr} Belief${taxNote})`);
+  }
 
   log(`\n  ┌─ KOA ─┐`);
   log(`  │ "${result.koaResponse}"`);
@@ -226,7 +265,52 @@ function printOutcome(state: GameState, puzzle: V5Puzzle) {
   const tier = getTier(state.belief, puzzle.target, CONFIG);
   const tierLine = tier === 'FLAWLESS' || tier === 'CLEARED' ? 'ACCESS GRANTED' : 'ACCESS DENIED';
 
-  log(`
+  if (IS_MINI) {
+    // Mini mode: tier + lies revealed with explanations, no numbers
+    log(`
+╔═══════════════════════════════════════════════════════════════╗
+║  ${tierLine}${' '.repeat(Math.max(0, 60 - tierLine.length))}║
+╚═══════════════════════════════════════════════════════════════╝
+
+  ${tier}
+
+  ┌─ KOA ─┐
+  │ "${puzzle.verdicts[tier.toLowerCase() as keyof typeof puzzle.verdicts]}"
+  └───────┘
+
+  ── Your Testimony ──`);
+
+    // Show played cards with lie marks
+    for (let i = 0; i < state.turnResults.length; i++) {
+      const tr = state.turnResults[i]!;
+      if (tr.wasLie) {
+        const lieInfo = puzzle.lies.find(l => l.cardId === tr.card.id);
+        log(`  T${i + 1}: [${tr.card.id}] ✗ LIE`);
+        if (lieInfo?.reason) {
+          log(`      └─ ${lieInfo.reason}`);
+        }
+      } else {
+        log(`  T${i + 1}: [${tr.card.id}] ✓`);
+      }
+    }
+
+    log(`\n  ── Unplayed ──`);
+    for (const card of state.hand) {
+      const isLie = card.isLie;
+      const note = isLie ? '← LIE (good dodge!)' : '';
+      log(`  [${card.id}] ${note}`);
+    }
+
+    // Share card
+    const emojis = state.turnResults.map(tr => tr.wasLie ? '✗' : '✓').join('');
+    log(`
+  ── Share ──
+  HOME SMART HOME: "${puzzle.name}"
+  ${emojis} — ${tier}
+`);
+  } else {
+    // Advanced mode: full outcome with numbers
+    log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║  ${tierLine}${' '.repeat(Math.max(0, 60 - tierLine.length))}║
 ╚═══════════════════════════════════════════════════════════════╝
@@ -239,36 +323,36 @@ function printOutcome(state: GameState, puzzle: V5Puzzle) {
 
   ── Summary ──`);
 
-  for (let i = 0; i < state.turnResults.length; i++) {
-    const tr = state.turnResults[i]!;
-    const outcome = tr.wasLie ? 'LIE' : 'TRUTH';
-    const change = tr.beliefChange >= 0 ? `+${tr.beliefChange}` : `${tr.beliefChange}`;
-    const tax = tr.typeTaxApplied ? ' [tax]' : '';
-    log(`  T${i + 1}: ${tr.card.id} (${outcome}) → ${change}${tax}`);
-  }
+    for (let i = 0; i < state.turnResults.length; i++) {
+      const tr = state.turnResults[i]!;
+      const outcome = tr.wasLie ? 'LIE' : 'TRUTH';
+      const change = tr.beliefChange >= 0 ? `+${tr.beliefChange}` : `${tr.beliefChange}`;
+      const tax = tr.typeTaxApplied ? ' [tax]' : '';
+      log(`  T${i + 1}: ${tr.card.id} (${outcome}) → ${change}${tax}`);
+    }
 
-  if (state.objection?.resolved) {
-    const obj = state.objection;
-    const action = obj.result === 'stood_by' ? 'STOOD BY' : 'WITHDREW';
-    const change = obj.beliefChange >= 0 ? `+${obj.beliefChange}` : `${obj.beliefChange}`;
-    log(`  Objection: ${obj.challengedCard?.id} — ${action} → ${change}`);
-  }
+    if (state.objection?.resolved) {
+      const obj = state.objection;
+      const action = obj.result === 'stood_by' ? 'STOOD BY' : 'WITHDREW';
+      const change = obj.beliefChange >= 0 ? `+${obj.beliefChange}` : `${obj.beliefChange}`;
+      log(`  Objection: ${obj.challengedCard?.id} — ${action} → ${change}`);
+    }
 
-  log(`\n  ── Unplayed ──`);
-  for (const card of state.hand) {
-    const isLie = card.isLie;
-    const note = isLie ? '← LIE (good dodge!)' : '';
-    log(`  [${card.id}] ${note}`);
-  }
+    log(`\n  ── Unplayed ──`);
+    for (const card of state.hand) {
+      const isLie = card.isLie;
+      const note = isLie ? '← LIE (good dodge!)' : '';
+      log(`  [${card.id}] ${note}`);
+    }
 
-  // Share card
-  const emojis = state.turnResults.map(tr => tr.wasLie ? '✗' : '✓').join('');
-
-  log(`
+    // Share card
+    const emojis = state.turnResults.map(tr => tr.wasLie ? '✗' : '✓').join('');
+    log(`
   ── Share ──
   HOME SMART HOME: "${puzzle.name}"
   ${emojis} — ${tier} (${state.belief}/${puzzle.target})
 `);
+  }
 }
 
 // ============================================================================
@@ -283,6 +367,28 @@ async function handleObjection(
   const lastCard = state.turnResults[state.turnResults.length - 1]?.card;
   if (!lastCard) return;
 
+  if (IS_MINI) {
+    // Mini mode: narrative bark only, auto-resolve, no player prompt
+    log(`\n  ── System Check ──`);
+
+    // Use mini-safe bark filter
+    const promptLine = pickKoaLineFiltered('OBJECTION_PROMPT', 'coherence', 'suspicion', 2, nextSeed(), 'mini-safe');
+    log(`\n  ┌─ KOA ─┐`);
+    log(`  │ "${promptLine}"`);
+    log(`  └───────┘`);
+
+    // Auto-resolve: KOA makes optimal choice
+    const { choice, beliefChange } = autoResolveObjection(lastCard, CONFIG);
+
+    // Apply scoring internally (no display in Mini)
+    state.belief += beliefChange;
+    state.objection = { challengedCard: lastCard, resolved: true, result: choice, beliefChange };
+
+    // No feedback about the resolution - player doesn't know what happened
+    return;
+  }
+
+  // Advanced mode: full objection prompt with player choice
   log(`\n╔═══════════════════════════════════════════════════════════════╗`);
   log(`║  KOA CHALLENGES                                                ║`);
   log(`╚═══════════════════════════════════════════════════════════════╝`);
@@ -503,101 +609,121 @@ function playTurn(
   }
 
   // Handle pending objection
-  if (savedState?.objectionPending && objectionArg) {
-    const choice = objectionArg.toLowerCase();
-    if (choice !== 'stand' && choice !== 'withdraw') {
-      console.error('--objection must be "stand" or "withdraw"');
-      process.exit(1);
-    }
-
+  if (savedState?.objectionPending) {
     const lastCard = state.turnResults[state.turnResults.length - 1]?.card;
     if (!lastCard) process.exit(1);
 
-    const wasLie = lastCard.isLie;
-    const beliefChange = resolveObjection(wasLie, choice === 'stand' ? 'stood_by' : 'withdrawn', CONFIG);
+    if (IS_MINI) {
+      // Mini mode: auto-resolve objection, ignore --objection flag
+      const { choice, beliefChange } = autoResolveObjection(lastCard, CONFIG);
 
-    let koaLine: string;
-    if (choice === 'stand') {
-      const slot = wasLie ? 'OBJECTION_STOOD_LIE' : 'OBJECTION_STOOD_TRUTH';
-      koaLine = pickPuzzleBark(puzzle, slot, lastCard.id, nextSeed())
-        || pickKoaLine(slot, wasLie ? 'contradiction' : 'coherence', wasLie ? 'warning' : 'praise', 2, nextSeed());
-    } else {
-      koaLine = pickPuzzleBark(puzzle, 'OBJECTION_WITHDREW', lastCard.id, nextSeed())
-        || pickKoaLine('OBJECTION_WITHDREW', 'coherence', 'neutral', 2, nextSeed());
-    }
-
-    state.belief += beliefChange;
-    state.objection = {
-      challengedCard: lastCard,
-      resolved: true,
-      result: choice === 'stand' ? 'stood_by' : 'withdrawn',
-      beliefChange,
-    };
-
-    const changeStr = beliefChange >= 0 ? `+${beliefChange}` : `${beliefChange}`;
-    log(`\n  KOA: "${koaLine}"`);
-    log(`  → ${changeStr} Belief (now ${state.belief})`);
-
-    // JSON output for objection resolution
-    const tier = getTier(state.belief, puzzle.target, CONFIG);
-    emitJson({
-      seed: SEED,
-      puzzle: puzzle.slug,
-      turn: state.turnsPlayed,
-      belief: state.belief,
-      tier,
-      target: puzzle.target,
-      gameOver: false,
-      objectionPending: false,
-      lastAction: {
-        type: 'objection',
-        cardId: lastCard.id,
+      state.belief += beliefChange;
+      state.objection = {
+        challengedCard: lastCard,
+        resolved: true,
+        result: choice,
         beliefChange,
-        wasLie,
-        objectionResult: choice === 'stand' ? 'stood_by' : 'withdrawn',
-        koaResponse: koaLine,
-      },
-      hand: state.hand.map(c => ({ id: c.id, strength: c.strength, type: c.evidenceType, location: c.location, time: c.time, claim: c.claim })),
-      played: state.played.map(c => c.id),
-      config: {
-        difficulty: getArg('difficulty') || 'standard',
-        objectionEnabled: CONFIG.objection.enabled,
-        typeTaxEnabled: CONFIG.typeTax.enabled,
-      },
-    });
+      };
 
-    // Save and exit if no pick
-    if (!pickArg) {
-      saveState(state, puzzle, statePath, false);
-      return;
+      // Mini mode: just show system check bark
+      log(`\n  ── System Check ──`);
+      const promptLine = pickKoaLineFiltered('OBJECTION_PROMPT', 'coherence', 'suspicion', 2, nextSeed(), 'mini-safe');
+      log(`\n  ┌─ KOA ─┐`);
+      log(`  │ "${promptLine}"`);
+      log(`  └───────┘`);
+
+      // Continue to pick handling (no exit needed)
+    } else if (objectionArg) {
+      // Advanced mode with objection choice
+      const choice = objectionArg.toLowerCase();
+      if (choice !== 'stand' && choice !== 'withdraw') {
+        console.error('--objection must be "stand" or "withdraw"');
+        process.exit(1);
+      }
+
+      const wasLie = lastCard.isLie;
+      const beliefChange = resolveObjection(wasLie, choice === 'stand' ? 'stood_by' : 'withdrawn', CONFIG);
+
+      let koaLine: string;
+      if (choice === 'stand') {
+        const slot = wasLie ? 'OBJECTION_STOOD_LIE' : 'OBJECTION_STOOD_TRUTH';
+        koaLine = pickPuzzleBark(puzzle, slot, lastCard.id, nextSeed())
+          || pickKoaLine(slot, wasLie ? 'contradiction' : 'coherence', wasLie ? 'warning' : 'praise', 2, nextSeed());
+      } else {
+        koaLine = pickPuzzleBark(puzzle, 'OBJECTION_WITHDREW', lastCard.id, nextSeed())
+          || pickKoaLine('OBJECTION_WITHDREW', 'coherence', 'neutral', 2, nextSeed());
+      }
+
+      state.belief += beliefChange;
+      state.objection = {
+        challengedCard: lastCard,
+        resolved: true,
+        result: choice === 'stand' ? 'stood_by' : 'withdrawn',
+        beliefChange,
+      };
+
+      const changeStr = beliefChange >= 0 ? `+${beliefChange}` : `${beliefChange}`;
+      log(`\n  KOA: "${koaLine}"`);
+      log(`  → ${changeStr} Belief (now ${state.belief})`);
+
+      // JSON output for objection resolution
+      const tier = getTier(state.belief, puzzle.target, CONFIG);
+      emitJson({
+        seed: SEED,
+        puzzle: puzzle.slug,
+        turn: state.turnsPlayed,
+        belief: state.belief,
+        tier,
+        target: puzzle.target,
+        gameOver: false,
+        objectionPending: false,
+        lastAction: {
+          type: 'objection',
+          cardId: lastCard.id,
+          beliefChange,
+          wasLie,
+          objectionResult: choice === 'stand' ? 'stood_by' : 'withdrawn',
+          koaResponse: koaLine,
+        },
+        hand: state.hand.map(c => ({ id: c.id, strength: c.strength, type: c.evidenceType, location: c.location, time: c.time, claim: c.claim })),
+        played: state.played.map(c => c.id),
+        config: {
+          difficulty: getArg('difficulty') || 'standard',
+          objectionEnabled: CONFIG.objection.enabled,
+          typeTaxEnabled: CONFIG.typeTax.enabled,
+        },
+      });
+
+      // Save and exit if no pick
+      if (!pickArg) {
+        saveState(state, puzzle, statePath, false);
+        return;
+      }
+    } else {
+      // Advanced mode waiting for objection choice
+      log(`\n  KOA CHALLENGES — Pending`);
+      log(`  Challenging: [${lastCard?.id}]`);
+      log(`  Use --objection stand OR --objection withdraw`);
+
+      emitJson({
+        seed: SEED,
+        puzzle: puzzle.slug,
+        turn: state.turnsPlayed,
+        belief: state.belief,
+        tier: getTier(state.belief, puzzle.target, CONFIG),
+        target: puzzle.target,
+        gameOver: false,
+        objectionPending: true,
+        hand: state.hand.map(c => ({ id: c.id, strength: c.strength, type: c.evidenceType, location: c.location, time: c.time, claim: c.claim })),
+        played: state.played.map(c => c.id),
+        config: {
+          difficulty: getArg('difficulty') || 'standard',
+          objectionEnabled: CONFIG.objection.enabled,
+          typeTaxEnabled: CONFIG.typeTax.enabled,
+        },
+      });
+      process.exit(0);
     }
-  }
-
-  // Check pending objection
-  if (savedState?.objectionPending && !objectionArg) {
-    const lastCard = state.turnResults[state.turnResults.length - 1]?.card;
-    log(`\n  KOA CHALLENGES — Pending`);
-    log(`  Challenging: [${lastCard?.id}]`);
-    log(`  Use --objection stand OR --objection withdraw`);
-
-    emitJson({
-      seed: SEED,
-      puzzle: puzzle.slug,
-      turn: state.turnsPlayed,
-      belief: state.belief,
-      tier: getTier(state.belief, puzzle.target, CONFIG),
-      target: puzzle.target,
-      gameOver: false,
-      objectionPending: true,
-      hand: state.hand.map(c => ({ id: c.id, strength: c.strength, type: c.evidenceType, location: c.location, time: c.time, claim: c.claim })),
-      played: state.played.map(c => c.id),
-      config: {
-        difficulty: getArg('difficulty') || 'standard',
-        objectionEnabled: CONFIG.objection.enabled,
-        typeTaxEnabled: CONFIG.typeTax.enabled,
-      },
-    });
-    process.exit(0);
   }
 
   if (isFirstTurn) {
@@ -676,16 +802,39 @@ function playTurn(
   printTurnResult(result, state.turnsPlayed);
 
   // Objection after T2
-  const objectionPending = shouldTriggerObjection(state.turnsPlayed, CONFIG);
+  let objectionPending = shouldTriggerObjection(state.turnsPlayed, CONFIG);
   if (objectionPending) {
-    const promptLine = pickPuzzleBark(puzzle, 'OBJECTION_PROMPT', card.id, nextSeed())
-      || pickKoaLine('OBJECTION_PROMPT', 'coherence', 'suspicion', 2, nextSeed());
-    log(`\n╔═══════════════════════════════════════════════════════════════╗`);
-    log(`║  KOA CHALLENGES                                                ║`);
-    log(`╚═══════════════════════════════════════════════════════════════╝`);
-    log(`\n  KOA: "${promptLine}"`);
-    log(`  Challenging: [${card.id}]`);
-    log(`\n  Use --objection stand OR --objection withdraw`);
+    if (IS_MINI) {
+      // Mini mode: auto-resolve objection immediately
+      const { choice: autoChoice, beliefChange: autoBelief } = autoResolveObjection(card, CONFIG);
+
+      state.belief += autoBelief;
+      state.objection = {
+        challengedCard: card,
+        resolved: true,
+        result: autoChoice,
+        beliefChange: autoBelief,
+      };
+
+      // Mini mode: show system check bark only
+      log(`\n  ── System Check ──`);
+      const promptLine = pickKoaLineFiltered('OBJECTION_PROMPT', 'coherence', 'suspicion', 2, nextSeed(), 'mini-safe');
+      log(`\n  ┌─ KOA ─┐`);
+      log(`  │ "${promptLine}"`);
+      log(`  └───────┘`);
+
+      objectionPending = false; // Already resolved
+    } else {
+      // Advanced mode: wait for player choice
+      const promptLine = pickPuzzleBark(puzzle, 'OBJECTION_PROMPT', card.id, nextSeed())
+        || pickKoaLine('OBJECTION_PROMPT', 'coherence', 'suspicion', 2, nextSeed());
+      log(`\n╔═══════════════════════════════════════════════════════════════╗`);
+      log(`║  KOA CHALLENGES                                                ║`);
+      log(`╚═══════════════════════════════════════════════════════════════╝`);
+      log(`\n  KOA: "${promptLine}"`);
+      log(`  Challenging: [${card.id}]`);
+      log(`\n  Use --objection stand OR --objection withdraw`);
+    }
   }
 
   const gameOver = state.turnsPlayed >= CONFIG.turnsPerGame && !objectionPending;
