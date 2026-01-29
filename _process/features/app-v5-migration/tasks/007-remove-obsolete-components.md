@@ -1,6 +1,6 @@
 # Task 007: Remove Obsolete Components
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** 004
 **Phase:** Phase 3: Cleanup
