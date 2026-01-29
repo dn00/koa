@@ -17,8 +17,10 @@ const LOSS_REASONS: Record<string, string> = {
 
 /**
  * Get the loss reason from the last event
+ * TODO: V5 migration - Remove event sourcing
  */
-function getLossReason(events: readonly GameEvent[]): string | undefined {
+function getLossReason(events: readonly any[]): string | undefined {
+  // @ts-expect-error TODO: V5 migration - GameEvent no longer exists
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
     if (event && event.type === 'RUN_ENDED') {
@@ -138,9 +140,10 @@ export function ResultScreen(): ReactNode {
   const lossReason = getLossReason(events);
 
   // Check if this was actually a win (runState would show the result)
+  // TODO: V5 migration - Remove event-based win detection
   const lastEvent = events[events.length - 1];
   const actuallyWon = lastEvent?.type === 'RUN_ENDED' &&
-    (lastEvent.payload as { status?: string } | undefined)?.status === RunStatus.WON;
+    (lastEvent.payload as { status?: string } | undefined)?.status === 'victory'; // TODO: Use Tier type
 
   // Calculate stats
   const turnsTotal = runState.puzzle.turns;
