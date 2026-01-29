@@ -30,7 +30,7 @@ Only stop and ask user if something is genuinely broken or ambiguous.
 | Critical impl | opus | Task tool |
 | **All reviews** | **gemini** | Gemini CLI |
 
-**Use LONG TIME OUT for review jobs (15 mins)**
+**Use LONG TIME OUTS FOR SUBAGENTS (15 mins)**
 
 **Tool syntax:**
 - Gemini: `gemini -p "..." --yolo`

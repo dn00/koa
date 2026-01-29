@@ -95,24 +95,25 @@ Migrate `@hsh/app` from MVP domain model to V5 domain model. The MVP event-sourc
 
 | Task | Name | Status | Depends On |
 |------|------|--------|------------|
-| 001 | Fix Type Imports | backlog | - |
-| 002 | Migrate Game Store | backlog | 001 |
-| 003 | Update EvidenceCard Component | backlog | 001 |
+| 001 | Fix Type Imports | done | - |
+| 002 | Migrate Game Store | done | 001 |
+| 003 | Update EvidenceCard Component | done | 001 |
 
 ### Phase 2: Screen Updates
 
 | Task | Name | Status | Depends On |
 |------|------|--------|------------|
-| 004 | Update RunScreen | backlog | 002, 003 |
-| 005 | Add Objection Flow | backlog | 004 |
-| 006 | Update Persistence | backlog | 002 |
+| 004 | Update RunScreen | done | 002, 003 |
+| 005 | Add Objection Flow | done | 004 |
+| 006 | Update Persistence | done | 002 |
 
 ### Phase 3: Cleanup
 
 | Task | Name | Status | Depends On |
 |------|------|--------|------------|
-| 007 | Remove Obsolete Components | backlog | 004 |
-| 008 | Update Results Screen | backlog | 002 |
+| 007 | Remove Obsolete Components | done | 004 |
+| 008 | Update Results Screen | done | 002 |
+| 009 | KoA Mood Integration | backlog | 002 |
 
 ---
 
@@ -121,8 +122,10 @@ Migrate `@hsh/app` from MVP domain model to V5 domain model. The MVP event-sourc
 ```
 001 ──┬──→ 002 ──┬──→ 004 ──→ 005
       │         │     ↓
-      │         └──→ 006
-      │               ↓
+      │         ├──→ 006
+      │         │     ↓
+      │         └──→ 009 (KoA Mood)
+      │
       └──→ 003 ──────→ 007
                        ↓
 002 ─────────────────→ 008
@@ -138,6 +141,7 @@ Migrate `@hsh/app` from MVP domain model to V5 domain model. The MVP event-sourc
 | 2 | 002, 003 | Batch 1 | Core: store + card component |
 | 3 | 004, 006 | Batch 2 | Screens: RunScreen + persistence |
 | 4 | 005, 007, 008 | Batch 3 | Polish: objection, cleanup, results |
+| 5 | 009 | Batch 2 | KoA: mood type + derivation |
 
 **Batch size guidance:**
 - Batch 1 is a single critical task (must compile first)
@@ -149,14 +153,15 @@ Migrate `@hsh/app` from MVP domain model to V5 domain model. The MVP event-sourc
 
 | ID | Name | Complexity | Status |
 |----|------|------------|--------|
-| 001 | Fix Type Imports | S | backlog |
-| 002 | Migrate Game Store | M | backlog |
-| 003 | Update EvidenceCard Component | S | backlog |
-| 004 | Update RunScreen | M | backlog |
-| 005 | Add Objection Flow | S | backlog |
-| 006 | Update Persistence | S | backlog |
-| 007 | Remove Obsolete Components | S | backlog |
-| 008 | Update Results Screen | S | backlog |
+| 001 | Fix Type Imports | S | done |
+| 002 | Migrate Game Store | M | done |
+| 003 | Update EvidenceCard Component | S | done |
+| 004 | Update RunScreen | M | done |
+| 005 | Add Objection Flow | S | done |
+| 006 | Update Persistence | S | done |
+| 007 | Remove Obsolete Components | S | done |
+| 008 | Update Results Screen | S | done |
+| 009 | KoA Mood Integration | S | backlog |
 
 ---
 
@@ -189,4 +194,5 @@ None remaining.
 | 006 | 4 | 1 | 1 | 6 |
 | 007 | 4 | 0 | 0 | 4 |
 | 008 | 4 | 1 | 0 | 5 |
-| **Total** | **39** | **11** | **6** | **56** |
+| 009 | 5 | 1 | 0 | 6 |
+| **Total** | **44** | **12** | **6** | **62** |
