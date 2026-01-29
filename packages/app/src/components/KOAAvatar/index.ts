@@ -1,1 +1,1 @@
-export { KOAAvatar, type KOAAvatarProps, type KOAAvatarHandle } from './KOAAvatar.js';
+export { KOAAvatar, KOAMood, type KOAAvatarProps, type KOAAvatarHandle, type KOAMood as KOAMoodType } from './KOAAvatar.js';

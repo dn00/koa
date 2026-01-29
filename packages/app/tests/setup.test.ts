@@ -12,7 +12,7 @@ describe('Task 001: Monorepo Setup - app', () => {
    */
   describe('AC-6: Cross-package import', () => {
     it('should import ENGINE_VERSION from @hsh/engine-core', () => {
-      expect(ENGINE_VERSION).toBe('0.0.1');
+      expect(ENGINE_VERSION).toBe('0.1.0');
     });
 
     it('should import and use Result type from @hsh/engine-core', () => {

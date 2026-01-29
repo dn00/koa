@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { createRef } from 'react';
 import { KOAAvatar, type KOAAvatarHandle } from '../../src/components/KOAAvatar/index.js';
-import { KOAMood } from '@hsh/engine-core';
+import { KOAMood } from '../../src/components/KOAAvatar/index.js';
 
 // Mock GSAP
 vi.mock('gsap', () => ({
