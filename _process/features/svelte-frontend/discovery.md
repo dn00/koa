@@ -1,6 +1,6 @@
-# Discovery: Svelte + GSAP Frontend
+# Discovery: Svelte + GSAP Frontend (V5)
 
-**Date:** 2026-01-26
+**Date:** 2026-01-28 (Updated for V5)
 **Status:** approved
 **Author:** Discovery Agent
 
@@ -10,36 +10,65 @@
 
 ### Problem Statement
 
-The current React frontend is functional but lacks "game feel." For a mobile-first daily puzzle game, we need:
+Build a game-feel-first frontend in Svelte + GSAP for the V5 game engine. This is not a webapp with animations — it's a **game** that happens to run in a browser.
 
-1. **Juicy interactions** - Card physics, satisfying feedback, spring animations
-2. **Small bundle** - Fast load for daily players on mobile
-3. **Game-like UX** - Feels like a game, not a web app
-4. **Performance** - Smooth 60fps animations on mid-tier phones
+### V5 Game Mechanics (Key Context)
 
-React + CSS Modules can achieve this with Framer Motion, but Svelte + GSAP offers:
-- Smaller bundle (no React runtime)
-- Simpler animation code (GSAP is industry standard for games)
-- Cleaner component syntax (less boilerplate)
-- Built-in transitions for simple cases
+**Gameplay Loop:**
+1. Start with hand of cards, belief at 50
+2. Each turn: select 1 card → play → beliefChange applied
+3. After turn 2: Objection prompt (stand by or withdraw)
+4. After turn 3: Game ends, verdict based on belief vs target
+
+**V5 State Model:**
+```typescript
+interface GameState {
+  belief: number;           // Current score (starts ~50)
+  hand: Card[];             // Cards not yet played
+  played: Card[];           // Cards already played
+  turnResults: TurnResult[]; // History of plays
+  turnsPlayed: number;      // 0-3
+  objection: ObjectionState | null;
+}
+
+interface Card {
+  id: CardId;
+  strength: number;         // 1-5
+  evidenceType: EvidenceType; // DIGITAL | PHYSICAL | TESTIMONY | SENSOR
+  location: string;
+  time: string;
+  claim: string;
+  presentLine: string;      // What player says
+  isLie: boolean;
+}
+```
+
+**Key V5 Rules:**
+- **Belief bar**: Starts at 50, target varies per puzzle (e.g., 65)
+- **Single card per turn**: Select and play 1 card (not multiple)
+- **3 turns total**: Game ends after turn 3
+- **Type tax**: -2 penalty for playing same evidenceType consecutively
+- **Objection**: After turn 2, KOA challenges → Stand By (+2 truth/-4 lie) or Withdraw (-2)
+- **No scrutiny**: Removed in V5
+- **No concern chips**: Removed in V5
+- **No counter panel**: Removed in V5
 
 ### Proposed Solution
 
-Replace `packages/app` (React) with `packages/app-svelte` (SvelteKit + GSAP):
+Create `packages/app-svelte` (SvelteKit + GSAP) with V5 mechanics:
 
-- **Keep 100%** of engine-core (pure TypeScript logic, 260+ tests)
-- **Keep most** of services (db, persistence, pack-loader, telemetry)
-- **Rewrite** UI layer in Svelte
-- **Add** GSAP for game-feel animations
+- **Keep 100%** of engine-core (V5 resolver, types, packs)
+- **Rewrite** UI layer in Svelte with V5-specific components
+- **Add** GSAP for game-feel animations per D16 timing budgets
 
 ### Success Criteria
 
-1. All existing game mechanics work identically (engine-core unchanged)
+1. V5 game mechanics work correctly (belief, objection, type tax)
 2. Bundle size < 100KB gzipped (excluding assets)
 3. Card interactions feel "juicy" - spring physics, satisfying feedback
 4. Animations run at 60fps on Pixel 4a / iPhone SE 2
-5. PWA works offline (same as React version)
-6. All acceptance criteria from original tasks still pass
+5. PWA works offline (I2 invariant)
+6. Event-sourced state (I4 invariant)
 
 ---
 
@@ -48,187 +77,157 @@ Replace `packages/app` (React) with `packages/app-svelte` (SvelteKit + GSAP):
 ### Must Have (P0)
 
 **R1: SvelteKit Project Setup**
-- Rationale: Foundation for all Svelte work
-- Verification: `npm run dev` starts, imports engine-core
+- TypeScript strict mode
+- GSAP core + Flip plugin
+- engine-core imports work
+- Vitest for component tests
+- CSS custom properties for D27 color tokens
 
-**R2: Svelte Stores (replacing Zustand)**
-- Rationale: Svelte has native stores, don't need external library
-- Verification: Game state management works, event sourcing preserved
+**R2: Svelte Stores (V5 Event Sourcing)**
+- Game store with V5Event[] as source of truth
+- deriveV5State() for reactive state
+- Feel store for animation state
+- Settings store
 
 **R3: Core Screens**
-- R3.1: Home Screen - navigation hub
-- R3.2: Run Screen - main gameplay
-- R3.3: Result Screen - win/loss display
-- Verification: All screens render, navigation works
+- R3.1: Home Screen - start game, select puzzle
+- R3.2: Run Screen - V5 gameplay (3 turns + objection)
+- R3.3: Result Screen - verdict display (tier, belief vs target)
 
-**R4: HUD Components**
-- R4.1: Resistance bar with animated fill
-- R4.2: Scrutiny indicator with warning state
-- R4.3: Concern chips with addressed state
-- R4.4: Turns display
-- Verification: HUD updates reactively on state change
+**R4: HUD Components (V5)**
+- R4.1: BeliefBar - current belief vs target with progress indicator
+- R4.2: TurnsDisplay - "Turn X/3" indicator
+- R4.3: ~~Scrutiny~~ **REMOVED IN V5**
+- R4.4: ~~Concern chips~~ **REMOVED IN V5**
 
-**R5: Card System**
-- R5.1: Evidence card component
-- R5.2: Hand carousel with touch scroll
+**R5: Card System (V5)**
+- R5.1: Evidence card showing V5 fields (strength, evidenceType, claim, location, time)
+- R5.2: Hand display (single selection only, not multiple)
 - R5.3: Card selection with visual feedback
-- R5.4: Story timeline showing committed cards
-- Verification: Cards selectable, carousel scrolls, timeline updates
+- R5.4: Type tax warning when selecting same evidenceType as last played
 
-**R6: GSAP Animation System**
-- R6.1: Card deal animation (spring into hand)
-- R6.2: Card select/deselect feedback (scale, glow)
-- R6.3: Submit animation (cards fly to timeline)
-- R6.4: Damage numbers (count up animation)
-- R6.5: Win celebration (confetti, screen effects)
-- R6.6: Screen shake on critical moments
-- Verification: Animations feel satisfying, 60fps
+**R6: Objection Flow (V5 NEW)**
+- R6.1: ObjectionPrompt after turn 2
+- R6.2: Stand By / Withdraw choice UI
+- R6.3: KOA challenge dialogue display
+- R6.4: Result feedback (+2/-4 for stand by, -2 for withdraw)
 
-**R7: Counter Panel**
-- Visibility modes: always, hover, never
-- Verification: Respects settings store
+**R7: GSAP Animation System**
+- R7.1: Card deal animation (spring into hand)
+- R7.2: Card select/deselect feedback (scale, glow)
+- R7.3: Card play animation (single card to played area)
+- R7.4: BeliefBar animation (smooth fill change)
+- R7.5: Objection modal entrance/exit
+- R7.6: Win/loss celebration effects
 
 **R8: Service Integration**
-- R8.1: Persistence service (IndexedDB)
+- R8.1: Persistence service (V5Event[] storage)
 - R8.2: Pack loader service
 - R8.3: Telemetry service
-- Verification: Data persists, packs load, events track
 
 **R9: PWA Support**
 - R9.1: Service worker registration
 - R9.2: Offline gameplay
 - R9.3: App manifest
-- Verification: Works in airplane mode after cache
 
 ### Should Have (P1)
 
 **R10: KOA Avatar**
-- 8 mood states with smooth transitions
-- Optional: Rive animation for expressions
+- 15 mood states (from portable component)
+- Mood derived from game state
+- Glitch effects on key moments
 
-**R11: Advanced Animations**
-- R11.1: Card flip animation (refutation reveal)
-- R11.2: Particle effects (subtle, performant)
-- R11.3: Layout animations (GSAP Flip)
+**R11: Banter System Integration**
+- presentLine display when card played
+- KOA pre-reveal bark (from library)
+- KOA post-reveal quip (from card data)
+- Objection challenge dialogue
 
 **R12: Haptic Feedback**
 - Vibration API on mobile for key moments
 
 ### Won't Have (this scope)
 
-- Redesign of game mechanics (engine-core unchanged)
-- New screens beyond existing 3
-- Canvas/WebGL rendering (DOM + GSAP is sufficient)
-- 3D effects (CSS 3D transforms only)
+- ~~Counter panel~~ (removed in V5)
+- ~~Scrutiny indicator~~ (removed in V5)
+- ~~Concern chips~~ (removed in V5)
+- ~~Multiple card selection~~ (V5 is 1 card per turn)
+- Canvas/WebGL rendering
+- 3D effects beyond CSS transforms
 
 ---
 
 ## Technical Analysis
 
-### Existing Code to Keep
+### V5 Engine Exports (What Svelte Uses)
 
-**engine-core (100% reuse):**
-```
-packages/engine-core/
-├── src/types/        # All domain types
-├── src/resolver/     # All game logic (260+ tests)
-├── src/validation/   # Pack validation
-└── index.ts
-```
-
-**Services (90% reuse, minor adapter changes):**
-```
-packages/app/src/services/
-├── db.ts           # Dexie - no changes
-├── persistence.ts  # CRUD - no changes
-├── pack-loader.ts  # Fetch/cache - no changes
-└── telemetry.ts    # Analytics - minor store reference update
-```
-
-### New Package Structure
-
-```
-packages/app-svelte/
-├── src/
-│   ├── lib/
-│   │   ├── components/     # Svelte components
-│   │   │   ├── hud/
-│   │   │   ├── cards/
-│   │   │   ├── counter/
-│   │   │   └── koa/
-│   │   ├── stores/         # Svelte stores
-│   │   ├── services/       # Copied from app, adapted
-│   │   └── animations/     # GSAP utilities
-│   ├── routes/             # SvelteKit pages
-│   │   ├── +page.svelte    # Home
-│   │   ├── run/
-│   │   └── results/
-│   └── app.html
-├── static/
-│   └── sw.js               # Service worker
-├── svelte.config.js
-├── vite.config.ts
-└── package.json
-```
-
-### Key Technical Decisions
-
-**Svelte Stores vs Zustand:**
 ```typescript
-// Zustand (React)
-const useGameStore = create((set) => ({
-  events: [],
-  submitCards: (cards) => set(...)
-}));
+// Types
+import type {
+  Card, GameState, V5Puzzle, GameConfig,
+  TurnResult, ObjectionState, Tier, VerdictData
+} from '@hsh/engine-core';
 
-// Svelte (native)
-export const events = writable<GameEvent[]>([]);
-export function submitCards(cards: EvidenceCard[]) {
-  events.update(e => [...e, newEvent]);
-}
+// Functions
+import {
+  createGameState, playCard, resolveObjectionState,
+  isGameOver, getVerdict, autoResolveObjection
+} from '@hsh/engine-core';
+
+// Config
+import { DEFAULT_CONFIG, BUILTIN_PACK } from '@hsh/engine-core';
 ```
 
-**GSAP Integration:**
-```svelte
-<script>
-  import { gsap } from 'gsap';
-  import { onMount } from 'svelte';
+### Svelte Store Architecture
 
-  let cardEl;
+```typescript
+// gameStore.ts (V5 Event Sourcing)
+export type V5Event =
+  | { type: 'GAME_STARTED'; puzzleSlug: string; seed: number }
+  | { type: 'CARD_PLAYED'; cardId: string }
+  | { type: 'OBJECTION_RESOLVED'; choice: 'stood_by' | 'withdrawn' };
 
-  onMount(() => {
-    gsap.from(cardEl, {
-      y: 100,
-      opacity: 0,
-      duration: 0.5,
-      ease: "back.out(1.7)"
-    });
-  });
-</script>
+export const events = writable<V5Event[]>([]);
+export const gameState = derived(events, deriveV5State);
 
-<div bind:this={cardEl} class="card">...</div>
+// Actions
+export function startGame(puzzle: V5Puzzle, seed: number) { ... }
+export function playCard(cardId: string) { ... }
+export function resolveObjection(choice: 'stood_by' | 'withdrawn') { ... }
 ```
 
-### Dependencies
+### Component Hierarchy
 
-**New:**
-- SvelteKit
-- GSAP (gsap, @gsap/shockingly if needed)
-- Dexie (same as React version)
+```
+App
+├── HomeScreen
+│   └── PuzzleSelector
+├── RunScreen
+│   ├── HUD
+│   │   ├── BeliefBar
+│   │   └── TurnsDisplay
+│   ├── KOAAvatar
+│   ├── DialogueBox (banter)
+│   ├── HandDisplay
+│   │   └── EvidenceCard (×N)
+│   ├── PlayedCards
+│   └── ObjectionPrompt (conditional)
+└── ResultScreen
+    ├── VerdictDisplay
+    ├── BeliefSummary
+    └── PlayedCardsSummary
+```
 
-**Removed:**
-- React, ReactDOM
-- React Router
-- Zustand
-- Framer Motion (not needed)
+### Animation Timing (D16 Budgets)
 
-### Migration Strategy
-
-1. Create `packages/app-svelte` alongside `packages/app`
-2. Copy and adapt services
-3. Build screens and components
-4. Test against same engine-core
-5. When complete, delete `packages/app`
+| Interaction | Duration | GSAP Ease |
+|-------------|----------|-----------|
+| Card deal | 300ms stagger 80ms | back.out(1.7) |
+| Card select | 160ms | power2.out |
+| Card play | 250ms | power3.out |
+| Belief change | 220ms + 90ms bounce | power2.out |
+| Objection appear | 200ms | back.out(1.2) |
+| Win celebration | 800ms | elastic.out |
 
 ---
 
@@ -238,25 +237,21 @@ export function submitCards(cards: EvidenceCard[]) {
 
 | Constraint | Rationale |
 |------------|-----------|
-| Must use engine-core unchanged | 260+ tests, proven logic |
-| GSAP for animations | Industry standard, I know it well |
+| Must use V5 engine-core | Proven logic, 192 tests |
+| GSAP for animations | Industry standard |
 | No Canvas/WebGL | Overkill for this game |
-| PWA required | Offline-first invariant |
-| Bundle < 100KB gzipped | Mobile performance |
+| PWA required | I2 offline-first invariant |
+| Event sourcing | I4 invariant |
 
-### Game Feel Requirements
+### V5 Game Constraints
 
-| Interaction | Animation |
-|-------------|-----------|
-| Card enter hand | Spring in from bottom, slight rotation |
-| Card hover | Scale 1.05, subtle glow |
-| Card select | Scale 0.95 → 1.02, color shift |
-| Card submit | Fly to timeline, trail effect |
-| Damage dealt | Number counts up, shake on big hit |
-| Concern addressed | Check mark pops, green flash |
-| Scrutiny increase | Bar fills, warning pulse at 4+ |
-| Win | Confetti burst, title animation |
-| Loss | Screen desaturate, subtle shake |
+| Rule | Implementation |
+|------|----------------|
+| 1 card per turn | Hand shows cards, single select only |
+| 3 turns max | TurnsDisplay shows progress |
+| Objection after T2 | ObjectionPrompt component |
+| Type tax | Visual warning on card selection |
+| Belief not resistance | BeliefBar, not ResistanceBar |
 
 ---
 
@@ -264,44 +259,27 @@ export function submitCards(cards: EvidenceCard[]) {
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| GSAP learning curve | Low | Low | Well-documented, I know it |
-| SvelteKit SSR complexity | Medium | Medium | Use SPA mode, disable SSR |
-| Service worker differences | Low | Low | Same sw.js approach |
-| Store migration issues | Medium | Medium | Careful testing |
-
----
-
-## Open Questions
-
-- [ ] Keep both packages during development or replace? → Keep both
-- [ ] Rive for KOA or pure GSAP? → Start GSAP, consider Rive later
-- [ ] Shared styles approach? → CSS custom properties + Svelte scoped
+| GSAP SSR issues | Medium | Medium | SPA mode, disable SSR |
+| 60fps on low-end | Medium | Medium | Test on Pixel 4a early |
+| Objection UX clarity | Medium | Low | Clear UI with +/- indicators |
+| Banter pacing | Low | Low | Follow banter-system.md cadence |
 
 ---
 
 ## References
 
-- Original MVP discovery: `_process/features/mvp/discovery.md`
-- Architecture: `_process/project/ARCHITECTURE.md`
-- Invariants: `_process/project/INVARIANTS.md`
+- `packages/engine-core/src/types/v5/` - V5 type definitions
+- `packages/engine-core/src/resolver/v5/` - V5 game logic
+- `_process/v5-design/banter-system.md` - Dialogue system
+- `docs/KoaAvatarPortable.tsx` - Reference KOA implementation
+- `docs/D16-GAME-FEEL-ANIMATION-HAPTICS-SFX.md` - Animation timing
+- `docs/D27-VISUAL-STYLE-SPEC.md` - Visual design
 
 ---
 
 ## Next Steps
 
-1. [x] Get discovery approved
-2. [ ] Hand off to Planner for task breakdown
-3. [ ] Create tasks with acceptance criteria
+1. [x] Update discovery for V5
+2. [ ] Update plan with V5 tasks
+3. [ ] Update/create task files
 4. [ ] Begin implementation
-
----
-
-## Handoff
-
-```
-Discovery complete for Svelte + GSAP Frontend.
-
-Ready for Planner phase.
-
-Discovery file: _process/features/svelte-frontend/discovery.md
-```
