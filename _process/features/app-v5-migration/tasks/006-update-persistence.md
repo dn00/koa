@@ -1,6 +1,6 @@
 # Task 006: Update Persistence
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** 002
 **Phase:** Phase 2: Screen Updates
@@ -70,10 +70,10 @@ Current schema stores `events: GameEvent[]` (MVP types). V5 uses `V5Event[]` wit
 
 ## Definition of Done
 
-- [ ] Schema updated to V5
-- [ ] Save/load work with GameState
-- [ ] DB migration handles upgrade
-- [ ] Self-review completed
+- [x] Schema updated to V5
+- [x] Save/load work with GameState
+- [x] DB migration handles upgrade
+- [x] Self-review completed
 
 ---
 
@@ -82,3 +82,4 @@ Current schema stores `events: GameEvent[]` (MVP types). V5 uses `V5Event[]` wit
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-28 | - | backlog | Planner | Created |
+| 2026-01-28 | backlog | done | Implementer | V5 migration complete |

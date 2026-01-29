@@ -1,28 +1,25 @@
 /**
  * IndexedDB database schema using Dexie.
- * Task 013: IndexedDB Persistence
+ * Task 006: Update Persistence (V5 Migration)
  *
- * Defines the database schema and tables for persisting game state.
+ * Defines the database schema and tables for persisting V5 game state.
+ * AC-4: Database version bumped for V5 migration.
  */
 
 import Dexie, { type Table } from 'dexie';
+import type { V5Event } from '../stores/gameStore.js';
 
-// TODO: V5 migration - GameEvent removed from engine-core
-// V5 uses a different event system defined in Task 002
-// For now, use a placeholder type for storage compatibility
-export type V5Event = {
-  readonly type: string;
-  readonly timestamp: number;
-  readonly payload?: unknown;
-};
+// Re-export V5Event for consumers
+export type { V5Event } from '../stores/gameStore.js';
 
 /**
- * Stored run record.
- * Contains the event log and metadata for a game run.
+ * Stored run record (V5).
+ * AC-1: Contains V5Event[] as source of truth.
+ * Events are replayed by gameStore.loadEvents() to derive GameState.
  */
 export interface StoredRun {
   readonly id: string;
-  // TODO: V5 migration - events will use V5Event type from Task 002
+  /** V5 events - source of truth for state derivation */
   readonly events: readonly V5Event[];
   readonly status: 'IN_PROGRESS' | 'WON' | 'LOST';
   readonly updatedAt: number;
@@ -50,6 +47,7 @@ export interface StoredSettings {
 
 /**
  * HSH Database using Dexie for IndexedDB access.
+ * AC-4: Version 2 for V5 migration.
  */
 export class HSHDatabase extends Dexie {
   runs!: Table<StoredRun, string>;
@@ -59,7 +57,9 @@ export class HSHDatabase extends Dexie {
   constructor() {
     super('hsh');
 
-    this.version(1).stores({
+    // Version 1: Original MVP schema (deprecated)
+    // Version 2: V5 migration - events use V5Event type
+    this.version(2).stores({
       runs: 'id, status, updatedAt',
       packs: 'id, cachedAt',
       settings: 'id',

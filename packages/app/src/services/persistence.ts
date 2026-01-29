@@ -1,14 +1,16 @@
 /**
  * Persistence service for game state.
- * Task 013: IndexedDB Persistence
+ * Task 006: Update Persistence (V5 Migration)
  *
  * CRUD operations for runs, packs, and settings.
+ * AC-2: saveGame persists V5 events.
+ * AC-3: loadGame restores events for state derivation.
  */
 
-// TODO: V5 migration - GameEvent and RunStatus removed from engine-core
-// V5 uses Tier instead of RunStatus, and V5Event instead of GameEvent
-// Import the placeholder type from db.ts until Task 002 defines V5Event
 import { db, type V5Event, type StoredRun, type StoredPack, type StoredSettings } from './db.js';
+
+// Re-export types for consumers
+export type { V5Event, StoredRun, StoredPack, StoredSettings };
 
 // ============================================================================
 // Run Operations
@@ -139,6 +141,67 @@ export async function getInProgressRuns(): Promise<StoredRun[]> {
  */
 export async function deleteRun(runId: string): Promise<void> {
   await db.runs.delete(runId);
+}
+
+// ============================================================================
+// V5 Game Operations (Task 006)
+// ============================================================================
+
+/**
+ * Save game with V5 events.
+ * AC-2: Persists V5Event[] to IndexedDB.
+ *
+ * @param runId - Unique run identifier
+ * @param events - V5 events to persist
+ */
+export async function saveGame(
+  runId: string,
+  events: readonly V5Event[]
+): Promise<void> {
+  const run: StoredRun = {
+    id: runId,
+    events,
+    status: 'IN_PROGRESS',
+    updatedAt: Date.now(),
+  };
+  await db.runs.put(run);
+}
+
+/**
+ * Load game and return V5 events.
+ * AC-3: Returns V5Event[] for state derivation via gameStore.loadEvents().
+ * EC-1: Returns null for non-existent game.
+ * ERR-1: Returns null and logs error for corrupted state.
+ *
+ * @param runId - Run identifier
+ * @returns V5Event[] or null if not found or corrupted
+ */
+export async function loadGame(runId: string): Promise<V5Event[] | null> {
+  try {
+    const run = await db.runs.get(runId);
+    if (!run) {
+      return null;
+    }
+
+    // Validate that events exist and have proper structure
+    if (!Array.isArray(run.events)) {
+      console.error(`Corrupted state in DB for run ${runId}: events is not an array`);
+      return null;
+    }
+
+    // Validate each event has required type field
+    for (const event of run.events) {
+      if (!event || typeof event.type !== 'string') {
+        console.error(`Corrupted state in DB for run ${runId}: invalid event structure`);
+        return null;
+      }
+    }
+
+    return [...run.events];
+  } catch (error) {
+    console.error(`Error loading game ${runId}:`, error);
+    return null;
+  }
 }
 
 // ============================================================================
