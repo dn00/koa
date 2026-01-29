@@ -17,40 +17,25 @@ export interface EvidenceCardProps {
 }
 
 /**
- * Format claims for display.
- */
-function formatClaims(claims: EvidenceCardType['claims']): string {
-  const parts: string[] = [];
-
-  if (claims.location) {
-    parts.push(claims.location);
-  }
-  if (claims.state) {
-    parts.push(claims.state);
-  }
-  if (claims.activity) {
-    parts.push(claims.activity);
-  }
-  if (claims.timeRange) {
-    parts.push(claims.timeRange);
-  }
-
-  return parts.length > 0 ? parts.join(' | ') : 'No claims';
-}
-
-/**
  * Evidence Card Component (Task 018)
  *
  * Displays an evidence card with:
- * AC-1: Card name/source
- * AC-2: Power value (number badge)
- * AC-3: Proof types (chip/tag for each)
- * AC-4: Claims (location, state, time)
+ * AC-1: Card name/location (V5: was source)
+ * AC-2: Strength value (V5: was power)
+ * AC-3: Evidence type (V5: replaces proves)
+ * AC-4: Claim (V5: simplified from claims object)
  * AC-5: Selected state (visual highlight)
  * AC-6: Disabled state (grayed out, not clickable)
  * AC-7: onClick handler for selection
- * EC-1: Card with no claims shows placeholder
+ * EC-1: Card with no claim shows placeholder
  * EC-2: Long text truncates gracefully
+ *
+ * TODO: V5 migration - Card fields updated:
+ * - power -> strength
+ * - source -> location
+ * - claims (object) -> claim (string)
+ * - proves -> DELETE (V5 has evidenceType instead)
+ * - refutes -> DELETE (V5 has no counter-evidence)
  */
 export function EvidenceCard({
   card,
@@ -81,40 +66,29 @@ export function EvidenceCard({
       aria-pressed={selected}
       aria-disabled={disabled}
     >
-      {/* Header: Source and Power */}
+      {/* Header: Location and Strength */}
       <div className={styles.header}>
-        <span className={styles.source} title={card.source ?? 'Unknown source'}>
-          {card.source ?? 'Unknown'}
+        <span className={styles.source} title={card.location ?? 'Unknown location'}>
+          {card.location ?? 'Unknown'}
         </span>
-        <span className={styles.power} aria-label={`Power: ${card.power}`}>
-          {card.power}
+        <span className={styles.power} aria-label={`Strength: ${card.strength}`}>
+          {card.strength}
         </span>
       </div>
 
-      {/* Proof types */}
-      <div className={styles.proves} aria-label="Proof types">
-        {card.proves.length > 0 ? (
-          card.proves.map((proof) => (
-            <span key={proof} className={styles.proofChip}>
-              {proof}
-            </span>
-          ))
-        ) : (
-          <span className={styles.noProof}>No proof</span>
-        )}
+      {/* Evidence type (V5: replaces proves) */}
+      <div className={styles.proves} aria-label="Evidence type">
+        <span className={styles.proofChip}>
+          {card.evidenceType}
+        </span>
       </div>
 
-      {/* Claims */}
-      <div className={styles.claims} title={formatClaims(card.claims)}>
-        {formatClaims(card.claims)}
+      {/* Claim (V5: simplified from claims object) */}
+      <div className={styles.claims} title={card.claim}>
+        {card.claim || 'No claim'}
       </div>
 
-      {/* AC-7: Refutation badge when card can refute counters */}
-      {card.refutes && (
-        <div className={styles.refuteBadge} aria-label="Can refute counter-evidence">
-          Refutes
-        </div>
-      )}
+      {/* TODO: V5 migration - refutes removed, V5 has no counter-evidence mechanic */}
     </div>
   );
 }

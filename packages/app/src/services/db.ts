@@ -6,7 +6,15 @@
  */
 
 import Dexie, { type Table } from 'dexie';
-import type { GameEvent } from '@hsh/engine-core';
+
+// TODO: V5 migration - GameEvent removed from engine-core
+// V5 uses a different event system defined in Task 002
+// For now, use a placeholder type for storage compatibility
+export type V5Event = {
+  readonly type: string;
+  readonly timestamp: number;
+  readonly payload?: unknown;
+};
 
 /**
  * Stored run record.
@@ -14,7 +22,8 @@ import type { GameEvent } from '@hsh/engine-core';
  */
 export interface StoredRun {
   readonly id: string;
-  readonly events: readonly GameEvent[];
+  // TODO: V5 migration - events will use V5Event type from Task 002
+  readonly events: readonly V5Event[];
   readonly status: 'IN_PROGRESS' | 'WON' | 'LOST';
   readonly updatedAt: number;
 }

@@ -171,7 +171,6 @@ export function createSubmitSequence(
   const resistanceStartTime = TIMING.IMMEDIATE / 1000;
 
   if (targets.resistanceBarFill) {
-    const startPercent = (config.startResistance / config.startResistance) * 100;
     const endPercent = (config.endResistance / config.startResistance) * 100;
 
     master.to(
@@ -231,7 +230,7 @@ export function createSubmitSequence(
     // ==========================================================================
     if (targets.damageCounter) {
       const damageUpdateTime = staggerTime + (TIMING.MESO.MIN / 1000);
-      const targetDamage = runningDamage + card.power;
+      const targetDamage = runningDamage + card.strength;
 
       // Animate damage counter
       master.to(

@@ -1,6 +1,12 @@
+// TODO: V5 migration - DELETE this file in Task 007
+// V5 has no scrutiny mechanic; this component is obsolete
+
 import type { ReactNode } from 'react';
-import type { Scrutiny } from '@hsh/engine-core';
+// TODO: V5 migration - Scrutiny type removed from engine-core (was from @hsh/engine-core)
 import styles from './ScrutinyIndicator.module.css';
+
+// Local placeholder type until file is deleted
+type Scrutiny = number;
 
 /**
  * Props for ScrutinyIndicator component
@@ -12,6 +18,9 @@ export interface ScrutinyIndicatorProps {
 
 /**
  * ScrutinyIndicator Component (Task 017)
+ *
+ * @deprecated V5 migration - This component will be deleted in Task 007
+ * V5 has no scrutiny mechanic.
  *
  * Displays KOA's scrutiny level.
  * AC-3: Scrutiny indicator

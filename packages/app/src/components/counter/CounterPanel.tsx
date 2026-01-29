@@ -1,6 +1,16 @@
+// TODO: V5 migration - DELETE this file in Task 007
+// V5 has no counter-evidence mechanic; this component is obsolete
+
 import type { ReactNode } from 'react';
-import type { CounterEvidence } from '@hsh/engine-core';
+// TODO: V5 migration - CounterEvidence type removed from engine-core (was from @hsh/engine-core)
 import styles from './CounterPanel.module.css';
+
+// Local placeholder type until file is deleted
+interface CounterEvidence {
+  id: string;
+  refuted: boolean;
+  targets: string[];
+}
 
 /**
  * Counter visibility options
@@ -19,6 +29,9 @@ export interface CounterPanelProps {
 
 /**
  * CounterPanel Component (Task 017)
+ *
+ * @deprecated V5 migration - This component will be deleted in Task 007
+ * V5 has no counter-evidence mechanic.
  *
  * Displays counter-evidence panel.
  * AC-8: Counter panel visible (FULL)

@@ -7,8 +7,23 @@ import {
 } from 'react';
 import type { ReactNode, ForwardedRef } from 'react';
 import { gsap } from 'gsap';
-import { KOAMood } from '@hsh/engine-core';
 import styles from './KOAAvatar.module.css';
+
+// TODO: V5 migration - KOAMood removed from engine-core
+// V5 doesn't have a KOAMood type; define locally for now
+// This may be refactored or moved to a shared types file
+export const KOAMood = {
+  NEUTRAL: 'NEUTRAL',
+  CURIOUS: 'CURIOUS',
+  SUSPICIOUS: 'SUSPICIOUS',
+  BLOCKED: 'BLOCKED',
+  GRUDGING: 'GRUDGING',
+  IMPRESSED: 'IMPRESSED',
+  RESIGNED: 'RESIGNED',
+  SMUG: 'SMUG',
+} as const;
+
+export type KOAMood = (typeof KOAMood)[keyof typeof KOAMood];
 
 /**
  * Props for KOAAvatar component

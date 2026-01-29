@@ -15,6 +15,10 @@ export interface StoryTimelineProps {
  *
  * Displays the committed story as a timeline.
  * AC-7: Committed story timeline
+ *
+ * TODO: V5 migration - Card fields updated:
+ * - source -> location
+ * - power -> strength
  */
 export function StoryTimeline({ committed }: StoryTimelineProps): ReactNode {
   return (
@@ -30,8 +34,8 @@ export function StoryTimeline({ committed }: StoryTimelineProps): ReactNode {
                 <span className={styles.number}>{index + 1}</span>
               </div>
               <div className={styles.content}>
-                <span className={styles.source}>{card.source ?? 'Evidence'}</span>
-                <span className={styles.power}>+{card.power}</span>
+                <span className={styles.source}>{card.location ?? 'Evidence'}</span>
+                <span className={styles.power}>+{card.strength}</span>
               </div>
             </div>
           ))}

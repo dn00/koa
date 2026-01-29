@@ -1,11 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGameStore } from '../../stores/gameStore.js';
 import type { Tier } from '@hsh/engine-core';
+import { useGameStore } from '../../stores/gameStore.js';
 import styles from './ResultScreen.module.css';
 
-// TODO: V5 migration - GameEvent no longer exists, Tier replaces RunStatus
+// Suppress unused variable - Tier will be used once V5 win detection is implemented
+void (undefined as unknown as Tier);
+
+// TODO: V5 migration - GameEvent no longer exists, win/loss determined differently in V5
 
 /**
  * Loss reason messages
@@ -17,16 +20,14 @@ const LOSS_REASONS: Record<string, string> = {
 
 /**
  * Get the loss reason from the last event
- * TODO: V5 migration - Remove event sourcing
+ * TODO: V5 migration - Remove event sourcing, determine from GameState
  */
-function getLossReason(events: readonly any[]): string | undefined {
-  // @ts-expect-error TODO: V5 migration - GameEvent no longer exists
+function getLossReason(events: readonly unknown[]): string | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
-    const event = events[i];
+    const event = events[i] as { type?: string; payload?: { reason?: string } } | null;
     if (event && event.type === 'RUN_ENDED') {
-      const payload = event.payload as { reason?: string } | undefined;
-      if (payload?.reason) {
-        return payload.reason;
+      if (event.payload?.reason) {
+        return event.payload.reason;
       }
     }
   }
@@ -35,6 +36,12 @@ function getLossReason(events: readonly any[]): string | undefined {
 
 /**
  * ScoreRecap Component
+ *
+ * TODO: V5 migration - Update to show V5 stats:
+ * - turnsPlayed (not turnsUsed based on turnsRemaining)
+ * - belief score (not damage/resistance)
+ * - lies detected/avoided
+ * - Remove concerns and scrutiny
  */
 function ScoreRecap({
   turnsUsed,
@@ -56,13 +63,15 @@ function ScoreRecap({
           <span className={styles.statValue}>{turnsUsed}</span>
         </div>
         <div className={styles.stat}>
-          <span className={styles.statLabel}>Total Damage</span>
+          <span className={styles.statLabel}>Total Belief</span>
           <span className={styles.statValue}>{totalDamage}</span>
         </div>
+        {/* TODO: V5 migration - concerns removed from V5 */}
         <div className={styles.stat}>
           <span className={styles.statLabel}>Concerns Addressed</span>
           <span className={styles.statValue}>{concernsAddressed}</span>
         </div>
+        {/* TODO: V5 migration - scrutiny removed from V5 */}
         <div className={styles.stat}>
           <span className={styles.statLabel}>Final Scrutiny</span>
           <span className={styles.statValue}>{scrutiny}/5</span>
@@ -93,6 +102,12 @@ function CelebrationAnimation(): ReactNode {
  * - Score recap
  * - Navigation buttons
  * - Win celebration animation
+ *
+ * TODO: V5 migration - Major changes needed:
+ * - GameState has different fields (belief, turnsPlayed, turnResults)
+ * - Win/loss determined by belief vs target (from puzzle)
+ * - No concerns or scrutiny in V5
+ * - Tier determines final verdict (FLAWLESS, CLEARED, CLOSE, BUSTED)
  */
 export function ResultScreen(): ReactNode {
   const navigate = useNavigate();
@@ -140,20 +155,21 @@ export function ResultScreen(): ReactNode {
   const lossReason = getLossReason(events);
 
   // Check if this was actually a win (runState would show the result)
-  // TODO: V5 migration - Remove event-based win detection
-  const lastEvent = events[events.length - 1];
+  // TODO: V5 migration - Use Tier and belief vs target to determine win
+  const lastEvent = events[events.length - 1] as { type?: string; payload?: { status?: string } } | null;
   const actuallyWon = lastEvent?.type === 'RUN_ENDED' &&
-    (lastEvent.payload as { status?: string } | undefined)?.status === 'victory'; // TODO: Use Tier type
+    lastEvent.payload?.status === 'victory';
 
-  // Calculate stats
-  const turnsTotal = runState.puzzle.turns;
-  const turnsRemaining = runState.turnsRemaining;
-  const turnsUsed = turnsTotal - turnsRemaining;
-  const initialResistance = runState.puzzle.resistance;
-  const currentResistance = runState.resistance;
-  const totalDamage = initialResistance - currentResistance;
-  const concernsAddressed = runState.concernsAddressed.length;
-  const scrutiny = runState.scrutiny;
+  // Calculate stats from V5 GameState
+  // V5 has: belief, turnsPlayed, turnResults, played, hand, objection
+  const turnsUsed = runState.turnsPlayed;
+  const totalBelief = runState.belief;
+
+  // TODO: V5 migration - These don't exist in V5 GameState, show placeholders
+  // concerns and scrutiny removed from V5
+  const concernsAddressed = 0; // Placeholder - V5 has no concerns
+  const scrutiny = 0; // Placeholder - V5 has no scrutiny
+
   const isPerfect = actuallyWon && scrutiny === 0;
 
   // Get display loss reason
@@ -190,7 +206,7 @@ export function ResultScreen(): ReactNode {
       {/* Score recap */}
       <ScoreRecap
         turnsUsed={turnsUsed}
-        totalDamage={totalDamage}
+        totalDamage={totalBelief}
         concernsAddressed={concernsAddressed}
         scrutiny={scrutiny}
       />

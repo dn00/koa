@@ -5,8 +5,10 @@
  * CRUD operations for runs, packs, and settings.
  */
 
-import type { GameEvent, RunStatus } from '@hsh/engine-core';
-import { db, type StoredRun, type StoredPack, type StoredSettings } from './db.js';
+// TODO: V5 migration - GameEvent and RunStatus removed from engine-core
+// V5 uses Tier instead of RunStatus, and V5Event instead of GameEvent
+// Import the placeholder type from db.ts until Task 002 defines V5Event
+import { db, type V5Event, type StoredRun, type StoredPack, type StoredSettings } from './db.js';
 
 // ============================================================================
 // Run Operations
@@ -14,18 +16,16 @@ import { db, type StoredRun, type StoredPack, type StoredSettings } from './db.j
 
 /**
  * Status type for stored runs.
+ * TODO: V5 migration - RunStatus replaced by Tier in V5
  */
 type RunStatusString = 'IN_PROGRESS' | 'WON' | 'LOST';
 
 /**
- * Convert RunStatus enum to string.
+ * Convert status to string.
+ * TODO: V5 migration - simplified since RunStatus enum is removed
  */
-function statusToString(status: RunStatus | string): RunStatusString {
-  if (typeof status === 'string') {
-    return status as RunStatusString;
-  }
-  // Handle enum values
-  return status as unknown as RunStatusString;
+function statusToString(status: string): RunStatusString {
+  return status as RunStatusString;
 }
 
 /**
@@ -36,7 +36,7 @@ function statusToString(status: RunStatus | string): RunStatusString {
  */
 export async function createRun(
   runId: string,
-  initialEvents: readonly GameEvent[]
+  initialEvents: readonly V5Event[]
 ): Promise<void> {
   const run: StoredRun = {
     id: runId,
@@ -56,7 +56,7 @@ export async function createRun(
  * @param runId - Run identifier
  * @param event - Event to append
  */
-export async function appendEvent(runId: string, event: GameEvent): Promise<void> {
+export async function appendEvent(runId: string, event: V5Event): Promise<void> {
   const run = await db.runs.get(runId);
   if (!run) {
     // Create new run if it doesn't exist
@@ -82,7 +82,7 @@ export async function appendEvent(runId: string, event: GameEvent): Promise<void
  * @param runId - Run identifier
  * @returns Events array or null if run doesn't exist
  */
-export async function getRunEvents(runId: string): Promise<GameEvent[] | null> {
+export async function getRunEvents(runId: string): Promise<V5Event[] | null> {
   const run = await db.runs.get(runId);
   if (!run) {
     return null;
@@ -109,7 +109,7 @@ export async function getRun(runId: string): Promise<StoredRun | null> {
  */
 export async function updateRunStatus(
   runId: string,
-  status: RunStatus | RunStatusString
+  status: RunStatusString
 ): Promise<void> {
   const run = await db.runs.get(runId);
   if (!run) return;

@@ -30,13 +30,19 @@ export function HandCarousel({
   onSelect,
   maxSelect = 3,
 }: HandCarouselProps): ReactNode {
-  const handleCardClick = (cardId: CardId): void => {
-    onSelect(cardId);
+  // Cast to CardId to handle branded type mismatch between V5 Card.id and props
+  const handleCardClick = (cardId: string): void => {
+    onSelect(cardId as CardId);
   };
 
-  const isCardDisabled = (cardId: CardId): boolean => {
+  // Helper to check if a card is selected (handles branded type comparison)
+  const isSelected = (cardId: string): boolean => {
+    return (selected as readonly string[]).includes(cardId);
+  };
+
+  const isCardDisabled = (cardId: string): boolean => {
     // Disable if max selected and this card is not selected
-    if (selected.length >= maxSelect && !selected.includes(cardId)) {
+    if (selected.length >= maxSelect && !isSelected(cardId)) {
       return true;
     }
     return false;
@@ -49,7 +55,7 @@ export function HandCarousel({
           <div key={card.id} className={styles.cardWrapper}>
             <EvidenceCard
               card={card}
-              selected={selected.includes(card.id)}
+              selected={isSelected(card.id)}
               disabled={isCardDisabled(card.id)}
               onClick={() => handleCardClick(card.id)}
             />
