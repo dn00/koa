@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-28
 **Current Phase:** Implementation
 
 ---
@@ -53,7 +53,9 @@
 
 | Feature | Status | Discovery | Plan | Tasks |
 |---------|--------|-----------|------|-------|
-| MVP (Daily Puzzle) | Planning Complete | [Done](../features/mvp/discovery.md) | [Done](../features/mvp/mvp.plan.md) | 29 |
+| MVP (Daily Puzzle) | **Superseded by V5** | [Done](../features/mvp/discovery.md) | [Done](../features/mvp/mvp.plan.md) | 29 |
+| V5 Engine Modular | Complete | [Done](../features/v5-engine-modular/discovery.md) | [Done](../features/v5-engine-modular/v5-engine-modular.plan.md) | 6 |
+| Engine Core Migration | Active | [Done](../features/engine-core-migration/discovery.md) | [Done](../features/engine-core-migration/engine-core-migration.plan.md) | 11 |
 
 ---
 
@@ -123,6 +125,9 @@ None currently.
 - [MVP Discovery](../features/mvp/discovery.md) - Complete
 - [MVP Plan](../features/mvp/mvp.plan.md) - Complete
 - [MVP Tasks](../features/mvp/tasks/) - 29 tasks
+- [V5 Engine Modular Discovery](../features/v5-engine-modular/discovery.md) - Complete
+- [V5 Engine Modular Plan](../features/v5-engine-modular/v5-engine-modular.plan.md) - Active
+- [V5 Engine Modular Tasks](../features/v5-engine-modular/tasks/) - 6 tasks
 
 ### Design Docs
 - [docs/D24-VERTICAL-SLICE-DOD-MVP.md](../../docs/D24-VERTICAL-SLICE-DOD-MVP.md) - MVP definition

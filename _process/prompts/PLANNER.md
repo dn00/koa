@@ -113,9 +113,11 @@ Each task should be:
 - Make these their own task(s) with no dependencies
 - Other tasks depend on foundations → enables parallel batches after
 
-### 4. Define Acceptance Criteria
+### 4. Define Acceptance Criteria, Edge Cases, and Error Cases
 
-For each task, write acceptance criteria in Given/When/Then format:
+For each task, write:
+
+**Acceptance Criteria (AC)** — Core functionality:
 ```
 ### AC-1: [Name]
 - **Given:** [precondition]
@@ -123,7 +125,22 @@ For each task, write acceptance criteria in Given/When/Then format:
 - **Then:** [expected result]
 ```
 
-These acceptance criteria ARE the tests. The Implementer will write tests that match these exactly.
+**Edge Cases (EC)** — Boundary conditions and special inputs:
+```
+### EC-1: [Name]
+- **Scenario:** [edge condition]
+- **Expected:** [behavior]
+```
+
+**Error Cases (ERR)** — Failure modes and error handling:
+```
+### ERR-1: [Name]
+- **When:** [error condition]
+- **Then:** [error handling]
+- **Error Message:** [expected message]
+```
+
+**⚠️ ALL of these become required tests.** The Implementer will write one test block for each AC, EC, and ERR. The Reviewer will fail the review if any are missing.
 
 **Each AC should trace to a detailed requirement (R1.1, R2.3, etc.)**
 
@@ -224,18 +241,24 @@ Create files in `{process}/features/[feature]/tasks/`:
 - **Then:** [expected outcome]
 - **Test Type:** unit | integration
 
-### Edge Cases
+### Edge Cases (REQUIRE TESTS)
+
+> ⚠️ **Every EC requires a test.** The Implementer MUST write a test named `EC-X: ...` for each edge case.
 
 #### EC-1: [Edge Case Name]
 - **Scenario:** [description]
 - **Expected:** [behavior]
+- **Test Type:** unit | integration
 
-### Error Cases
+### Error Cases (REQUIRE TESTS)
+
+> ⚠️ **Every ERR requires a test.** The Implementer MUST write a test named `ERR-X: ...` for each error case.
 
 #### ERR-1: [Error Case Name]
 - **When:** [error condition]
 - **Then:** [expected error handling]
 - **Error Message:** [expected message pattern]
+- **Test Type:** unit | integration
 
 ---
 
@@ -438,7 +461,9 @@ Create `{process}/features/[feature]/{name}.plan.md`:
 - Then: responds in under 100ms for 1000 items
 ```
 
-### Cover Edge Cases
+### Cover Edge Cases (They Need Tests Too)
+
+**Edge cases are not optional.** Every EC you define becomes a required test.
 
 Always consider:
 - Empty input
@@ -448,12 +473,35 @@ Always consider:
 - Invalid input
 - Concurrent access (if applicable)
 
-### Include Error Cases
+**Format each as a testable scenario:**
+```
+#### EC-1: Empty input array
+- **Scenario:** Function called with []
+- **Expected:** Returns empty array, no error
+- **Test Type:** unit
+```
+
+The Implementer will write: `describe("EC-1: Empty input array", () => { ... })`
+
+### Include Error Cases (They Need Tests Too)
+
+**Error cases are not optional.** Every ERR you define becomes a required test.
 
 For every operation, ask:
 - What if the input is invalid?
 - What if a dependency fails?
 - What if the state is unexpected?
+
+**Format each as a testable scenario:**
+```
+#### ERR-1: Invalid input type
+- **When:** Function called with string instead of number
+- **Then:** Throws ValidationError
+- **Error Message:** "Expected number, got string"
+- **Test Type:** unit
+```
+
+The Implementer will write: `describe("ERR-1: Invalid input type", () => { ... })`
 
 ---
 
@@ -508,9 +556,15 @@ Before completing planning:
 - [ ] All discovery requirements expanded into detailed sub-requirements
 - [ ] Each detailed requirement traces to at least one task
 - [ ] Each task AC traces to a detailed requirement
-- [ ] Each task has edge cases and error cases
+- [ ] Each task has edge cases (EC-1, EC-2, etc.) — **these become required tests**
+- [ ] Each task has error cases (ERR-1, ERR-2, etc.) — **these become required tests**
 - [ ] Each task has "Embedded Context" with key rules (use judgment on what to embed vs reference)
 - [ ] No task is sized "L" (break them down)
+
+**Test Coverage (Implementer will verify):**
+- [ ] Total test count calculable: Σ(ACs + ECs + ERRs) per task
+- [ ] Each AC/EC/ERR is specific enough to write a test for
+- [ ] No vague criteria like "should work correctly"
 
 **Dependencies & Batches:**
 - [ ] Dependency graph is complete (required)
@@ -568,3 +622,7 @@ When planning is complete:
 - **Design for batches** - Independent tasks enable efficient implementation
 - **Minimize dependencies** - Only add deps when truly required
 - **Foundations first** - Types and interfaces enable parallel work
+- **ACs become tests** - Every AC you write becomes a required test
+- **ECs become tests** - Every edge case you write becomes a required test
+- **ERRs become tests** - Every error case you write becomes a required test
+- **Count matters** - Total tests = Σ(ACs + ECs + ERRs) per task

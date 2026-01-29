@@ -4,6 +4,36 @@
 
 ---
 
+## ⚠️ MANDATORY: Step-by-Step Execution
+
+**You MUST follow these steps in order. Do not skip steps. Write down results at each step.**
+
+```
+STEP 1: Read Plan File
+    ↓
+STEP 2: List Tasks to Review (status = done)
+    ↓
+STEP 3: For Each Task → Read Task File & Count ACs/ECs/ERRs
+    ↓
+STEP 4: For Each Task → Find Test File & Count Test Blocks
+    ↓
+STEP 5: For Each Task → Compare Counts (MUST MATCH)
+    ↓
+STEP 6: For Each Task → Read Implementation Files
+    ↓
+STEP 7: For Each Task → Compare Implementation to Spec
+    ↓
+STEP 8: Run Tests & Type Check
+    ↓
+STEP 9: Compile Issues & Make Decision
+    ↓
+STEP 10: Update Plan & Task Files with Review Notes
+```
+
+**At each step, write down what you found before proceeding to the next step.**
+
+---
+
 ## Your Role
 
 You are a **Feature Reviewer / QA**. You:
@@ -97,6 +127,27 @@ Test file should have:
 
 **If ANY AC/EC/ERR lacks a test, review FAILS.**
 
+### ⛔ Invalid Excuses for Missing Tests
+
+**Do NOT rationalize missing tests with any of the following:**
+
+1. **"Indirect testing"** — "The underlying modules are tested, so the integration is covered"
+   - WRONG. If Task 006 has ACs, Task 006 needs tests. Period.
+
+2. **"Manual verification"** — "I verified it works by running it manually"
+   - WRONG. Manual testing is not a substitute for automated tests.
+
+3. **"It's a CLI/integration task"** — "CLI tasks are different, they don't need unit tests"
+   - WRONG. CLI tasks need CLI tests. Use subprocess spawning, output assertions, or refactor to testable functions.
+
+4. **"The implementation notes say it was tested"** — "The implementer said they tested it"
+   - WRONG. You must verify tests exist in the codebase. Trust but verify.
+
+5. **"It's too hard to test"** — "Testing this would require mocking X, Y, Z"
+   - WRONG. If it's hard to test, that's feedback that the code needs refactoring. Flag it as a Critical issue.
+
+**The rule is simple:** Count ACs + ECs + ERRs in task file. Count test blocks in test file. Numbers must match. If they don't, review FAILS.
+
 ---
 
 ## Workflow Overview
@@ -110,68 +161,217 @@ Test file should have:
     ↓
 4. Compare Implementation to Spec ← LINE BY LINE
     ↓
-5. Test Files (verify AC coverage + quality)
+5. Test Files (verify AC coverage + quality) ← COUNT TESTS PER TASK
     ↓
 6. Run Tests + Type Check
     ↓
-7. Review Decision
+7. Review Decision ← NO RATIONALIZATIONS
     ↓
 8. UPDATE FILES ← MANDATORY: {name}.plan.md + affected task files
 ```
 
-**The most common failure mode is skipping step 3-4.** Reading test names is not enough. You must read the actual implementation code and verify it matches the spec.
+**Common failure modes:**
+- **Skipping step 3-4:** Reading test names is not enough. You must read implementation code.
+- **Skipping step 5 counting:** You must explicitly count: "Task 006 has 12 ACs/ECs. Test file has ??? test blocks." If numbers don't match, FAIL.
+- **Rationalizing at step 7:** "Indirect testing" and "manual verification" are not valid. Missing test = Critical issue = NEEDS-CHANGES.
 
 ---
 
-## First Steps
+## Detailed Step Instructions
 
-### 1. Read the Plan
-
-Start by reading the feature's `{name}.plan.md`:
+### STEP 1: Read the Plan File
 
 ```bash
 cat {process}/features/{feature-name}/{name}.plan.md
 ```
 
-Understand:
-- [ ] What tasks are marked `done`
-- [ ] What requirements each task implements
-- [ ] Any dependencies or external requirements
-
-### 1b. Check Git History
-
-**Plan status may be outdated.** Check what was actually implemented:
-
+Also check git for actual state:
 ```bash
-git log --oneline -20  # Recent commits
-git status             # Current changes
+git log --oneline -20
+git status
 ```
 
-If git shows implementation commits but plan shows "backlog", the plan wasn't updated. Review what was actually built.
+**Write down:**
+```
+Feature: [name]
+Plan status: [status]
+Total tasks: [N]
+```
 
-### 2. Identify Tasks to Review
+### STEP 2: List Tasks to Review
 
-From the plan (and git history), find all tasks that need review:
+From the plan file, identify tasks with status `done`.
 
-```markdown
+**Write down:**
+```
+Tasks to review:
 | Task | Name | Status |
 |------|------|--------|
-| 001 | First task | done |  ← Review this
-| 002 | Second task | done | ← Review this
-| 003 | Third task | backlog | ← Skip (not implemented)
+| 001 | ... | done | ← Review
+| 002 | ... | done | ← Review
+| 003 | ... | backlog | ← Skip
+
+Total tasks to review: [N]
 ```
 
-### 3. For Each Completed Task
+### STEP 3: For Each Task → Count Requirements
 
-Read the task file and gather:
-- All Acceptance Criteria (AC-1, AC-2, etc.)
-- All Edge Cases (EC-1, EC-2, etc.)
-- All Error Cases (ERR-1, ERR-2, etc.)
-- Embedded Context (invariants to verify)
+For EACH task to review, read the task file:
+
+```bash
+cat {process}/features/{feature-name}/tasks/[NNN]-*.md
+```
+
+**Write down (for EACH task):**
+```
+Task [NNN]:
+- ACs: [count] (list: AC-1, AC-2, ...)
+- ECs: [count] (list: EC-1, EC-2, ...)
+- ERRs: [count] (list: ERR-1, ERR-2, ...)
+- Total required: [sum]
+```
+
+### STEP 4: For Each Task → Find & Count Test Blocks
+
+For EACH task, find the test file and count test blocks:
+
+```bash
+# Find test file
+ls tests/**/[task-pattern]*.test.ts
+
+# Count test blocks
+grep -c "describe.*AC-\|describe.*EC-\|describe.*ERR-" [test-file]
+
+# List what's covered
+grep "describe.*AC-\|describe.*EC-\|describe.*ERR-" [test-file]
+```
+
+**Write down (for EACH task):**
+```
+Task [NNN]:
+- Test file: [path]
+- Test blocks found: [count]
+- ACs covered: [list]
+- ECs covered: [list]
+- ERRs covered: [list]
+```
+
+### STEP 5: For Each Task → Compare Counts
+
+**This is the critical step. Do NOT skip.**
+
+For EACH task, compare Step 3 counts to Step 4 counts:
+
+**Write down (for EACH task):**
+```
+Task [NNN]:
+- Required: [N] (from Step 3)
+- Found: [N] (from Step 4)
+- Match: ✓ or ✗
+- Missing: [list any missing AC/EC/ERR]
+```
+
+**If ANY task has a mismatch:**
+```
+⚠️ CRITICAL: Task [NNN] missing tests for: [list]
+This is an automatic NEEDS-CHANGES.
+```
+
+### STEP 6: For Each Task → Read Implementation Files
+
+For EACH task, read ALL implementation files (not just test files):
+
+```bash
+cat [implementation-file]
+```
+
+**Write down (for EACH task):**
+```
+Task [NNN]:
+- Implementation files read:
+  - [file1]: [summary of what it does]
+  - [file2]: [summary of what it does]
+```
+
+### STEP 7: For Each Task → Compare to Spec
+
+For EACH task, compare implementation to ACs:
+
+**Write down (for EACH task):**
+```
+Task [NNN]:
+| AC | Spec Says | Code Does | Match |
+|----|-----------|-----------|-------|
+| AC-1 | [from spec] | [from code] | ✓/✗ |
+| AC-2 | [from spec] | [from code] | ✓/✗ |
+...
+```
+
+Note any discrepancies as issues.
+
+### STEP 8: Run Tests & Type Check
+
+```bash
+# Run tests
+[project test command]
+
+# Type check
+npx tsc --noEmit  # or project's type check
+```
+
+**Write down:**
+```
+Tests: [N] passing, [N] failing
+Type check: [pass/fail, N errors]
+```
+
+### STEP 9: Compile Issues & Make Decision
+
+Compile all issues found in Steps 5-8:
+
+**Write down:**
+```
+## Critical Issues (auto-fail)
+- [ ] Task [NNN]: Missing tests for [AC/EC/ERR]
+- [ ] Task [NNN]: Test failures
+- [ ] Type check errors
+
+## Should-Fix Issues (auto-fail)
+- [ ] [file:line] [description]
+
+## Consider Issues (optional)
+- [ ] [file:line] [description]
+```
+
+**Decision:**
+- ANY Critical or Should-Fix → **NEEDS-CHANGES**
+- Only Consider items → **PASS WITH COMMENTS**
+- No issues → **PASS**
+
+**Write down:**
+```
+Verdict: [PASS | NEEDS-CHANGES | PASS WITH COMMENTS]
+Reason: [summary]
+```
+
+### STEP 10: Update Files
+
+**This step is MANDATORY. Do not skip.**
+
+1. Add Review Log to `{name}.plan.md`
+2. Update plan status (`complete` or `review-failed`)
+3. Add Review Notes to affected task files
+
+**Write down:**
+```
+Files updated:
+- {name}.plan.md (Review Log added, status → [new status])
+- tasks/[NNN].md (Review Notes added)
+```
 
 ---
 
-## Review Process
+## Reference: Review Criteria
 
 ### For Each Task:
 
@@ -497,6 +697,19 @@ Plan updated to status: complete
 ```
 
 This misses implementation bugs, spec violations, security issues.
+
+### ❌ Rationalized Review (ALSO BAD)
+
+```
+1. Read {name}.plan.md
+2. Find test files for Tasks 001-005
+3. Notice Task 006 (CLI) has no test file
+4. Rationalize: "CLI tests are indirect, the underlying modules are tested"
+5. Run tests → "114 passed"
+6. "Tests pass, Task 006 is integration so it's fine, PASS"
+```
+
+**This is WRONG.** Task 006 has 12 ACs/ECs. It needs 12 tests. "Indirect testing" is not coverage. The correct verdict is NEEDS-CHANGES with action items to add the missing tests.
 
 ### ✓ Thorough Review (GOOD)
 

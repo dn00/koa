@@ -141,6 +141,15 @@ These span puzzle generation, validation, and KOA behavior:
   - Explicitly name lies/truths before the end.  
   - Tell the player which card to play.  
   - Leak hidden info beyond what rules allow (e.g., revealing `wasLie` before the KOA Flag choice).
+- KOA reactive hints (mid-run barks) must **not collapse the lie space** into an obvious safe-play algorithm:
+  - V3 playtests showed that combining a strong opening hint with specific reactive hints (“this particular card is wrong”) led to a dominant strategy (“play safe truth T1 → read hint → play remaining truths → guaranteed top tier”).
+  - For V5/Mini, hints should stay at **axis/pattern level**, not card-identification level.
+
+Distinguish:
+
+- **Opening barks** set KOA’s stance and tone (safety concern, axis of interest) but must not reveal which cards are lies/safe.  
+- **Mid-run reactive barks** are constrained hints (axis/pattern only, as above).  
+- **Result barks / post-game teaching** may explicitly name lies, map them to Facts, and explain what actually happened, because the puzzle is over.
 
 **5.4 Post‑Game**
 
