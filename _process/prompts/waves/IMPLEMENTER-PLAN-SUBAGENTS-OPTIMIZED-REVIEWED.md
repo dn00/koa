@@ -30,6 +30,8 @@ Only stop and ask user if something is genuinely broken or ambiguous.
 | Critical impl | opus | Task tool |
 | **All reviews** | **gemini** | Gemini CLI |
 
+**Use LONG TIME OUT for review jobs (15 mins)**
+
 **Tool syntax:**
 - Gemini: `gemini -p "..." --yolo`
 - Claude: `Task tool` with `model: sonnet` or `model: opus`

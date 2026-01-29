@@ -79,23 +79,23 @@ If discovery is needed, do it inline before planning:
 ### Example: When to Ask
 
 ```
-User: "Plan the app-v5-migration feature"
+User: "Plan the auth-migration feature"
 
 You (thinking):
 - No discovery.md exists
 - This is a significant rewrite (complex)
-- There's an architectural decision (event sourcing vs direct state)
+- There's an architectural decision (session vs JWT)
 
-You: "Before I plan, I need to understand: V5 uses direct state,
-but your INVARIANTS.md requires event sourcing. Should I:
-(a) Wrap V5 in event sourcing, or
-(b) Update invariants for V5?
+You: "Before I plan, I need to understand the auth approach.
+Your current code uses sessions, but the new API is stateless. Should I:
+(a) Keep sessions with a compatibility layer, or
+(b) Migrate fully to JWT?
 
-This affects the store architecture."
+This affects the middleware and storage architecture."
 
-User: "We plan to add coop and multi-act runs later"
+User: "We plan to add mobile apps later that need token auth"
 
-You: "Got it - event sourcing then, for sync and replay.
+You: "Got it - JWT then, for cross-platform support.
 I'll do discovery and planning together."
 ```
 
@@ -296,19 +296,60 @@ Create files in `{process}/features/[feature]/tasks/`:
 - `path/to/file.ts` - [why relevant]
 
 ### Embedded Context
-> **Goal:** Reduce token usage by embedding key rules here so Implementer/Reviewer don't need to read full project docs every session. Use your best judgment on what to include vs reference.
+> **Goal:** Give the Implementer everything they need to write correct code WITHOUT reading external docs or guessing at interfaces.
 
-**Guidelines:**
-- Embed rules that are critical for this specific task (invariants, patterns, constraints)
-- Include code snippets if they clarify a pattern better than prose
-- Reference external docs when the full context is needed or the rules are complex
-- Balance: enough context to work from, not a copy of entire docs
+**REQUIRED for tasks involving types/interfaces:**
+- **Exact type definitions** - Copy the actual interface or import statement
+- **Field mappings** - For migrations, show old field → new field
+- **Stub code** - If task creates new types, provide the skeleton
+- **Import statements** - Show exactly what to import and from where
 
-**Example content (adapt as needed):**
-- Key invariants that apply (with the actual rule, not just "see INVARIANTS.md")
-- Required patterns with brief examples
-- Domain-specific constraints
+**REQUIRED for all tasks:**
+- Key invariants that apply (the actual rule, not just "see INVARIANTS.md")
+- Required patterns with code examples
 - Error message formats expected
+
+**Example - Migration Task:**
+```typescript
+// IMPORTS (copy exactly)
+import type { NewUser, UserId } from '../types/user.js';
+
+// FIELD MAPPING
+// Old: user.userName  → New: user.name
+// Old: user.isAdmin   → DELETED (use roles instead)
+// Old: user.perms     → New: user.roles (string[] → Role[])
+
+// INTERFACE (if defining new)
+interface UserStore {
+  users: readonly NewUser[];
+  currentUser: NewUser | null;
+}
+```
+
+**Example - New Feature Task:**
+```typescript
+// INTERFACE TO IMPLEMENT
+interface CacheLoader {
+  list(): CacheEntry[];
+  load(id: string): Result<CacheData, CacheError>;
+  invalidate(id: string): void;
+}
+
+// ERROR TYPES
+type CacheError =
+  | { code: 'NOT_FOUND'; message: string }
+  | { code: 'EXPIRED'; message: string };
+```
+
+**Why this matters:**
+- Implementers using `any` = planner didn't provide types
+- Implementers guessing at field names = planner didn't provide mappings
+- Incorrect interfaces = planner didn't provide stubs
+
+**Reference external docs when:**
+- Full context is too long to embed
+- Rules are complex and need explanation
+- Task is simple and types are obvious
 
 **Source Docs (when full context needed):**
 - `{process}/project/[DOC].md` - [why they'd need to read this]
@@ -646,7 +687,11 @@ Before completing planning:
 - [ ] Each task AC traces to a detailed requirement
 - [ ] Each task has edge cases (EC-1, EC-2, etc.) — **these become required tests**
 - [ ] Each task has error cases (ERR-1, ERR-2, etc.) — **these become required tests**
-- [ ] Each task has "Embedded Context" with key rules (use judgment on what to embed vs reference)
+- [ ] Each task has "Embedded Context" with:
+  - [ ] Exact interfaces/types (copy actual definitions, not just names)
+  - [ ] Import statements (what to import, from where)
+  - [ ] Field mappings for migrations (old → new)
+  - [ ] Stub code for new types/functions
 - [ ] No task is sized "L" (break them down)
 
 **Test Coverage (Implementer will verify):**
@@ -704,6 +749,7 @@ When planning is complete:
 ## Remember
 
 - **Discovery on demand** - Complex features need discovery; simple ones don't. Ask if unsure.
+- **Provide exact types** - If implementer uses `any`, you failed to provide the interface
 - **Think like a tester** - What would break this?
 - **Be explicit** - Ambiguity causes wrong implementations
 - **Trace requirements** - Every requirement should map to tasks
