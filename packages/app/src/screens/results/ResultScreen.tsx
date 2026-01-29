@@ -1,81 +1,116 @@
+/**
+ * ResultScreen Component (Task 008 - V5 Migration)
+ *
+ * Post-game UI showing V5 verdict data:
+ * - Tier (FLAWLESS, CLEARED, CLOSE, BUSTED) instead of WON/LOST
+ * - Belief score vs target
+ * - Played cards with lie reveal
+ * - KOA verdict line
+ *
+ * V5 Changes:
+ * - No concerns or scrutiny mechanics
+ * - Tier-based outcome system
+ * - VerdictData from engine
+ */
+
 import { useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Tier } from '@hsh/engine-core';
+import type { VerdictData, Tier } from '@hsh/engine-core';
 import { useGameStore } from '../../stores/gameStore.js';
 import styles from './ResultScreen.module.css';
 
-// Suppress unused variable - Tier will be used once V5 win detection is implemented
-void (undefined as unknown as Tier);
-
-// TODO: V5 migration - GameEvent no longer exists, win/loss determined differently in V5
-
 /**
- * Loss reason messages
+ * Props for ResultScreen component
  */
-const LOSS_REASONS: Record<string, string> = {
-  turns_exhausted: 'Access window closed',
-  scrutiny: "KOA is convinced you're lying",
-};
-
-/**
- * Get the loss reason from the last event
- * TODO: V5 migration - Remove event sourcing, determine from GameState
- */
-function getLossReason(events: readonly unknown[]): string | undefined {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const event = events[i] as { type?: string; payload?: { reason?: string } } | null;
-    if (event && event.type === 'RUN_ENDED') {
-      if (event.payload?.reason) {
-        return event.payload.reason;
-      }
-    }
-  }
-  return undefined;
+interface ResultScreenProps {
+  /** Optional test verdict for testing edge cases */
+  readonly testVerdict?: VerdictData;
 }
 
 /**
- * ScoreRecap Component
- *
- * TODO: V5 migration - Update to show V5 stats:
- * - turnsPlayed (not turnsUsed based on turnsRemaining)
- * - belief score (not damage/resistance)
- * - lies detected/avoided
- * - Remove concerns and scrutiny
+ * Map tier to display title
  */
-function ScoreRecap({
-  turnsUsed,
-  totalDamage,
-  concernsAddressed,
-  scrutiny,
+const TIER_TITLES: Record<Tier, string> = {
+  FLAWLESS: 'FLAWLESS VICTORY',
+  CLEARED: 'ACCESS GRANTED',
+  CLOSE: 'CLOSE CALL',
+  BUSTED: 'ACCESS DENIED',
+};
+
+/**
+ * Map tier to whether it's a "win"
+ */
+const TIER_IS_WIN: Record<Tier, boolean> = {
+  FLAWLESS: true,
+  CLEARED: true,
+  CLOSE: false,
+  BUSTED: false,
+};
+
+/**
+ * PlayedCardItem Component
+ *
+ * Displays a single played card with lie reveal indicator.
+ */
+function PlayedCardItem({
+  card,
+  wasLie,
+  index,
 }: {
-  turnsUsed: number;
-  totalDamage: number;
-  concernsAddressed: number;
-  scrutiny: number;
+  card: { readonly claim: string };
+  wasLie: boolean;
+  index: number;
 }): ReactNode {
   return (
-    <div className={styles.scoreRecap} data-testid="score-recap">
-      <h3 className={styles.recapTitle}>Game Summary</h3>
-      <div className={styles.stats}>
-        <div className={styles.stat}>
-          <span className={styles.statLabel}>Turns Used</span>
-          <span className={styles.statValue}>{turnsUsed}</span>
-        </div>
-        <div className={styles.stat}>
-          <span className={styles.statLabel}>Total Belief</span>
-          <span className={styles.statValue}>{totalDamage}</span>
-        </div>
-        {/* TODO: V5 migration - concerns removed from V5 */}
-        <div className={styles.stat}>
-          <span className={styles.statLabel}>Concerns Addressed</span>
-          <span className={styles.statValue}>{concernsAddressed}</span>
-        </div>
-        {/* TODO: V5 migration - scrutiny removed from V5 */}
-        <div className={styles.stat}>
-          <span className={styles.statLabel}>Final Scrutiny</span>
-          <span className={styles.statValue}>{scrutiny}/5</span>
-        </div>
+    <div
+      className={`${styles.playedCard} ${wasLie ? styles.lieCard : styles.truthCard}`}
+      data-testid={`played-card-${index}`}
+      data-was-lie={wasLie}
+    >
+      <span className={styles.cardTitle}>{card.claim}</span>
+      <span className={styles.cardIndicator}>
+        {wasLie ? 'LIE' : 'TRUTH'}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * PlayedCardsSection Component
+ *
+ * Displays all played cards with lie reveal.
+ * AC-3: Display played cards with lie reveal
+ * EC-1: No played cards shows appropriate message
+ */
+function PlayedCardsSection({
+  playedCards,
+}: {
+  playedCards: VerdictData['playedCards'];
+}): ReactNode {
+  if (playedCards.length === 0) {
+    return (
+      <div className={styles.playedCards} data-testid="played-cards">
+        <h3 className={styles.sectionTitle}>Your Claims</h3>
+        <p className={styles.noCards} data-testid="no-cards-message">
+          No claims were made.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.playedCards} data-testid="played-cards">
+      <h3 className={styles.sectionTitle}>Your Claims</h3>
+      <div className={styles.cardsList}>
+        {playedCards.map((item, index) => (
+          <PlayedCardItem
+            key={item.card.id}
+            card={item.card}
+            wasLie={item.wasLie}
+            index={index}
+          />
+        ))}
       </div>
     </div>
   );
@@ -95,34 +130,32 @@ function CelebrationAnimation(): ReactNode {
 }
 
 /**
- * ResultScreen Component (Task 020)
+ * ResultScreen Component
  *
- * Post-game UI showing:
- * - Win/loss state
- * - Score recap
- * - Navigation buttons
- * - Win celebration animation
- *
- * TODO: V5 migration - Major changes needed:
- * - GameState has different fields (belief, turnsPlayed, turnResults)
- * - Win/loss determined by belief vs target (from puzzle)
- * - No concerns or scrutiny in V5
- * - Tier determines final verdict (FLAWLESS, CLEARED, CLOSE, BUSTED)
+ * V5 Results screen showing:
+ * - AC-1: Tier (FLAWLESS, CLEARED, CLOSE, BUSTED)
+ * - AC-2: Belief score vs target
+ * - AC-3: Played cards with lie reveal
+ * - AC-4: KOA verdict line
+ * - EC-1: Empty playedCards handling
  */
-export function ResultScreen(): ReactNode {
+export function ResultScreen({ testVerdict }: ResultScreenProps): ReactNode {
   const navigate = useNavigate();
 
-  // Game state
-  const runState = useGameStore((s) => s.runState);
-  const events = useGameStore((s) => s.events);
+  // V5 game state
+  const gameState = useGameStore((s) => s.gameState);
+  const getVerdict = useGameStore((s) => s.getVerdict);
   const reset = useGameStore((s) => s.reset);
 
-  // Redirect if no run state
+  // Get verdict (from store or test prop)
+  const verdict = testVerdict ?? getVerdict();
+
+  // Redirect if no game state (unless we have a test verdict)
   useEffect(() => {
-    if (!runState) {
+    if (!gameState && !testVerdict) {
       navigate('/');
     }
-  }, [runState, navigate]);
+  }, [gameState, testVerdict, navigate]);
 
   // Handlers
   const handlePlayAgain = useCallback(() => {
@@ -135,81 +168,54 @@ export function ResultScreen(): ReactNode {
   }, [navigate]);
 
   const handleShare = useCallback(() => {
-    // Stub for share functionality
-    if (navigator.share) {
+    if (navigator.share && verdict) {
       navigator.share({
         title: 'Home Smart Home',
-        text: 'I just played Home Smart Home!',
+        text: `I achieved ${verdict.tier} with ${verdict.beliefFinal}/${verdict.beliefTarget} belief!`,
       }).catch(() => {
         // Ignore share errors
       });
     }
-  }, []);
+  }, [verdict]);
 
-  // Don't render if no run state
-  if (!runState) {
+  // Don't render if no verdict
+  if (!verdict) {
     return null;
   }
 
-  // Determine win/loss from events
-  const lossReason = getLossReason(events);
-
-  // Check if this was actually a win (runState would show the result)
-  // TODO: V5 migration - Use Tier and belief vs target to determine win
-  const lastEvent = events[events.length - 1] as { type?: string; payload?: { status?: string } } | null;
-  const actuallyWon = lastEvent?.type === 'RUN_ENDED' &&
-    lastEvent.payload?.status === 'victory';
-
-  // Calculate stats from V5 GameState
-  // V5 has: belief, turnsPlayed, turnResults, played, hand, objection
-  const turnsUsed = runState.turnsPlayed;
-  const totalBelief = runState.belief;
-
-  // TODO: V5 migration - These don't exist in V5 GameState, show placeholders
-  // concerns and scrutiny removed from V5
-  const concernsAddressed = 0; // Placeholder - V5 has no concerns
-  const scrutiny = 0; // Placeholder - V5 has no scrutiny
-
-  const isPerfect = actuallyWon && scrutiny === 0;
-
-  // Get display loss reason
-  const displayLossReason = lossReason ? LOSS_REASONS[lossReason] || lossReason : '';
+  const isWin = TIER_IS_WIN[verdict.tier];
+  const title = TIER_TITLES[verdict.tier];
 
   return (
     <div
-      className={`${styles.container} ${actuallyWon ? styles.win : styles.loss}`}
+      className={`${styles.container} ${isWin ? styles.win : styles.loss}`}
       data-testid="result-screen"
-      data-result={actuallyWon ? 'win' : 'loss'}
+      data-result={isWin ? 'win' : 'loss'}
     >
       {/* Win celebration */}
-      {actuallyWon && <CelebrationAnimation />}
+      {isWin && <CelebrationAnimation />}
 
-      {/* Title */}
-      <h1 className={styles.title}>
-        {actuallyWon ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
-      </h1>
+      {/* AC-1: Tier display */}
+      <h1 className={styles.title}>{title}</h1>
+      <div className={styles.tierBadge} data-testid="verdict-tier">
+        {verdict.tier}
+      </div>
 
-      {/* Loss reason */}
-      {!actuallyWon && displayLossReason && (
-        <p className={styles.lossReason} data-testid="loss-reason">
-          {displayLossReason}
-        </p>
-      )}
+      {/* AC-4: KOA verdict line */}
+      <p className={styles.koaLine} data-testid="koa-verdict-line">
+        {verdict.koaLine}
+      </p>
 
-      {/* Perfect run indicator */}
-      {isPerfect && (
-        <div className={styles.perfect} data-testid="perfect-indicator">
-          Perfect Run!
-        </div>
-      )}
+      {/* AC-2: Belief score vs target */}
+      <div className={styles.beliefScore} data-testid="belief-score">
+        <span className={styles.beliefLabel}>Final Belief</span>
+        <span className={styles.beliefValue}>
+          {verdict.beliefFinal} / {verdict.beliefTarget}
+        </span>
+      </div>
 
-      {/* Score recap */}
-      <ScoreRecap
-        turnsUsed={turnsUsed}
-        totalDamage={totalBelief}
-        concernsAddressed={concernsAddressed}
-        scrutiny={scrutiny}
-      />
+      {/* AC-3, EC-1: Played cards with lie reveal */}
+      <PlayedCardsSection playedCards={verdict.playedCards} />
 
       {/* Navigation */}
       <nav className={styles.nav}>
