@@ -1,5 +1,5 @@
 /**
- * Domain types for Home Smart Home
+ * Domain types for V5 Engine
  * All types are defined with strict TypeScript, no `any` allowed.
  */
 
@@ -30,7 +30,7 @@ export function err<E>(error: E): Result<never, E> {
 }
 
 // ============================================================================
-// Branded ID Types
+// Branded ID Types (from ids.ts - still used)
 // ============================================================================
 
 export type {
@@ -50,24 +50,7 @@ export {
 } from './ids.js';
 
 // ============================================================================
-// Enums
+// V5 Types
 // ============================================================================
 
-export {
-  ProofType,
-  ConcernType,
-  KOAMood,
-  ContradictionSeverity,
-  TrustTier,
-} from './enums.js';
-
-// ============================================================================
-// Domain Types
-// ============================================================================
-
-export type { Claims, EvidenceCard } from './evidence.js';
-export type { Concern } from './concern.js';
-export type { CounterEvidence } from './counter.js';
-export type { Puzzle } from './puzzle.js';
-export type { Scrutiny, RunState, Submission, MoveResult } from './state.js';
-export { RunStatus } from './state.js';
+export * from './v5/index.js';

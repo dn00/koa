@@ -12,7 +12,7 @@ describe('Task 001: Monorepo Setup - engine-core', () => {
    */
   describe('AC-2: engine-core package structure', () => {
     it('should export ENGINE_VERSION', () => {
-      expect(ENGINE_VERSION).toBe('0.0.1');
+      expect(ENGINE_VERSION).toBe('0.1.0');
     });
 
     it('should export Result type utilities', () => {

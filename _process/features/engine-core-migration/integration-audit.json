@@ -1,0 +1,71 @@
+{
+  "feature": "engine-core-migration",
+  "audit_date": "2026-01-28",
+  "verdict": "NEEDS-CHANGES",
+  "files_reviewed": [
+    "packages/engine-core/src/index.ts",
+    "packages/engine-core/src/hash.ts",
+    "packages/engine-core/src/types/index.ts",
+    "packages/engine-core/src/types/ids.ts",
+    "packages/engine-core/src/types/v5/index.ts",
+    "packages/engine-core/src/types/v5/card.ts",
+    "packages/engine-core/src/types/v5/state.ts",
+    "packages/engine-core/src/types/v5/puzzle.ts",
+    "packages/engine-core/src/types/v5/config.ts",
+    "packages/engine-core/src/types/v5/mode.ts",
+    "packages/engine-core/src/types/v5/enums.ts",
+    "packages/engine-core/src/resolver/index.ts",
+    "packages/engine-core/src/resolver/v5/index.ts",
+    "packages/engine-core/src/resolver/v5/scoring.ts",
+    "packages/engine-core/src/resolver/v5/objection.ts",
+    "packages/engine-core/src/resolver/v5/tier.ts",
+    "packages/engine-core/src/resolver/v5/engine.ts",
+    "packages/engine-core/src/packs/index.ts",
+    "packages/engine-core/src/packs/types.ts",
+    "packages/engine-core/src/packs/validation.ts",
+    "packages/engine-core/src/packs/builtin.ts"
+  ],
+  "tests_run": {
+    "passed": 192,
+    "failed": 0
+  },
+  "integration_checks": {
+    "module_connections": "pass",
+    "type_compatibility": "pass",
+    "error_handling": "pass",
+    "no_circular_deps": "pass",
+    "async_propagation": "pass"
+  },
+  "integration_issues": [
+    {
+      "type": "downstream_consumer_broken",
+      "location": "packages/app/src/",
+      "description": "@hsh/app imports MVP types (EvidenceCard, Concern, Scrutiny, GameEvent, RunStatus, deriveState, etc.) that were removed in Task 010. Consumer package must be updated to V5 types.",
+      "severity": "high",
+      "impacted_files": [
+        "packages/app/src/stores/gameStore.ts",
+        "packages/app/src/components/EvidenceCard/EvidenceCard.tsx",
+        "packages/app/src/components/hud/ConcernChip.tsx",
+        "packages/app/src/components/hud/ScrutinyIndicator.tsx",
+        "packages/app/src/components/counter/CounterPanel.tsx",
+        "packages/app/src/services/persistence.ts",
+        "packages/app/src/screens/run/RunScreen.tsx",
+        "packages/app/src/screens/results/ResultScreen.tsx"
+      ],
+      "recommendation": "Create follow-up task to migrate @hsh/app to use V5 types from engine-core"
+    }
+  ],
+  "gaps_found": [
+    {
+      "ac": "R5.10 (Update barrel exports)",
+      "task": "011",
+      "description": "Barrel exports updated correctly for engine-core, but migration plan did not account for consumer packages (@hsh/app) still depending on removed types"
+    }
+  ],
+  "security_issues": [],
+  "notes": {
+    "engine_core_status": "All engine-core implementation is complete and working. TypeScript compiles cleanly. All 192 tests pass. No circular dependencies.",
+    "dist_cleanup": "Old MVP dist files are now cleaned after rebuild",
+    "action_required": "The @hsh/app package must be migrated to V5 types in a separate feature/task before the full system works"
+  }
+}
