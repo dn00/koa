@@ -1,171 +1,146 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { CardId, Card } from '@hsh/engine-core';
+import type { CardId } from '@hsh/engine-core';
 import { useGameStore } from '../../stores/gameStore.js';
-import { useSettingsStore } from '../../stores/settingsStore.js';
 import {
-  ResistanceBar,
-  // TODO: V5 migration - ScrutinyIndicator removed (V5 has no scrutiny)
-  // ScrutinyIndicator,
-  // TODO: V5 migration - ConcernChip removed (V5 has no concerns)
-  // ConcernChip,
+  BeliefBar,
   TurnsDisplay,
 } from '../../components/hud/index.js';
 import { HandCarousel } from '../../components/hand/index.js';
 import { StoryTimeline } from '../../components/story/index.js';
-// TODO: V5 migration - CounterPanel removed (V5 has no counter-evidence)
-// import { CounterPanel } from '../../components/counter/index.js';
+import { ObjectionPrompt } from '../../components/ObjectionPrompt/index.js';
 import styles from './RunScreen.module.css';
 
 /**
- * RunScreen Component (Task 017)
+ * RunScreen Component (Task 004, Task 005)
  *
  * Main gameplay UI showing:
- * - HUD with belief score (V5: was resistance), turns
- * - Hand carousel for card selection
- * - Story timeline of committed cards
- * - Submit button
+ * - BeliefBar with current belief and target
+ * - TurnsDisplay showing turns played/total
+ * - Hand carousel for card selection (1 card per turn in V5)
+ * - Story timeline of played cards
+ * - ObjectionPrompt after turn 2 (Task 005)
  *
- * TODO: V5 migration - Major changes needed:
- * - GameState has different fields (belief, hand, played, turnResults, etc.)
- * - No concerns mechanic
- * - No scrutiny mechanic
- * - No counter-evidence mechanic
- * - resistance -> belief (different concept)
+ * V5 Changes:
+ * - Single card selection per turn (not 1-3)
+ * - BeliefBar replaces ResistanceBar
+ * - Removed MVP-specific HUD elements
+ * - Navigates to results after 3 turns
  */
 export function RunScreen(): ReactNode {
   const navigate = useNavigate();
 
-  // Game state
-  const runState = useGameStore((s) => s.runState);
-  const dealtHand = useGameStore((s) => s.dealtHand);
-  const submitCards = useGameStore((s) => s.submitCards);
+  // Game state from V5 store
+  const gameState = useGameStore((s) => s.gameState);
+  const currentPuzzle = useGameStore((s) => s.currentPuzzle);
+  const currentConfig = useGameStore((s) => s.currentConfig);
+  const playCard = useGameStore((s) => s.playCard);
+  const isGameOver = useGameStore((s) => s.isGameOver);
+  const shouldShowObjection = useGameStore((s) => s.shouldShowObjection);
+  const resolveObjection = useGameStore((s) => s.resolveObjection);
 
-  // Settings
-  const counterVisibility = useSettingsStore((s) => s.counterVisibility);
-  // Suppress unused variable warning
-  void counterVisibility;
-
-  // Local state for card selection
-  const [selectedCards, setSelectedCards] = useState<CardId[]>([]);
-
-  // ERR-1: Redirect if no active run
+  // ERR-1: Redirect if no active game
   useEffect(() => {
-    if (!runState) {
+    if (!gameState || !currentPuzzle) {
       navigate('/');
     }
-  }, [runState, navigate]);
+  }, [gameState, currentPuzzle, navigate]);
 
-  // Don't render if no run state
-  if (!runState) {
+  // AC-5: Navigate to results on game over
+  useEffect(() => {
+    if (gameState && isGameOver()) {
+      navigate('/results');
+    }
+  }, [gameState, isGameOver, navigate]);
+
+  // Don't render if no game state
+  if (!gameState || !currentPuzzle) {
     return null;
   }
 
-  // TODO: V5 migration - concerns removed from V5
-  // V5 has no concerns mechanic
-  // const concerns: Concern[] = runState.puzzle.concerns.map((concern) => ({
-  //   ...concern,
-  //   addressed: runState.concernsAddressed.includes(concern.id),
-  // }));
-
-  // Handler for card selection
+  // AC-3: Card selection plays card (single card per turn in V5)
   const handleCardSelect = useCallback((cardId: CardId) => {
-    setSelectedCards((prev) => {
-      if ((prev as readonly string[]).includes(cardId)) {
-        return prev.filter((id) => id !== cardId);
-      }
-      if (prev.length >= 3) {
-        return prev;
-      }
-      return [...prev, cardId];
-    });
-  }, []);
+    const result = playCard(cardId);
+    if (!result.ok) {
+      console.error('Failed to play card:', result.error.message);
+    }
+  }, [playCard]);
 
-  // Handler for submit
-  const handleSubmit = useCallback(() => {
-    if (selectedCards.length === 0) return;
+  // Task 005: Handle objection resolution
+  const handleStandBy = useCallback(() => {
+    const result = resolveObjection('stood_by');
+    if (!result.ok) {
+      console.error('Failed to resolve objection:', result.error.message);
+    }
+  }, [resolveObjection]);
 
-    // Find selected cards from dealt hand
-    const cards = dealtHand.filter((c) => (selectedCards as readonly string[]).includes(c.id));
-    if (cards.length === 0) return;
+  const handleWithdraw = useCallback(() => {
+    const result = resolveObjection('withdrawn');
+    if (!result.ok) {
+      console.error('Failed to resolve objection:', result.error.message);
+    }
+  }, [resolveObjection]);
 
-    // Calculate damage (V5: strength instead of power)
-    const damage = cards.reduce((sum, c) => sum + c.strength, 0);
+  // Task 005: Check if objection prompt should be shown
+  const showObjection = shouldShowObjection();
+  const challengedCard = gameState.played.length > 0
+    ? gameState.played[gameState.played.length - 1]
+    : null;
 
-    submitCards([...cards], damage);
-    setSelectedCards([]);
-  }, [selectedCards, dealtHand, submitCards]);
+  // EC-1: Empty hand placeholder
+  const handCards = gameState.hand;
 
-  // Get cards not yet committed
-  // V5 GameState: use 'played' instead of 'committedStory'
-  const playedIds = runState.played.map((c: Card) => c.id);
-  const handCards = dealtHand.filter(
-    (card) => !(playedIds as readonly string[]).includes(card.id)
-  );
+  // AC-1: BeliefBar displays correctly
+  const currentBelief = gameState.belief;
+  const targetBelief = currentPuzzle.target;
 
-  // V5 GameState fields: belief (not resistance), turnsPlayed (not turnsRemaining)
-  // For now, display what we have
-  const currentBelief = runState.belief;
-  // TODO: V5 migration - target comes from puzzle, not available in GameState
-  // For now, show current belief with a placeholder max
-  const maxBelief = 100; // Placeholder - should come from puzzle.target
-  const turnsPlayed = runState.turnsPlayed;
-  // TODO: V5 migration - turnsRemaining not in GameState, needs puzzle context
-  const turnsRemaining = 5 - turnsPlayed; // Placeholder - should come from game config
+  // AC-6: TurnsDisplay shows played/total
+  const turnsPlayed = gameState.turnsPlayed;
+  const turnsTotal = currentConfig.turnsPerGame;
 
   return (
     <div className={styles.container}>
       {/* HUD */}
       <div className={styles.hud} data-testid="run-hud">
         <div className={styles.hudTop}>
-          <ResistanceBar
+          {/* AC-1: BeliefBar shows belief vs target */}
+          <BeliefBar
             current={currentBelief}
-            max={maxBelief}
+            target={targetBelief}
           />
         </div>
         <div className={styles.hudMiddle}>
-          {/* TODO: V5 migration - ScrutinyIndicator removed (V5 has no scrutiny) */}
-          {/* <ScrutinyIndicator level={runState.scrutiny} /> */}
-          <TurnsDisplay turns={turnsRemaining} />
-        </div>
-        <div className={styles.hudBottom}>
-          {/* TODO: V5 migration - ConcernChip removed (V5 has no concerns) */}
-          {/* {concerns.map((concern) => (
-            <ConcernChip key={concern.id} concern={concern} />
-          ))} */}
+          {/* AC-6: TurnsDisplay shows turns played/total */}
+          <TurnsDisplay
+            turnsPlayed={turnsPlayed}
+            turnsTotal={turnsTotal}
+          />
         </div>
       </div>
 
       {/* Story Timeline */}
-      <StoryTimeline committed={runState.played} />
+      <StoryTimeline committed={gameState.played} />
 
-      {/* TODO: V5 migration - CounterPanel removed (V5 has no counter-evidence) */}
-      {/* <CounterPanel
-        counters={runState.puzzle.counters}
-        visibility={counterVisibility}
-      /> */}
-
-      {/* Hand Carousel */}
+      {/* Hand Carousel - AC-2, AC-3 */}
+      {/* EC-1: HandCarousel handles empty hand with "No cards" placeholder */}
       <HandCarousel
         cards={handCards}
-        selected={selectedCards}
+        selected={[]}
         onSelect={handleCardSelect}
-        maxSelect={3}
+        maxSelect={1}
       />
 
-      {/* Submit Button */}
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.submitButton}
-          onClick={handleSubmit}
-          disabled={selectedCards.length === 0}
-          aria-label={`Submit ${selectedCards.length} card${selectedCards.length !== 1 ? 's' : ''}`}
-        >
-          Submit ({selectedCards.length})
-        </button>
-      </div>
+      {/* No submit button in V5 - cards are played immediately on selection */}
+
+      {/* Task 005: Objection prompt after turn 2 */}
+      {showObjection && (
+        <ObjectionPrompt
+          onStandBy={handleStandBy}
+          onWithdraw={handleWithdraw}
+          challengedCardTitle={challengedCard?.claim}
+        />
+      )}
     </div>
   );
 }

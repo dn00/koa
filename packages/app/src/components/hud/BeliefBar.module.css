@@ -1,0 +1,75 @@
+/**
+ * BeliefBar styles (Task 004)
+ * V5 belief progress bar
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.labelText {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.values {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.current {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.separator {
+  color: #9ca3af;
+}
+
+.target {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.track {
+  position: relative;
+  height: 0.5rem;
+  background-color: #e5e7eb;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background-color: #3b82f6;
+  border-radius: 0.25rem;
+  transition: width 0.3s ease;
+}
+
+.fill.winning {
+  background-color: #22c55e;
+}
+
+.fill.close {
+  background-color: #f59e0b;
+}
+
+.targetMarker {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background-color: #1f2937;
+  transform: translateX(-50%);
+}

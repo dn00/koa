@@ -1,6 +1,6 @@
 # Task 004: Update RunScreen
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** 002, 003
 **Phase:** Phase 2: Screen Updates
@@ -108,11 +108,11 @@ Major changes from MVP:
 
 ## Definition of Done
 
-- [ ] RunScreen renders with V5 GameState
-- [ ] BeliefBar shows belief vs target
-- [ ] Cards are playable
-- [ ] Game ends after 3 turns
-- [ ] Self-review completed
+- [x] RunScreen renders with V5 GameState
+- [x] BeliefBar shows belief vs target
+- [x] Cards are playable
+- [x] Game ends after 3 turns
+- [x] Self-review completed
 
 ---
 
@@ -128,3 +128,4 @@ Major changes from MVP:
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
 | 2026-01-28 | - | backlog | Planner | Created |
+| 2026-01-28 | backlog | done | Implementer | V5 migration complete |

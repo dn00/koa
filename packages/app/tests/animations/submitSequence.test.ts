@@ -15,8 +15,7 @@ import {
   type SubmitSequenceConfig,
   type SubmitSequenceTargets,
 } from '../../src/animations/submitSequence.js';
-import type { EvidenceCard, CardId } from '@hsh/engine-core';
-import { ProofType } from '@hsh/engine-core';
+import type { Card, CardId } from '@hsh/engine-core';
 
 // Create mock elements
 function createMockElement(): HTMLElement {
@@ -26,14 +25,17 @@ function createMockElement(): HTMLElement {
   } as unknown as HTMLElement;
 }
 
-// Create test card
-function createCard(id: string, power: number): EvidenceCard {
+// Create test card (V5 Card shape)
+function createCard(id: string, strength: number): Card {
   return {
     id: `card_${id}` as CardId,
-    power,
-    proves: [ProofType.IDENTITY],
-    claims: {},
-    source: `Source ${id}`,
+    strength,
+    evidenceType: 'DIGITAL',
+    location: `Location ${id}`,
+    time: '10:00 AM',
+    claim: `Test claim ${id}`,
+    presentLine: `I present evidence ${id}`,
+    isLie: false,
   };
 }
 

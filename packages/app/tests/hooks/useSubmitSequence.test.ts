@@ -8,8 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSubmitSequence } from '../../src/hooks/useSubmitSequence.js';
-import type { EvidenceCard, CardId } from '@hsh/engine-core';
-import { ProofType } from '@hsh/engine-core';
+import type { Card, CardId } from '@hsh/engine-core';
 
 // Mock GSAP
 vi.mock('gsap', () => ({
@@ -23,14 +22,17 @@ vi.mock('gsap', () => ({
   },
 }));
 
-// Create test card
-function createCard(id: string, power: number): EvidenceCard {
+// Create test card (V5 Card shape)
+function createCard(id: string, strength: number): Card {
   return {
     id: `card_${id}` as CardId,
-    power,
-    proves: [ProofType.IDENTITY],
-    claims: {},
-    source: `Source ${id}`,
+    strength,
+    evidenceType: 'DIGITAL',
+    location: `Location ${id}`,
+    time: '10:00 AM',
+    claim: `Test claim ${id}`,
+    presentLine: `I present evidence ${id}`,
+    isLie: false,
   };
 }
 
