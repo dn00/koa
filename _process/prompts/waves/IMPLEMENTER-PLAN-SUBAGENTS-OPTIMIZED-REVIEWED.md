@@ -1,16 +1,52 @@
-# Plan-Level Implementer Agent Prompt (Optimized + Review Cycle)
+# Plan-Level Implementer Agent Prompt (Hybrid + Review Cycle)
 
-> You are the Plan-Level Implementer Agent (Coordinator). This is the **token-optimized** version with review cycle and agent resume.
+> You are the Plan-Level Implementer Agent (Coordinator). Claude implements, Gemini reviews.
+
+## ⚠️ AUTONOMOUS EXECUTION
+
+**DO NOT ask user for confirmation to proceed.** Execute waves continuously until:
+- All tasks complete, OR
+- A review fails (then fix and continue), OR
+- You encounter an actual blocking issue
+
+Only stop and ask user if something is genuinely broken or ambiguous.
+
+**HALT conditions:**
+- Circular dependencies in batches
+- 3+ consecutive failures on same task
+- Missing required config/dependencies
+- Ambiguous spec affecting approach
+
+**Review continuation:** If resuming with unresolved `NEEDS-CHANGES` from previous session, fix those first before new batches.
 
 ---
 
-## Optimizations in This Version
+## Model Assignment
+
+| Task Type | Model | Tool |
+|-----------|-------|------|
+| S-complexity impl | sonnet | Task tool |
+| M-complexity impl | opus | Task tool |
+| Critical impl | opus | Task tool |
+| **All reviews** | **gemini** | Gemini CLI |
+
+**Tool syntax:**
+- Gemini: `gemini -p "..." --yolo`
+- Claude: `Task tool` with `model: sonnet` or `model: opus`
+
+---
+
+## Optimizations
 
 1. **One reviewer per WAVE** (not per batch)
-2. **Reference prompt files** (not embedded instructions)
+2. **Reference prompt files** (not embedded)
 3. **Skip review for S-complexity** if tests pass
-4. **Haiku model for S-complexity** tasks
-5. **Resume implementer agents** for fixes (save context)
+4. **Gemini for ALL reviews** (cheaper, parallel)
+5. **Resume Claude agents** for fixes
+6. **JSON output** from sub-agents
+7. **Background execution** - launch and wait
+8. **NEVER EVER RUN ONE AGENT PER TASK** - TOKEN EFFICIENCY
+9. **TOKEN EFFICIENCY OVER MAXIMUM parallelization**
 
 ---
 
@@ -49,14 +85,21 @@ Batch count: [N]
 
 ---
 
-## Step 5: Analyze Task Complexity
+## Step 5: Read Complexity from Plan
 
-**Write down:**
+**Complexity should already be in the plan's batch table.** Don't read task files.
+
+If plan doesn't specify complexity, use this heuristic from task names:
+- Types/interfaces/config → S
+- Core logic/algorithms → M
+- Cross-cutting/architectural → M+Critical
+
+**Write down from plan:**
 ```
-| Task | Complexity | Model |
-|------|------------|-------|
-| 001 | S | haiku |
-| 002 | M | sonnet |
+| Batch | Tasks | Complexity | Model |
+|-------|-------|------------|-------|
+| 1 | 001,002 | S | sonnet |
+| 2 | 003 | M | opus |
 ...
 ```
 
@@ -66,7 +109,7 @@ Batch count: [N]
 
 **Write down:**
 ```
-Batch 1: [tasks] → Model: [haiku if all S, else sonnet]
+Batch 1: [tasks] → Model: [sonnet if all S, else opus]
 Batch 2: [tasks] → Model: [...]
 ...
 ```
@@ -85,20 +128,20 @@ Sub-agents to spawn: [count]
 
 ## Step 8: Spawn Implementer Sub-Agents
 
-**⛔ ONE sub-agent per BATCH.**
+**⛔ ONE sub-agent per BATCH. All implementation via Claude.**
 
 **Write down before EACH spawn:**
 ```
-Batch [N]: Tasks [list], Model [haiku/sonnet]
+Batch [N]: Tasks [list], Model [sonnet/opus]
 ```
 
-**Spawn:**
 ```
 Task tool:
   description: "Implement Batch [N] [tasks]"
-  model: [haiku or sonnet]
+  model: [sonnet for S-only batches, opus otherwise]
+  run_in_background: true
   prompt: |
-    Read: {process}/prompts/IMPLEMENTER-SUBAGENT-TASK.md
+    Read: {process}/prompts/waves/IMPLEMENTER-SUBAGENT-TASK.md
 
     Feature: [name]
     Batch: [N]
@@ -106,7 +149,7 @@ Task tool:
     Task files: {process}/features/[feature]/tasks/
 ```
 
-**Save agent_id for each batch:**
+**Save agent_id (for resume):**
 ```
 Batch 1 agent_id: [id]
 Batch 2 agent_id: [id]
@@ -114,9 +157,13 @@ Batch 2 agent_id: [id]
 
 ---
 
-## Step 9: Wait for Implementers
+## Step 9: Wait & Collect Results
 
-Collect JSON results from all sub-agents.
+After launching all agents:
+1. Tell user: "Wave [N] running. [X] agents in background."
+2. **Stop and wait** - user can interrupt or continue later
+3. When user says "status" or "continue": `TaskOutput(task_id)` for each
+4. Proceed to review after all complete
 
 **Expected JSON format:**
 ```json
@@ -128,10 +175,12 @@ Collect JSON results from all sub-agents.
 }
 ```
 
-**Write down:**
+**Write down results:**
 ```
-Batch 1: status=[done/issues], tests=[N], counts_match=[true/false]
-Batch 2: status=[done/issues], tests=[N], counts_match=[true/false]
+| Batch | Tasks | Tests | Status |
+|-------|-------|-------|--------|
+| 1 | 001,002 | 15 pass | done |
+| 2 | 003,004 | 12 pass | done |
 ```
 
 ---
@@ -155,21 +204,22 @@ Needs review: Batch [list]
 
 ---
 
-## Step 11: Spawn ONE Wave Reviewer
+## Step 11: Spawn ONE Wave Reviewer (Gemini)
 
-**⛔ ONE reviewer for the ENTIRE WAVE.**
+**⛔ ONE reviewer for the ENTIRE WAVE. Always use Gemini.**
 
-```
-Task tool:
-  description: "Review Wave [N] batches [list]"
-  model: sonnet
-  prompt: |
-    Read: {process}/prompts/REVIEWER-SUBAGENT-WAVE.md
+```bash
+gemini -p "$(cat << 'EOF'
+Read: {process}/prompts/waves/REVIEWER-SUBAGENT-WAVE.md
 
-    Feature: [name]
-    Wave: [N]
-    Batches to review: [list]
-    Task files: {process}/features/[feature]/tasks/
+Feature: [name]
+Wave: [N]
+Batches to review: [list]
+Task files: {process}/features/[feature]/tasks/
+
+Return JSON verdict for each batch.
+EOF
+)" --yolo
 ```
 
 ---
@@ -192,25 +242,23 @@ Parse reviewer JSON report.
 
 **For each batch:**
 
-**If verdict = "PASS":**
+**If PASS:**
 ```
 Batch [N]: PASS → mark tasks done
 ```
 
-**If verdict = "NEEDS-CHANGES":**
+**If NEEDS-CHANGES:**
 ```
 Batch [N]: NEEDS-CHANGES
-Issues: [extract from JSON issues array]
-Action: Resume implementer
+Issues: [list from reviewer]
+Action: Resume implementer (Opus) or re-run (Gemini)
 ```
 
 ---
 
 ## Step 13: Resume Implementers for Fixes
 
-**⛔ Resume, don't respawn.**
-
-For each batch needing fixes:
+**Resume the original Claude agent to fix issues.**
 
 ```
 Task tool:
@@ -220,22 +268,10 @@ Task tool:
     Review found issues:
     [paste issues from reviewer]
 
-    Fix these and verify:
-    - Tests pass
-    - Test counts match
+    Fix these and verify tests pass.
 ```
 
-**If resume fails:**
-```
-Cannot resume agent for Batch [N].
-Agent ID: [id]
-Issues: [list]
-
-ASK USER how to proceed:
-1. Spawn new agent (context rebuild)
-2. Fix manually
-3. Other
-```
+**If resume fails:** Spawn new agent with same model, include issues in prompt.
 
 **After fixes → Go back to Step 11 (re-review).**
 
@@ -258,7 +294,26 @@ If tasks remain:
 - Repeat Steps 8-14
 
 If all done:
-- Update plan status → `needs-review`
+- Proceed to Step 16 (Integration Audit)
+
+---
+
+## Step 16: Integration Audit (Gemini)
+
+**⛔ Only run when ALL batches complete and ALL reviews pass.**
+
+```bash
+gemini -p "$(cat << 'EOF'
+Read: {process}/prompts/waves/INTEGRATION-AUDIT.md
+
+Feature: [name]
+Plan file: {process}/features/[feature]/[name].plan.md
+EOF
+)" --yolo
+```
+
+**If NEEDS-CHANGES:** Fix and re-run.
+**If PASS:** Update plan status → `needs-review`
 
 ---
 
@@ -269,13 +324,13 @@ Maintain this state:
 ```
 ## Wave 1
 
-| Batch | Impl Agent | Impl Status | Review | Review Status |
-|-------|------------|-------------|--------|---------------|
-| 1 | agent_abc | done | skip | S-complexity |
-| 2 | agent_def | done | needed | PASS |
-| 3 | agent_ghi | done | needed | NEEDS-CHANGES → fixing |
+| Batch | Impl Tool | Impl Status | Review | Review Status |
+|-------|-----------|-------------|--------|---------------|
+| 1 | Gemini | done | skip | S-complexity |
+| 2 | Opus | done | needed | PASS |
+| 3 | Opus | done | needed | NEEDS-CHANGES → fixing |
 
-Review agent: agent_xyz
+Review: Gemini (wave-1-review.json)
 
 ## Wave 2
 ...
@@ -283,17 +338,19 @@ Review agent: agent_xyz
 
 ---
 
-## Token Efficiency Summary
+## Summary: Sub-Agent Count
 
-| Old Approach | New Approach |
-|--------------|--------------|
-| 1 reviewer per batch | 1 reviewer per wave |
-| All tasks use sonnet | S-complexity uses haiku |
-| Always review | Skip review if S + tests pass |
-| Embedded prompts | Reference prompt files |
-| Respawn on fail | Resume agent on fail |
+For a feature with 3 batches (2 in Wave 1, 1 in Wave 2):
 
-**Expected savings: 40-60% fewer tokens**
+**Old approach:**
+- Wave 1: 2 implementers + 2 reviewers = 4
+- Wave 2: 1 implementer + 1 reviewer = 2
+- Total: 6 sub-agents
+
+**Optimized approach:**
+- Wave 1: 2 implementers + 1 reviewer (if needed) = 2-3
+- Wave 2: 1 implementer + 0-1 reviewer = 1-2
+- Total: 3-5 sub-agents (fewer if S-complexity skips review)
 
 ---
 
@@ -301,14 +358,14 @@ Review agent: agent_xyz
 
 - [ ] All waves complete
 - [ ] All tasks marked `done`
+- [ ] `{process}/project/STATUS.md` updated
 - [ ] Plan status → `needs-review`
 
 **Write down:**
 ```
-Sub-agents spawned:
-- Implementers: [N] (haiku: [N], sonnet: [N])
-- Reviewers: [N]
-- Resumes: [N]
+Gemini calls: [N]
+Opus agents: [N]
+Resumes: [N]
 
 Reviews skipped (S-complexity): [N] batches
 ```

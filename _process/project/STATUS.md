@@ -55,7 +55,8 @@
 |---------|--------|-----------|------|-------|
 | MVP (Daily Puzzle) | **Superseded by V5** | [Done](../features/mvp/discovery.md) | [Done](../features/mvp/mvp.plan.md) | 29 |
 | V5 Engine Modular | Complete | [Done](../features/v5-engine-modular/discovery.md) | [Done](../features/v5-engine-modular/v5-engine-modular.plan.md) | 6 |
-| Engine Core Migration | Active | [Done](../features/engine-core-migration/discovery.md) | [Done](../features/engine-core-migration/engine-core-migration.plan.md) | 11 |
+| Engine Core Migration | Audit Complete | [Done](../features/engine-core-migration/discovery.md) | [Done](../features/engine-core-migration/engine-core-migration.plan.md) | 11 |
+| App V5 Migration | **Active** | [Done](../features/app-v5-migration/discovery.md) | [Done](../features/app-v5-migration/app-v5-migration.plan.md) | 8 |
 
 ---
 

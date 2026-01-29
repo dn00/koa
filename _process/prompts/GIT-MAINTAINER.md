@@ -74,6 +74,7 @@ For changes not in any plan, group by:
 - **Type**: All test files, all config files, all docs
 - **Purpose**: Infer from filenames (refactor, fix, chore)
 
+### 4. YOU MAY PROCEED TO COMMIT UNLESS YOU HAVE ANY CONCERNS
 ---
 
 ## Inferring Intent from Filenames

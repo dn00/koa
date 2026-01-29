@@ -12,6 +12,23 @@ You will be given a list of batches, each containing tasks. Review ALL of them.
 
 ## Process
 
+### 0. (Optional) Read Plan File for Context
+
+If you need to understand the overall feature scope or task dependencies:
+
+```bash
+cat {process}/features/[feature]/[name].plan.md
+```
+
+This helps you understand:
+- What the feature is trying to achieve
+- How tasks relate to each other
+- Any architectural decisions or constraints
+
+Skip if you already have enough context from task files.
+
+---
+
 ### 1. For Each Task → Count Requirements
 
 Read task file:
@@ -129,3 +146,104 @@ For each batch:
 - **Missing test = NEEDS-CHANGES** - no exceptions
 - **Failing test = NEEDS-CHANGES** - no exceptions
 - **Review ALL batches in wave** - one report for all
+
+---
+
+## Review Tips (Beyond Test Counting)
+
+### Read Implementation Code
+
+Tests passing ≠ correct implementation. Actually read the source files:
+
+```bash
+cat src/path/to/implementation.ts
+```
+
+**Check:**
+- Does the code actually do what the AC says? (not just "seem right")
+- Are edge cases from ECs actually handled in code?
+- Does error handling match ERR specs?
+
+### Common Issues to Catch
+
+**Logic bugs:**
+- Off-by-one errors
+- Wrong comparison operators (< vs <=)
+- Missing null/undefined checks
+- Race conditions in async code
+
+**Spec violations:**
+- Feature specified but not implemented
+- Implemented differently than spec says
+- Hardcoded values that should be configurable
+
+**Code quality:**
+- Dead code, debug statements, TODOs
+- Unjustified `any` types
+- Missing error handling
+- Unclear variable names
+
+**Security:**
+- Hardcoded secrets
+- SQL/command injection
+- Unvalidated user input
+- Timing attacks
+
+### Quick Checklist Per Task
+
+```
+□ Read implementation file(s)
+□ Compare each AC to actual code behavior
+□ Verify ECs are handled (not just tested)
+□ Verify ERRs produce correct error types/messages
+□ Check for obvious bugs
+□ Check for security issues
+```
+
+### What Makes a Test "Meaningful"
+
+**BAD - tests nothing:**
+```typescript
+test("AC-1: should work", () => {
+  expect(true).toBe(true);
+});
+```
+
+**GOOD - tests actual behavior:**
+```typescript
+test("AC-1: filter returns only matching rows", () => {
+  const result = filter([{status: "active"}, {status: "inactive"}], {status: "active"});
+  expect(result).toHaveLength(1);
+  expect(result[0].status).toBe("active");
+});
+```
+
+If tests exist but are meaningless → add to issues.
+
+### Add Issues to JSON
+
+For non-test issues, add to the `issues` array:
+
+```json
+{
+  "task": "003",
+  "type": "implementation_bug",
+  "location": "src/utils.ts:45",
+  "description": "Off-by-one error in loop boundary"
+}
+```
+
+Issue types: `missing_tests`, `failing_tests`, `implementation_bug`, `spec_violation`, `security`, `code_quality`
+
+---
+
+## Append to Learning Log (if issues found)
+
+If you find issues, briefly note the pattern for future reference:
+
+```bash
+cat >> {process}/features/[feature]/lessons-learned.md << 'EOF'
+## Review: Wave [N] - [date]
+- [issue type]: [brief description of what went wrong]
+EOF
+```
