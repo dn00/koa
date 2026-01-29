@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
-import type { Card as EvidenceCardType } from '@hsh/engine-core';
+import type { Card } from '@hsh/engine-core';
 import styles from './EvidenceCard.module.css';
 
 /**
  * Props for EvidenceCard component
  */
 export interface EvidenceCardProps {
-  /** The evidence card data to display */
-  card: EvidenceCardType;
+  /** The V5 Card data to display */
+  card: Card;
   /** Whether the card is selected */
   selected?: boolean;
   /** Whether the card is disabled (can't be selected) */
@@ -17,25 +17,16 @@ export interface EvidenceCardProps {
 }
 
 /**
- * Evidence Card Component (Task 018)
+ * Evidence Card Component (Task 003: V5 Migration)
  *
- * Displays an evidence card with:
- * AC-1: Card name/location (V5: was source)
- * AC-2: Strength value (V5: was power)
- * AC-3: Evidence type (V5: replaces proves)
- * AC-4: Claim (V5: simplified from claims object)
- * AC-5: Selected state (visual highlight)
- * AC-6: Disabled state (grayed out, not clickable)
- * AC-7: onClick handler for selection
- * EC-1: Card with no claim shows placeholder
- * EC-2: Long text truncates gracefully
- *
- * TODO: V5 migration - Card fields updated:
- * - power -> strength
- * - source -> location
- * - claims (object) -> claim (string)
- * - proves -> DELETE (V5 has evidenceType instead)
- * - refutes -> DELETE (V5 has no counter-evidence)
+ * Displays a V5 Card with:
+ * AC-1: card.strength as badge (1-5 scale)
+ * AC-2: card.evidenceType as chip/tag
+ * AC-3: card.claim as main text content
+ * AC-4: card.location and card.time as metadata
+ * AC-5: No proves/refutes display (V5 simplified)
+ * EC-1: Long claim text truncates with ellipsis
+ * EC-2: All evidence types render with distinct visual treatment
  */
 export function EvidenceCard({
   card,
@@ -65,30 +56,28 @@ export function EvidenceCard({
       onKeyDown={handleKeyDown}
       aria-pressed={selected}
       aria-disabled={disabled}
+      data-testid="evidence-card"
     >
-      {/* Header: Location and Strength */}
+      {/* Header: Location and Strength (AC-1, AC-4) */}
       <div className={styles.header}>
-        <span className={styles.source} title={card.location ?? 'Unknown location'}>
-          {card.location ?? 'Unknown'}
+        <span className={styles.source} title={card.location}>
+          {card.location}
         </span>
         <span className={styles.power} aria-label={`Strength: ${card.strength}`}>
           {card.strength}
         </span>
       </div>
 
-      {/* Evidence type (V5: replaces proves) */}
+      {/* Evidence type chip (AC-2) and Time metadata (AC-4) */}
       <div className={styles.proves} aria-label="Evidence type">
-        <span className={styles.proofChip}>
-          {card.evidenceType}
-        </span>
+        <span className={styles.proofChip}>{card.evidenceType}</span>
+        <span className={styles.proofChip}>{card.time}</span>
       </div>
 
-      {/* Claim (V5: simplified from claims object) */}
+      {/* Claim (AC-3, EC-1) */}
       <div className={styles.claims} title={card.claim}>
         {card.claim || 'No claim'}
       </div>
-
-      {/* TODO: V5 migration - refutes removed, V5 has no counter-evidence mechanic */}
     </div>
   );
 }

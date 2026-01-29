@@ -1,6 +1,6 @@
 # Task 003: Update EvidenceCard Component
 
-**Status:** backlog
+**Status:** done
 **Assignee:** -
 **Blocked By:** 001
 **Phase:** Phase 1: Type Compilation
