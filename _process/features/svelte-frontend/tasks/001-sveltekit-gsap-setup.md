@@ -1,6 +1,6 @@
 # Task 001: SvelteKit + GSAP Project Setup
 
-**Status:** ready
+**Status:** backlog
 **Assignee:** -
 **Blocked By:** -
 **Phase:** Foundation
@@ -18,11 +18,12 @@ Create `packages/app-svelte` SvelteKit project with GSAP, TypeScript strict mode
 
 ## Context
 
-Foundation task. We're building a Svelte frontend alongside the existing React app. Engine-core (pure TypeScript) must be importable.
+Foundation task. We're building a Svelte frontend for the V5 game engine. Engine-core (pure TypeScript) must be importable.
 
 ### Relevant Files
-- `packages/engine-core/` — Must be importable
+- `packages/engine-core/` — Must be importable (V5 types and resolver)
 - `docs/D27-VISUAL-STYLE-SPEC.md` — Color token definitions
+- `_process/context/v5-design-context.md` — V5 invariants
 
 ### Embedded Context
 
@@ -60,10 +61,10 @@ packages/app-svelte/
 
 **GSAP Plugins:** `gsap`, `@gsap/flip`
 
-**Monorepo Import:**
+**V5 Engine Imports:**
 ```typescript
-import type { EvidenceCard } from '@hsh/engine-core';
-import { deriveState } from '@hsh/engine-core';
+import type { Card, GameState, V5Puzzle } from '@hsh/engine-core';
+import { createGameState, playCard, resolveObjection } from '@hsh/engine-core';
 ```
 
 ---
@@ -82,10 +83,10 @@ import { deriveState } from '@hsh/engine-core';
 - **Then:** Can create tween that animates element
 - **Test Type:** unit
 
-### AC-3: Engine-Core Imports ← R1.3
+### AC-3: Engine-Core V5 Imports ← R1.3
 - **Given:** Workspace configured
-- **When:** Importing from `@hsh/engine-core`
-- **Then:** Types resolve, no build errors
+- **When:** Importing V5 types from `@hsh/engine-core`
+- **Then:** Card, GameState, V5Puzzle types resolve, no build errors
 - **Test Type:** unit
 
 ### AC-4: Vitest Configured ← R1.4
@@ -121,7 +122,7 @@ import { deriveState } from '@hsh/engine-core';
 - GSAP core + Flip plugin
 - Vitest + testing-library/svelte
 - CSS custom properties (placeholder values OK)
-- Workspace config for engine-core
+- Workspace config for engine-core V5 imports
 - Smoke test component
 
 ### Out of Scope
@@ -146,17 +147,14 @@ import { deriveState } from '@hsh/engine-core';
 - [ ] `npm run check` passes
 - [ ] `npm test` passes
 - [ ] GSAP tween works in browser
-- [ ] Engine-core types importable
+- [ ] V5 engine-core types importable
 
 ---
 
 ## Log
 
-### Planning Notes
-**Context:** Foundation enabling all subsequent work.
-**Decisions:** adapter-static for SPA (GSAP SSR issues). Vitest over Jest (Vite compat).
-
 ### Change Log
+- 2026-01-28 [Planner] Updated for V5
 - 2026-01-26 [Planner] Task created
 
 ---
@@ -165,4 +163,5 @@ import { deriveState } from '@hsh/engine-core';
 
 | Date | From | To | By | Notes |
 |------|------|----|----|-------|
+| 2026-01-28 | ready | backlog | Planner | Updated for V5 |
 | 2026-01-26 | - | ready | Planner | Created |
