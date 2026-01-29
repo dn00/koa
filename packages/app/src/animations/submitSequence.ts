@@ -16,7 +16,7 @@
  */
 
 import { gsap } from 'gsap';
-import type { EvidenceCard } from '@hsh/engine-core';
+import type { Card } from '@hsh/engine-core';
 
 /**
  * Timing constants from D16
@@ -59,7 +59,7 @@ export const EASE = {
  */
 export interface SubmitSequenceConfig {
   /** Cards being submitted */
-  cards: EvidenceCard[];
+  cards: Card[];
   /** Starting resistance value */
   startResistance: number;
   /** Final resistance value after damage */

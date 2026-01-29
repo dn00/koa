@@ -2,8 +2,10 @@ import { useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../../stores/gameStore.js';
-import { RunStatus, type GameEvent } from '@hsh/engine-core';
+import type { Tier } from '@hsh/engine-core';
 import styles from './ResultScreen.module.css';
+
+// TODO: V5 migration - GameEvent no longer exists, Tier replaces RunStatus
 
 /**
  * Loss reason messages

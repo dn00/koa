@@ -6,59 +6,63 @@
  */
 
 import { create } from 'zustand';
-import {
-  deriveState,
-  runStarted,
-  cardsSubmitted,
-  concernAddressed,
-  scrutinyIncreased,
-  runEnded,
-  type GameEvent,
-  type RunState,
-  type Puzzle,
-  type EvidenceCard,
-  type ConcernId,
-  RunStatus,
+import type {
+  Card,
+  V5Puzzle,
+  GameState,
+  ConcernId,
+  Tier,
 } from '@hsh/engine-core';
+
+// TODO: V5 migration - Remove event sourcing, use direct state management
+// These MVP types/functions no longer exist in V5:
+// - GameEvent (no events in V5)
+// - RunState → GameState
+// - deriveState (no event sourcing)
+// - Event creators: runStarted, cardsSubmitted, etc.
+// - RunStatus → Tier
 
 /**
  * Game store interface.
+ * TODO: V5 migration - Rewrite to use GameState directly instead of events
  */
 interface GameStore {
-  /** The complete event log */
-  events: readonly GameEvent[];
+  /** TODO: V5 migration - Remove events, use GameState directly */
+  events: readonly any[]; // @ts-expect-error TODO: V5 migration
   /** Derived run state (null if no run started) */
-  runState: RunState | null;
+  runState: GameState | null;
   /** Current dealt hand (cards available to play) */
-  dealtHand: readonly EvidenceCard[];
+  dealtHand: readonly Card[];
 
   // Actions
   /** Start a new run with a puzzle and dealt hand */
-  startRun(puzzle: Puzzle, dealtHand: EvidenceCard[]): void;
+  startRun(puzzle: V5Puzzle, dealtHand: Card[]): void;
   /** Append a raw event (for advanced use) */
-  appendEvent(event: GameEvent): void;
+  appendEvent(event: any): void; // @ts-expect-error TODO: V5 migration
   /** Submit cards and deal damage */
-  submitCards(cards: EvidenceCard[], damageDealt: number): void;
+  submitCards(cards: Card[], damageDealt: number): void;
   /** Mark a concern as addressed */
-  addressConcern(concernId: ConcernId): void;
+  addressConcern(concernId: ConcernId): void; // TODO: V5 migration - concerns removed
   /** Increase scrutiny by amount */
-  increaseScrutiny(amount: number): void;
+  increaseScrutiny(amount: number): void; // TODO: V5 migration - scrutiny removed
   /** End the run with a status */
-  endRun(status: typeof RunStatus.WON | typeof RunStatus.LOST, reason?: string): void;
+  endRun(status: Tier, reason?: string): void;
   /** Reset the store to initial state */
   reset(): void;
   /** Load a run from persisted events */
-  loadRun(events: GameEvent[], dealtHand?: EvidenceCard[]): void;
+  loadRun(events: any[], dealtHand?: Card[]): void; // @ts-expect-error TODO: V5 migration
 }
 
 /**
  * Helper to derive state from events.
  * Returns null if derivation fails.
+ * TODO: V5 migration - Remove this, use GameState directly
  */
-function deriveStateOrNull(events: readonly GameEvent[]): RunState | null {
+function deriveStateOrNull(events: readonly any[]): GameState | null {
+  // @ts-expect-error TODO: V5 migration - Remove event sourcing
   if (events.length === 0) return null;
-  const result = deriveState(events);
-  return result.ok ? result.value : null;
+  // TODO: V5 migration - deriveState no longer exists
+  return null;
 }
 
 /**
@@ -76,7 +80,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   dealtHand: [],
 
   startRun: (puzzle, dealtHand) => {
-    const event = runStarted({ puzzle, dealtHand });
+    // @ts-expect-error TODO: V5 migration - Remove event sourcing
+    const event = null; // runStarted no longer exists
     const newEvents = [event];
     const runState = deriveStateOrNull(newEvents);
 
@@ -101,7 +106,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   submitCards: (cards, damageDealt) => {
     const { events, dealtHand } = get();
     const cardIds = cards.map((c) => c.id);
-    const event = cardsSubmitted({ cardIds, cards, damageDealt });
+    // @ts-expect-error TODO: V5 migration - Remove event sourcing
+    const event = null; // cardsSubmitted no longer exists
     const newEvents = [...events, event];
     const runState = deriveStateOrNull(newEvents);
 
@@ -117,7 +123,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   addressConcern: (concernId) => {
     const { events } = get();
-    const event = concernAddressed(concernId);
+    // @ts-expect-error TODO: V5 migration - concerns removed in V5
+    const event = null; // concernAddressed no longer exists
     const newEvents = [...events, event];
     const runState = deriveStateOrNull(newEvents);
 
@@ -129,7 +136,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   increaseScrutiny: (amount) => {
     const { events } = get();
-    const event = scrutinyIncreased(amount);
+    // @ts-expect-error TODO: V5 migration - scrutiny removed in V5
+    const event = null; // scrutinyIncreased no longer exists
     const newEvents = [...events, event];
     const runState = deriveStateOrNull(newEvents);
 
@@ -141,7 +149,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   endRun: (status, reason) => {
     const { events } = get();
-    const event = runEnded(status, reason);
+    // @ts-expect-error TODO: V5 migration - Remove event sourcing
+    const event = null; // runEnded no longer exists
     const newEvents = [...events, event];
     const runState = deriveStateOrNull(newEvents);
 

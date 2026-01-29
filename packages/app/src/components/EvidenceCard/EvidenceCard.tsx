@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { EvidenceCard as EvidenceCardType } from '@hsh/engine-core';
+import type { Card as EvidenceCardType } from '@hsh/engine-core';
 import styles from './EvidenceCard.module.css';
 
 /**

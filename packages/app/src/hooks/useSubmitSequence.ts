@@ -5,7 +5,7 @@
 
 import { useRef, useCallback, useState } from 'react';
 import type { RefObject } from 'react';
-import type { EvidenceCard } from '@hsh/engine-core';
+import type { Card } from '@hsh/engine-core';
 import {
   createSubmitSequence,
   type SubmitSequenceConfig,
@@ -35,7 +35,7 @@ export interface UseSubmitSequenceReturn {
   isPlaying: boolean;
   /** Start the submit sequence animation */
   playSequence: (config: {
-    cards: EvidenceCard[];
+    cards: Card[];
     startResistance: number;
     endResistance: number;
     totalDamage: number;
@@ -74,7 +74,7 @@ export function useSubmitSequence(
 
   const playSequence = useCallback(
     (config: {
-      cards: EvidenceCard[];
+      cards: Card[];
       startResistance: number;
       endResistance: number;
       totalDamage: number;

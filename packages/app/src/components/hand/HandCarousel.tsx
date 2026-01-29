@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { EvidenceCard as EvidenceCardType, CardId } from '@hsh/engine-core';
+import type { Card as EvidenceCardType, CardId } from '@hsh/engine-core';
 import { EvidenceCard } from '../EvidenceCard/index.js';
 import styles from './HandCarousel.module.css';
 
