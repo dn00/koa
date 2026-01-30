@@ -6,7 +6,7 @@
 **Phase:** Gameplay
 **Complexity:** M
 **Depends On:** 006
-**Implements:** R6.1, R6.2, R6.3, R6.4
+**Implements:** R10.1, R10.2, R10.3
 
 ---
 
@@ -21,9 +21,9 @@ Create Objection prompt and resolution flow that appears after turn 2.
 After turn 2, KOA challenges the last played card. In Mini mode, this auto-resolves optimally. In Advanced mode, player chooses Stand By or Withdraw.
 
 ### Relevant Files
-- `packages/engine-core/src/resolver/v5/` — resolveObjection, autoResolveObjection
-- `_process/v5-design/impo/koa-mini-spec.md` — Mini auto-resolve
-- `_process/context/v5-design-context.md` — Objection mechanics
+- `mockups/mockup-brutalist.zip` → `components/KoaMiniPage.tsx` — Mini auto-resolves (no modal)
+- `packages/engine-core/src/resolver/v5/objection.ts` — shouldTriggerObjection, autoResolveObjection, resolveObjectionState
+- `_process/context/koa-mini-components.md` — Component spec
 
 ### Embedded Context
 
@@ -79,35 +79,36 @@ if (mode === 'advanced') {
 
 ## Acceptance Criteria
 
-### AC-1: Objection Appears After Turn 2 ← R6.1
+### AC-1: System Check Bark ← R10.1
 - **Given:** Turn 2 just completed
-- **When:** Belief change animation finishes
-- **Then:** Objection prompt appears (in Advanced mode)
+- **When:** KOA responds to card play
+- **Then:** Displays "System Check" bark in BarkPanel (both modes)
 - **Test Type:** integration
 
-### AC-2: Mini Auto-Resolve ← R6.2
+### AC-2: Mini Auto-Resolve ← R10.2
 - **Given:** Mode = 'mini', turn 2 complete
 - **When:** Objection would trigger
-- **Then:** Auto-resolves optimally, no prompt shown
+- **Then:** Auto-resolves optimally (stand by truth, withdraw lie), no prompt shown
+- **And:** Result appears as KOA bark in BarkPanel
 - **Test Type:** integration
 
-### AC-3: Stand By Choice ← R6.3
-- **Given:** Objection prompt visible
+### AC-3: Advanced Shows Prompt ← R10.3
+- **Given:** Mode = 'advanced', turn 2 complete
+- **When:** Objection triggers
+- **Then:** Objection prompt overlay appears with Stand By / Withdraw buttons
+- **Test Type:** integration
+
+### AC-4: Stand By Choice ← R10.3
+- **Given:** Objection prompt visible (Advanced)
 - **When:** Player taps "Stand By"
-- **Then:** Belief changes by +2 (truth) or -4 (lie)
+- **Then:** Belief changes by +2 (truth) or -4 (lie), KOA response in BarkPanel
 - **Test Type:** integration
 
-### AC-4: Withdraw Choice ← R6.3
-- **Given:** Objection prompt visible
+### AC-5: Withdraw Choice ← R10.3
+- **Given:** Objection prompt visible (Advanced)
 - **When:** Player taps "Withdraw"
-- **Then:** Belief changes by -2
+- **Then:** Belief changes by -2, KOA response in BarkPanel
 - **Test Type:** integration
-
-### AC-5: KOA Challenge Bark ← R6.4
-- **Given:** Objection triggered
-- **When:** Prompt appears
-- **Then:** KOA says challenge line ("Hold on...", "Let me verify...")
-- **Test Type:** component
 
 ### Edge Cases
 
@@ -144,7 +145,7 @@ if (mode === 'advanced') {
 
 ## Implementation Hints
 
-1. Modal/overlay for prompt
+1. ObjectionPrompt overlay (Advanced mode only, distinct from Zone 2 inline swap)
 2. Dispatch OBJECTION_RESOLVED event to store
 3. Mini mode checks happen before showing prompt
 4. Block other interactions during objection

@@ -1,18 +1,18 @@
-# Task 007: Result Screen
+# Task 007: Verdict + Share Screen
 
 **Status:** backlog
 **Assignee:** -
-**Blocked By:** 002
+**Blocked By:** 005, 012
 **Phase:** Gameplay
 **Complexity:** M
-**Depends On:** 002
-**Implements:** R3.3
+**Depends On:** 005, 012
+**Implements:** R3.4, R3.5, R9.1, R9.2, R9.3, R9.4, R9.5
 
 ---
 
 ## Objective
 
-Create Result Screen showing verdict, tier, and card reveal after game ends.
+Create Verdict Screen showing tier badge, played cards with lie reveal, contradictions, and ShareCard artifact generation.
 
 ---
 
@@ -21,9 +21,9 @@ Create Result Screen showing verdict, tier, and card reveal after game ends.
 After turn 3, the game ends and Result Screen shows the outcome. The tier (FLAWLESS/CLEARED/CLOSE/BUSTED) is determined by final belief vs target.
 
 ### Relevant Files
+- `mockups/mockup-brutalist.zip` → `components/KoaMiniPage.tsx` (VERDICT view lines 447-463)
+- `mockups/mockup-brutalist.zip` → `components/KoaMiniComponents.tsx` (TierBadge, VerdictLine, etc.)
 - `packages/engine-core/src/resolver/v5/` — getVerdict, Tier types
-- `_process/v5-design/impo/koa-mini-spec.md` — Tier definitions
-- `_process/context/v5-design-context.md` — Verdict calculation
 
 ### Embedded Context
 
@@ -37,27 +37,24 @@ type Tier = 'FLAWLESS' | 'CLEARED' | 'CLOSE' | 'BUSTED';
 // BUSTED: belief < target - 10
 ```
 
-**Result Screen Layout:**
+**Verdict Screen Layout (from KoaMiniPage mockup):**
 ```
 ┌─────────────────────────────────────────┐
-│              [KOA Avatar]               │
-│           (mood based on tier)          │
+│          [TierBadge: CLEARED]           │  ← Large, centered
 ├─────────────────────────────────────────┤
-│                                         │
-│            ★ CLEARED ★                  │  ← Tier badge
-│                                         │
-│        Final Belief: 68 / 65            │
-│                                         │
+│   "Fine. I will allow it this once."    │  ← VerdictLine (KOA quote)
 ├─────────────────────────────────────────┤
-│           Cards You Played:             │
-│                                         │
-│  [Card 1 ✓]  [Card 2 ✓]  [Card 3 ✗]    │
-│   (truth)     (truth)     (LIE!)        │  ← Reveals
-│                                         │
+│   [Card ✓]  [Card ✓]  [Card ✗]         │  ← PlayedCardsSummary
+│    truth     truth     LIE              │
 ├─────────────────────────────────────────┤
-│         [ PLAY AGAIN ]                  │
+│   ContradictionBlock:                   │  ← Only if lies detected
+│   "The Cat" contradicts baseline data   │
+├─────────────────────────────────────────┤
+│            [ SHARE ]                    │  ← ShareButton
 └─────────────────────────────────────────┘
 ```
+
+**Note:** In Mini mode, belief numbers are hidden. Only tier, quote, cards, and contradictions shown.
 
 **Verdict Data:**
 ```typescript
@@ -80,10 +77,11 @@ interface VerdictData {
 - **Then:** Shows "CLEARED" tier with appropriate styling
 - **Test Type:** component
 
-### AC-2: Belief Summary ← R3.3
-- **Given:** Game ended
-- **When:** Result Screen renders
+### AC-2: Belief Summary (Advanced Only) ← R3.4
+- **Given:** Mode is 'advanced', game ended
+- **When:** Verdict Screen renders
 - **Then:** Shows final belief and target values
+- **And:** Hidden in Mini mode
 - **Test Type:** component
 
 ### AC-3: Card Reveal ← R3.3
@@ -92,11 +90,29 @@ interface VerdictData {
 - **Then:** All cards shown with truth/lie status revealed
 - **Test Type:** component
 
-### AC-4: Play Again ← R3.3
+### AC-4: Play Again ← R3.4
 - **Given:** Result displayed
 - **When:** Player taps "Play Again"
 - **Then:** Game resets, navigates to Home Screen
 - **Test Type:** integration
+
+### AC-5: Contradiction Display ← R9.4
+- **Given:** Player played lies
+- **When:** Verdict Screen renders
+- **Then:** ContradictionBlock shows why each lie was detected
+- **Test Type:** component
+
+### AC-6: ShareCard Generation ← R9.5
+- **Given:** Verdict displayed
+- **When:** Player taps "Share"
+- **Then:** ShareCard artifact generated with day, results, tier, KOA quote
+- **Test Type:** integration
+
+### AC-7: VerdictLine Quote ← R9.2
+- **Given:** Game ended
+- **When:** Verdict Screen renders
+- **Then:** KOA quote displays based on tier (e.g., "I'll allow it... this time.")
+- **Test Type:** component
 
 ### Edge Cases
 
@@ -109,15 +125,17 @@ interface VerdictData {
 ## Scope
 
 ### In Scope
-- Result Screen layout
-- Tier display with styling
-- Belief summary
-- Card reveal section
+- Verdict Screen layout (VERDICT + SHARE phases)
+- TierBadge component (BUSTED/CLOSE/CLEARED/FLAWLESS)
+- VerdictLine component (KOA quote)
+- PlayedCardsSummary with lie markers (✓/✗)
+- ContradictionBlock (why lies were lies)
+- ShareButton + ShareCard artifact generation
 - Play again navigation
 
 ### Out of Scope
 - Win/loss animations (Task 009)
-- KOA Avatar moods (Task 012)
+- KOA Avatar integration (Task 012 provides component)
 
 ---
 
@@ -131,10 +149,13 @@ interface VerdictData {
 
 ## Definition of Done
 
-- [ ] Tier displays correctly for all tiers
-- [ ] Belief summary shows final/target
-- [ ] Cards revealed with truth/lie status
-- [ ] Play again works
+- [ ] TierBadge displays correctly for all 4 tiers
+- [ ] VerdictLine shows tier-appropriate KOA quote
+- [ ] PlayedCardsSummary shows all cards with ✓/✗ markers
+- [ ] ContradictionBlock explains each detected lie
+- [ ] ShareButton triggers ShareCard generation
+- [ ] ShareCard contains day, results array, tier, quote
+- [ ] Play again navigates to Home
 - [ ] All tests pass
 
 ---

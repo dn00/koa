@@ -79,6 +79,18 @@ interface V5Puzzle {
 - **Then:** Game starts with selected puzzle, navigates to Run Screen
 - **Test Type:** integration
 
+### AC-4: Tutorial Overlay (Day 0) ← R3.1
+- **Given:** First-time user (no localStorage flag)
+- **When:** Home Screen renders
+- **Then:** TutorialOverlay appears with welcome message and "Got it" button
+- **Test Type:** component
+
+### AC-5: Tutorial Card Highlight ← R3.1
+- **Given:** Tutorial active
+- **When:** Step requires highlighting UI element
+- **Then:** TutorialCardHighlight shows pulsing border on target
+- **Test Type:** component
+
 ### Edge Cases
 
 #### EC-1: No Puzzles
@@ -94,6 +106,10 @@ interface V5Puzzle {
 - Mode toggle (Mini/Advanced)
 - Start game button
 - Navigation to Run Screen
+- Day 0 Tutorial system:
+  - TutorialOverlay (dim + spotlight pattern)
+  - TutorialCardHighlight (pulsing border on target element)
+  - First-time user detection (localStorage flag)
 
 ### Out of Scope
 - Pack loading (Task 010)
@@ -115,6 +131,9 @@ interface V5Puzzle {
 - [ ] Puzzle selection works
 - [ ] Mode toggle works
 - [ ] Start game navigates to Run Screen
+- [ ] TutorialOverlay shows for first-time users
+- [ ] TutorialCardHighlight highlights target elements
+- [ ] Tutorial dismissal sets localStorage flag
 - [ ] All tests pass
 
 ---
