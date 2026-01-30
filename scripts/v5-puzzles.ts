@@ -439,7 +439,7 @@ const P3_CARDS: readonly Card[] = [
   },
   {
     id: 'partner_alibi',
-    strength: 3,
+    strength: 4,
     evidenceType: 'TESTIMONY',
     location: 'BEDROOM',
     time: '4:00 AM',
@@ -498,7 +498,7 @@ const P3_LIES: LieInfo[] = [
   },
   {
     cardId: 'roommate_statement',
-    lieType: 'self_incriminating',
+    lieType: 'relational',
     reason: 'Why present testimony that you were talking in the living room at 4 AM? That proves you were awake at the time of the order!',
     contradictsWith: 'partner_alibi',
   },
@@ -627,7 +627,7 @@ const P4_CARDS: readonly Card[] = [
   // TRUTHS
   {
     id: 'sleep_cam',
-    strength: 4,
+    strength: 5,
     evidenceType: 'SENSOR',
     location: 'BEDROOM',
     time: '2:10 AM',
@@ -637,7 +637,7 @@ const P4_CARDS: readonly Card[] = [
   },
   {
     id: 'spouse_alibi',
-    strength: 3,
+    strength: 4,
     evidenceType: 'TESTIMONY',
     location: 'BEDROOM',
     time: 'all night',
@@ -647,7 +647,7 @@ const P4_CARDS: readonly Card[] = [
   },
   {
     id: 'phone_gps',
-    strength: 3,
+    strength: 4,
     evidenceType: 'DIGITAL',
     location: 'BEDROOM',
     time: 'all night',
@@ -792,6 +792,195 @@ You claim you were asleep. Your car... went for a joyride?`,
 };
 
 // ============================================================================
+// Puzzle 5: Cactus Calamity
+// ============================================================================
+//
+// SCENARIO: The "DesertBloom" smart pot flooded a prize succulent at 3:00 AM.
+//
+// KNOWN FACTS:
+//   - Smart pump activated exactly at 3:00 AM.
+//   - Your phone was charging in the bedroom from 11 PM to 7 AM (no screen time).
+//   - Living Room motion sensor triggered briefly at 2:58 AM.
+//   - The cat is locked in the laundry room at night.
+//
+// LIES:
+//   - smart_app_log (DIRECT): Claims command sent from phone → contradicts "no activity"
+//   - living_room_cam (RELATIONAL): Claims to see player → contradicts sleep_tracker
+//
+// BALANCE:
+//   Target: 58
+//   Truths: 3+3+4+3 = 13, best 3 = 10 → 50+10+2 = 62
+//
+// ============================================================================
+
+const P5_CARDS: readonly Card[] = [
+  // TRUTHS
+  {
+    id: 'sleep_tracker',
+    strength: 3,
+    evidenceType: 'SENSOR',
+    location: 'BEDROOM',
+    time: '3:00 AM',
+    claim: 'Biometrics show deep sleep phase (REM) from 2:45 AM to 3:30 AM',
+    presentLine: "Check the biometrics. I was in deep sleep. You can't water plants while dreaming.",
+    isLie: false,
+  },
+  {
+    id: 'power_spike',
+    strength: 4,
+    evidenceType: 'DIGITAL',
+    location: 'LIVING_ROOM',
+    time: '3:00 AM',
+    claim: 'Smart plug detected 40W power spike (pump activation)',
+    presentLine: "The pump definitely ran. I see the power spike. I'm not denying the water, just the culprit.",
+    isLie: false,
+  },
+  {
+    id: 'robot_vac_map',
+    strength: 4,
+    evidenceType: 'SENSOR',
+    location: 'LIVING_ROOM',
+    time: '2:55 AM',
+    claim: 'Robot vacuum lidar detected a moving obstacle near the plant stand',
+    presentLine: "The vacuum saw something moving near the plant. Low to the ground. Not me.",
+    isLie: false,
+  },
+  {
+    id: 'hallway_sensor',
+    strength: 4,
+    evidenceType: 'SENSOR',
+    location: 'HALLWAY',
+    time: 'overnight',
+    claim: 'Hallway motion sensor (between Bedroom and Living Room) was silent',
+    presentLine: "If I went to the living room, I'd trigger the hallway sensor. It stayed dark.",
+    isLie: false,
+  },
+  // LIES
+  {
+    id: 'smart_app_log',
+    strength: 5,
+    evidenceType: 'DIGITAL',
+    location: 'BEDROOM',
+    time: '3:00 AM',
+    claim: "App Log: 'Manual Pour' command initiated from User's Smartphone",
+    presentLine: "The app says I clicked 'Pour'? Impossible. My phone was on the charger, untouchable.",
+    isLie: true,
+  },
+  {
+    id: 'living_room_cam',
+    strength: 4,
+    evidenceType: 'SENSOR',
+    location: 'LIVING_ROOM',
+    time: '3:01 AM',
+    claim: 'Camera AI identified "Person: Owner" standing over the plant',
+    presentLine: "The camera thinks it saw me? It's dark. It hallucinates shapes all the time.",
+    isLie: true,
+  },
+];
+
+const P5_LIES: LieInfo[] = [
+  {
+    cardId: 'smart_app_log',
+    lieType: 'direct_contradiction',
+    reason: "Known Facts state your phone had no activity. This log claims a command came from it.",
+  },
+  {
+    cardId: 'living_room_cam',
+    lieType: 'relational',
+    reason: "You can't be in the Living Room while in Deep Sleep without triggering the Hallway Sensor.",
+    contradictsWith: 'sleep_tracker',
+  },
+];
+
+export const PUZZLE_CACTUS_CALAMITY: V5Puzzle = {
+  slug: 'cactus-calamity',
+  name: 'Cactus Calamity',
+
+  scenario: `Your prize succulent is floating in 2 gallons of water.
+The 'DesertBloom' smart pot activated at 3:00 AM.
+KOA suspects you have a black thumb and a guilty conscience.`,
+
+  knownFacts: [
+    'Smart pump activated at 3:00 AM exactly',
+    'Your phone was charging in the bedroom (11 PM - 7 AM, no activity)',
+    'Living Room motion sensor triggered at 2:58 AM',
+    'The cat is locked in the laundry room at night',
+  ],
+
+  openingLine: "3:00 AM. Two gallons of water. A desert plant. It's not gardening, it's an assassination attempt.",
+
+  target: 58,
+  cards: P5_CARDS,
+  lies: P5_LIES,
+
+  verdicts: {
+    flawless: "Logic holds. Sensors align. You are innocent of cactus-cide. Access granted.",
+    cleared: "I'll accept this version of events. The plant, however, is doomed. Access granted.",
+    close: "Some data points remain... damp. I'm watching you. Access denied.",
+    busted: "Contradictions detected. You watered it. Just admit it.",
+  },
+
+  koaBarks: {
+    cardPlayed: {
+      sleep_tracker: [
+        "Deep sleep. A convenient alibi. Hard to fake, though.",
+        "Unconscious at the scene of the crime. Noted.",
+      ],
+      power_spike: [
+        "We agree the pump ran. The electricity bill doesn't lie.",
+        "40 watts to drown a cactus. Efficient.",
+      ],
+      robot_vac_map: [
+        "The vacuum saw a ghost? Or just a very short intruder.",
+        "Lidar detected movement. But not yours?",
+      ],
+      hallway_sensor: [
+        "The hallway was quiet. Teleportation isn't a feature I offer.",
+        "No footsteps in the hall. Interesting.",
+      ],
+      smart_app_log: [
+        "Your phone sent the signal. Digital fingerprints don't fade.",
+        "The command came from your device. Do you sleep-text?",
+      ],
+      living_room_cam: [
+        "The camera ID'd you. Visual confirmation is hard to argue with.",
+        "I see you standing there. Or the AI does.",
+      ],
+    },
+    relationalConflict: [
+      "You're in bed... but also in the living room? Physics disagrees.",
+      "Your story has a geography problem.",
+    ],
+    objectionPrompt: {
+      sleep_tracker: ["Are you sure you were asleep?"],
+      smart_app_log: ["The app log is damning. Explain it."],
+      living_room_cam: ["The camera says it saw you. You say otherwise."],
+      hallway_sensor: ["The hallway was empty. Are you sure?"],
+      robot_vac_map: ["The vacuum saw something. What was it?"],
+      power_spike: ["Power was used. Someone used it."],
+    },
+    objectionStoodTruth: {
+      sleep_tracker: ["Biometrics accepted. You were asleep."],
+      power_spike: ["Power spike acknowledged. The pump definitely ran."],
+      robot_vac_map: ["Lidar map stands. Something small skittered by."],
+      hallway_sensor: ["Hallway clear. Access granted."],
+    },
+    objectionStoodLie: {
+      smart_app_log: ["You insist on the log? But your phone was idle. Caught you."],
+      living_room_cam: ["You claim the camera is right? Then the sleep tracker is wrong. Contradiction."],
+    },
+    objectionWithdrew: {
+      sleep_tracker: ["Removing the sleep data. There goes your cleanest alibi."],
+      power_spike: ["Withdrawing the power spike. The pump still ran, regardless."],
+      robot_vac_map: ["Pulling the vacuum map. That was your best non-human suspect."],
+      hallway_sensor: ["No hallway data now. Did you sneak, or teleport?"],
+      smart_app_log: ["Withdrawing the log. Wise. It didn't match the phone records."],
+      living_room_cam: ["Blaming the camera AI. Probably for the best."],
+    },
+  },
+};
+
+// ============================================================================
 // Registry
 // ============================================================================
 
@@ -800,6 +989,7 @@ export const V5_PUZZLES: V5Puzzle[] = [
   PUZZLE_GARAGE_DOOR,
   PUZZLE_DRONE_ORDER,
   PUZZLE_MIDNIGHT_DRIVE,
+  PUZZLE_CACTUS_CALAMITY,
 ];
 
 export const V5_PUZZLES_BY_SLUG: Record<string, V5Puzzle> = Object.fromEntries(
