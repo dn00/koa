@@ -196,20 +196,20 @@ Shows what's locked and game progress.
 **Contains:**
 - Device icon and name (FRIDGE, COFFEE, TV, DOOR, etc.)
 - Turn counter (e.g., "Turn 2/3")
-- Progress bar toward unlock (hidden in casual mode, shown in advanced)
 
 ---
 
-### 8.5 Double-Check Modal
+### 8.5 Double-Check Moment
 
-Appears after turn 2. KOA challenges the last card played.
+After turn 2, KOA challenges the last card played.
 
-**Contains:**
-- KOA's challenge line (sassy)
-- The card being challenged
-- Two choices:
-  - **Stand By It** — risky (+2 if card was good, -4 if bad)
-  - **Take Back** — safe (-2 always)
+**In Mini (current):**
+- No modal — auto-resolves optimally
+- KOA still comments in dialogue ("Let me check this one..." → "...Fine.")
+- Player sees the drama but doesn't choose
+
+**Future (Advanced):**
+- Modal with Stand By / Take Back choice
 
 ---
 
@@ -255,16 +255,16 @@ Shown after turn 3.
 
 ---
 
-### 9.2 Double-Check Screen
+### 9.2 Double-Check Moment (In-Game)
 
 **Appears:** After turn 2, before turn 3
 
-**Elements:**
-- Modal overlay (dims background)
-- KOA avatar (SUSPICIOUS mood)
-- Challenge text
-- The challenged card
-- Two action buttons (Stand By / Take Back)
+**In Mini (no separate screen):**
+- KOA shifts to SUSPICIOUS mood
+- Dialogue shows challenge line
+- Brief pause for tension
+- Auto-resolves, KOA reacts
+- Continues in same game screen
 
 ---
 
@@ -293,7 +293,256 @@ Shown after turn 3.
 
 ---
 
-## 10. Animation (Snappy, Satisfying)
+## 10. Game Flow (Turn by Turn)
+
+### Start of Game
+- Player sees the locked device (e.g., "FRIDGE")
+- KOA is in NEUTRAL mood
+- KOA says something like "State your case." or "Convince me."
+- Hand shows 6 cards (4 will be accurate, 2 have glitched data — player doesn't know which)
+- Score starts at ~50, target is ~65 (numbers hidden in casual mode)
+
+### Turn 1
+- Player browses cards (long-press to see details)
+- Player selects one card
+- Player taps Play
+- Card animates to played area
+- Score changes (+strength if accurate, -(strength-1) if glitched, but player doesn't know yet)
+- KOA reacts with a line and mood change
+- Dialogue panel updates with the exchange
+
+### Turn 2
+- Same as Turn 1, but...
+- After the card is played and KOA reacts...
+- **Double-Check triggers** — KOA challenges the card just played
+- In Mini: auto-resolves (KOA comments, result applies, no player choice)
+- KOA reacts to the outcome
+
+### Turn 3
+- Player selects final card
+- Player taps Play
+- Card resolves
+- **Game ends** — transition to Result Screen
+
+---
+
+## 11. KOA's Dialogue Behavior
+
+KOA speaks at specific moments. Lines come from a bark library (see `banter-system.md`).
+
+### When KOA Speaks:
+| Moment | Mood | Example Lines |
+|--------|------|---------------|
+| Game start | NEUTRAL | "State your case." / "This should be interesting." |
+| After card played (good trajectory) | CURIOUS, WATCHING | "Hmm. Go on..." / "I'm listening." |
+| After card played (bad trajectory) | SUSPICIOUS, AMUSED | "That doesn't add up." / "Really?" |
+| Double-check challenge | SUSPICIOUS | "Hold on. Let me verify this." |
+| Player stands by (was right) | GRUDGING, IMPRESSED | "...Fine." / "I suppose that checks out." |
+| Player stands by (was wrong) | SMUG, DISAPPOINTED | "Called it." / "I knew it." |
+| Player takes back | AMUSED | "Smart move." / "Thought so." |
+| Win (CLEARED) | GRUDGING, RESIGNED | "Access granted." / "Whatever." |
+| Win (FLAWLESS) | RESIGNED | "...Fine. You win." |
+| Lose | SMUG | "Device stays locked." / "Better luck tomorrow." |
+
+### Dialogue Panel Content:
+Each exchange shows:
+- **KOA's line** (mono, muted)
+- **Player's card** (card name, short claim)
+
+Example flow:
+```
+KOA: "State your case."
+YOU: Motion Sensor — "Movement at 6:42 AM"
+KOA: "Could be the cat."
+YOU: Doorbell Camera — "Door opened at 6:40 AM"
+KOA: "...Go on."
+YOU: Smart Watch — "Heart rate elevated at 6:38 AM"
+KOA: "I suppose that's acceptable. Access granted."
+```
+
+---
+
+## 12. Feedback & Scoring
+
+### Score (Belief) — Advanced Mode Only
+- Starts around 50
+- Target around 65 (varies by puzzle)
+- Accurate card: +strength (1-5)
+- Glitched card: -(strength - 1)
+- Type tax: -2 if same type as previous card
+- Stand By correct: +2
+- Stand By wrong: -4
+- Take Back: -2
+
+### Player Feedback (Both Modes)
+Since casual mode hides numbers, feedback comes through:
+- **KOA's mood** — IMPRESSED = doing well, SUSPICIOUS = not great
+- **KOA's lines** — tone shifts based on trajectory
+- **Dialogue history** — player can feel momentum
+
+### Type Tax Warning
+When player long-presses a card that matches the type of their last played card:
+- Card detail shows warning: "Same type as last card (-2)"
+- Helps player make informed choice
+
+---
+
+## 13. The Double-Check Moment
+
+Dramatic beat after Turn 2. KOA challenges the last card.
+
+### In Mini (Current):
+- KOA's mood shifts to SUSPICIOUS
+- Dialogue shows: "Hold on. Let me verify this one."
+- Beat / pause for tension
+- Auto-resolves optimally (player doesn't choose)
+- KOA reacts: "...Fine." or "I knew it."
+- Player sees the drama without the decision
+
+### Why It Still Works in Mini:
+- The tension is in the *reveal*, not the choice
+- Player wonders "was that card bad?"
+- KOA's reaction tells them the outcome
+- Sets up anticipation for the final card
+
+---
+
+## 14. The Reveal (Result Screen)
+
+### What Gets Revealed:
+- All 3 played cards shown
+- Each marked as ✓ Good or ✗ Glitch
+- Player now sees which cards had bad data
+
+### Emotional Beats:
+- **All good**: Pride — "I knew it"
+- **1 glitch, still won**: Relief — "Got away with it"
+- **Glitch on Stand By**: Regret — "Should have taken it back"
+- **Lost by small margin**: "So close" — encourages retry
+
+### KOA's Final Line:
+Matches the tier and references what happened:
+- FLAWLESS: "Not a single bad read. Fine. You win."
+- CLEARED with glitch: "Lucky. That sensor data was garbage."
+- CLOSE: "Almost. That camera footage was corrupted."
+- LOCKED: "Three strikes. Device stays locked."
+
+---
+
+## 15. Share Card
+
+For social posting (Twitter, Discord, etc.)
+
+### Contains:
+- Game name + date
+- Device that was locked
+- Tier achieved (stars)
+- Card results (🟩🟩🟥 style, like Wordle)
+- Score (if advanced mode)
+
+### Example:
+```
+Home Smart Home • Jan 28
+🧊 FRIDGE
+
+★★★☆ CLEARED
+🟩🟩🟥
+```
+
+### No Spoilers:
+- Doesn't reveal which cards were which
+- Others can compare results without ruining the puzzle
+
+---
+
+## 16. Edge States
+
+### First-Time Player
+- Brief intro explaining the concept
+- "KOA locked your [device]. Show it the receipts."
+- Maybe a practice round or tooltip on first long-press
+
+### Player Doing Very Well
+- KOA gets increasingly RESIGNED
+- Lines become more grudging
+- "Okay fine, that one's solid too."
+
+### Player Doing Poorly
+- KOA gets SMUG, AMUSED
+- Lines become more teasing
+- "This is going well... for me."
+
+### All Cards Same Type
+- Every card would trigger type tax after the first
+- KOA might comment: "All sensor data? Diversify."
+
+### Player Takes Forever
+- KOA could get SLEEPY after long idle
+- "Still there?" / "Take your time, I guess."
+
+---
+
+## 17. Insights from Playtests (V5 Micro)
+
+These insights come from V5 Micro playtests (more complex than Mini), but inform UI design.
+
+### What Players Love
+- **KOA is the "secret sauce"** — personality lands well, lines are memorable
+- **Objection is the most tense, memorable moment** — real risk/reward fork
+- **2-5 minute sessions feel "just right"** for daily play
+- **Win/loss feels earned, not lucky** — when deduction is clear
+
+### What They'd Share
+Not routine scores — specific moments:
+- Funny/sharp KOA lines
+- Wild reveals ("the strongest card was a lie")
+- Clever deductions they're proud of
+- FLAWLESS runs
+
+### What Makes Them Stop Playing
+- Lies feel random or unfair
+- Patterns become predictable
+- KOA dialogue gets repetitive
+- Scenarios repeat too much
+
+### KOA's Role
+- **Flavor + personality**, not a solver
+- Should never adjudicate during play ("this is a lie")
+- Post-game can explain what happened (optional teach mode)
+- Players want short epilogues explaining what actually happened
+
+### Near-Miss Feedback
+Players explicitly asked for:
+- "You were 1 point from FLAWLESS" messaging
+- Heightens drama, encourages retry
+
+---
+
+## 18. V5 Mini Scope (Current Target)
+
+Building for Mini first. Keep UI extensible for future modes.
+
+**What Mini Shows:**
+- Turn count (1/3, 2/3, 3/3)
+- KOA avatar + mood
+- Dialogue (back-and-forth)
+- Cards (basic info: type, strength, claim, location, time)
+- Tier result + card reveal
+
+**What Mini Hides:**
+- Score numbers (no belief bar)
+- Type tax warnings
+- Detailed mechanics
+
+**What Mini Auto-Resolves:**
+- Objection (no player choice — resolves optimally behind the scenes)
+
+**Extensibility Note:**
+Build components so advanced features can be added later without redesign.
+
+---
+
+## 19. Animation (Snappy, Satisfying)
 
 | Interaction | Duration | Feel |
 |-------------|----------|------|
@@ -305,7 +554,7 @@ Shown after turn 3.
 
 ---
 
-## 11. Share Card
+## 20. Share Card
 
 Shareable result for social (like Wordle grid):
 
@@ -322,7 +571,7 @@ Score: 68/65
 
 ---
 
-## 12. Design Deliverables
+## 21. Design Deliverables
 
 1. **Components Needed**
    - Evidence Card (all states + 4 types)
