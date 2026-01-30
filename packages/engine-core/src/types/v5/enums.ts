@@ -19,5 +19,7 @@ export type Tier = 'FLAWLESS' | 'CLEARED' | 'CLOSE' | 'BUSTED';
  * Lie classification for content constraints.
  * - direct_contradiction: Directly contradicts a known fact
  * - relational: Conflicts with another card or piece of evidence
+ * - self_incriminating: Evidence that hurts the player's own case (why present this?)
+ * - implausible_timeline: Physically impossible given other known facts
  */
-export type LieType = 'direct_contradiction' | 'relational';
+export type LieType = 'direct_contradiction' | 'relational' | 'self_incriminating' | 'implausible_timeline';
