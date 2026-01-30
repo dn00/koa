@@ -84,7 +84,49 @@ Tests: [N] passing, [M] failing
 - Race condition when Module A and B both access shared state
 - Missing null checks at module boundaries
 
-### 6. Check for Gaps
+### 6. ⚠️ CRITICAL: End-to-End Verification
+
+**Components built ≠ Feature working.** This is the most common audit failure.
+
+**Actually run the app and verify:**
+
+```
+□ Entry points exist (routes, CLI commands, API endpoints)
+□ Components are wired to entry points (not just exported)
+□ User can navigate the full flow
+□ App starts without errors
+□ Feature is accessible (not hidden behind unimplemented routes)
+```
+
+**For web apps:**
+```bash
+# Start the app
+npm run dev
+
+# Then manually verify:
+# - Navigate to the feature's entry point
+# - Can you use it? Or just see a placeholder/smoke test?
+# - Does the full user flow work?
+```
+
+**Common failures:**
+- Components built but main page still shows setup smoke test
+- Routes created but not connected to components
+- Screen components exist but navigation between them broken
+- Store/state management works in tests but not wired to UI
+- API endpoints exist but not called from frontend
+
+**Write down:**
+```
+End-to-end verification:
+- Entry point: [URL/command]
+- App starts: [yes/no]
+- Feature accessible: [yes/no]
+- Full flow works: [yes/no]
+- Issues found: [list]
+```
+
+### 7. Check for Gaps
 
 **Review each AC from the plan:**
 ```
@@ -98,7 +140,7 @@ Tests: [N] passing, [M] failing
 - Edge case handled in one task but breaks another
 - Error from Task 1 not properly handled by Task 3
 
-### 7. Security Review at Boundaries
+### 8. Security Review at Boundaries
 
 ```
 □ Data validated before crossing module boundaries
@@ -123,7 +165,14 @@ Tests: [N] passing, [M] failing
     "module_connections": "pass",
     "type_compatibility": "pass",
     "error_handling": "pass",
-    "no_circular_deps": "pass"
+    "no_circular_deps": "pass",
+    "e2e_verification": "pass"
+  },
+  "e2e_details": {
+    "entry_point": "/app or CLI command",
+    "app_starts": true,
+    "feature_accessible": true,
+    "full_flow_works": true
   },
   "gaps_found": [],
   "security_issues": []
@@ -142,7 +191,15 @@ Tests: [N] passing, [M] failing
     "module_connections": "pass",
     "type_compatibility": "fail",
     "error_handling": "pass",
-    "no_circular_deps": "pass"
+    "no_circular_deps": "pass",
+    "e2e_verification": "fail"
+  },
+  "e2e_details": {
+    "entry_point": "/app",
+    "app_starts": true,
+    "feature_accessible": false,
+    "full_flow_works": false,
+    "issues": ["Main page still shows smoke test, not HomeScreen component"]
   },
   "integration_issues": [
     {
@@ -150,6 +207,12 @@ Tests: [N] passing, [M] failing
       "location": "src/b.ts:45",
       "description": "Module B expects User type but receives UserDTO from Module A",
       "severity": "high"
+    },
+    {
+      "type": "not_wired",
+      "location": "src/routes/+page.svelte",
+      "description": "Components built but not connected to routes",
+      "severity": "critical"
     }
   ],
   "gaps_found": [
