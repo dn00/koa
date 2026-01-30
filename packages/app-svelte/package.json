@@ -1,0 +1,38 @@
+{
+  "name": "@hsh/app-svelte",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@hsh/engine-core": "*",
+    "gsap": "^3.12.7"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.15.1",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.2.7",
+    "@types/node": "^22.10.7",
+    "@vite-pwa/sveltekit": "^1.1.0",
+    "autoprefixer": "^10.4.23",
+    "jsdom": "^26.0.0",
+    "postcss": "^8.5.6",
+    "svelte": "^5.18.0",
+    "svelte-check": "^4.1.4",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.8.3",
+    "vite": "^6.0.7",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^3.0.4",
+    "workbox-window": "^7.4.0"
+  }
+}
