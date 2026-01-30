@@ -19,7 +19,7 @@ Build a game-feel-first frontend in Svelte + GSAP for the V5 game engine. This i
 2. Each turn: select 1 card → play → beliefChange applied
 3. After turn 2: Objection prompt (stand by or withdraw)
 4. After turn 3: Game ends, verdict based on belief vs target
-
+rm _process/features/svelte-frontend/tasks/{003-service-adapters,004-home-screen,006-result-screen,007-hud-components,008-evidence-card,009-hand-carousel,010-submit-button,011-card-animations,013-counter-panel,015-koa-avatar,016-feel-system,017-terminal-log,018-selection-preview}.md     
 **V5 State Model:**
 ```typescript
 interface GameState {
