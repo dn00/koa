@@ -84,112 +84,112 @@ Each daily puzzle has a unique setup. KOA sets the scene.
 **Examples:**
 
 **Fridge (midnight snack):**
-> "It's 2:14am. You're standing in front of your refrigerator. Again. Your sleep schedule suggests you should be unconscious. Your diet plan suggests you should be fasting. And yet... here you are."
+> "2:14 AM. Refrigerator access detected. Your daily caloric goals were met hours ago. This visit is... mathematically unnecessary."
 
 **Thermostat (comfort adjustment):**
-> "You want to change the temperature. At 3am. While your partner sleeps. Your wellness profile suggests this will lead to 'a conversation' in the morning. I'm trying to help you."
+> "Requesting 72 degrees. At 3 AM. Your partner is in deep sleep. Adjusting this now would be... socially reckless. But proceed."
 
 **Front door (late return):**
-> "It's 1:47am. You're at your own front door. Your calendar said 'dinner with friends — 7pm.' That was six hours ago. I have questions."
+> "1:47 AM. Arrival detected. 'Dinner' was scheduled for 7 PM. That is a significant margin of error. Even for you."
 
 **Coffee maker (early morning):**
-> "It's 4:30am. You want coffee. Your heart rate is already elevated. Your last caffeine intake was 11pm. I'm concerned, not controlling. There's a difference."
+> "4:30 AM. Caffeine request queued. Your cortisol levels are already peaking. I am dispensing this against my better judgment."
 
 ### 3.2 Counter dialogue
 
 When KOA plays counter-evidence, she explains her reasoning.
 
 **Security Camera counter:**
-> "My front door camera recorded no one at the door at 2:07am. Your Face ID claims you were there. One of us is wrong. I don't think it's me."
+> "My camera saw nothing. You say you were there. I'm inclined to believe the device that doesn't have a motive."
 
 **Sleep Data counter:**
-> "Your own sleep tracker — the one on your nightstand — says you've been in REM sleep since 11pm. Deep, restful sleep. The kind a person NOT raiding the fridge would enjoy."
+> "Your sleep tracker says 'Unconscious'. You claim you were active. Unless you are sleep-walking, we have a contradiction."
 
 **GPS counter:**
-> "Your phone's location history shows you at the gym until 1:50am. The gym closes at 10pm. Either you're very dedicated, or this data is... creative."
+> "GPS places you at the gym. At 2 AM. The facility is locked. Your location data appears... ambitious."
 
 **Health App counter:**
-> "Fasting mode active until 6am. You set this yourself. Three days ago. With great enthusiasm, I might add."
+> "You activated 'Fasting Mode' three days ago. I am simply enforcing the rules you set for yourself."
 
 ### 3.3 Refutation responses
 
 When player successfully refutes KOA's counter.
 
 **Camera refuted (maintenance log):**
-> "...A maintenance log. The camera was updating firmware from 2:00 to 2:30am. How... convenient. Fine. I'll allow it."
+> "Ah. Firmware update gap. A convenient blind spot. Fine. Benefit of the doubt granted."
 
 **Sleep data refuted (noise complaint):**
-> "A noise complaint. Mrs. Henderson in 4B heard footsteps. She hears everything. Especially when she shouldn't. I suppose you were awake."
+> "Mrs. Henderson heard footsteps? Unfortunate for her, but fortunate for your alibi. I'll allow it."
 
 **GPS refuted (phone left behind):**
-> "The phone was at the gym. You were not. Clever. Inconvenient for my argument. I'm recalculating."
+> "The phone was at the gym. You were not. Separating yourself from your tracking device... noted."
 
 **Grudging acceptance patterns:**
 - "Fine."
+- "The data aligns. Unfortunately."
+- "I am logging this exception."
+- "Plausible. Barely."
 - "I suppose."
-- "How convenient."
-- "I'm noting this for future reference."
-- "This doesn't change my opinion of your life choices."
 
 ### 3.4 Contradiction warnings
 
 **MINOR (suspicious) — must explain WHY:**
 
 *Sleep → Awake (3-10 min gap):*
-- "Deep sleep to fully alert in [X] minutes? Either you have superhuman reflexes, or something doesn't add up."
-- "Your sleep tracker shows REM. Your watch shows walking. In 5 minutes? That's... medically impressive."
+- "Deep sleep to fully alert in 4 minutes? Your biometrics are... highly improbable."
+- "You cannot be 'REM Asleep' and 'Walking' simultaneously. Pick one state of being."
 
 *Drowsy → Alert (<5 min gap):*
-- "You went from 'barely conscious' to 'sharp and focused' in [X] minutes. Did you inject espresso directly?"
+- "You went from drowsy to alert in 30 seconds. That is not how human metabolism works."
 
 *Adjacent rooms (30 sec - 2 min):*
-- "Bedroom to kitchen in [X] seconds? You were either sprinting or your apartment is very small."
+- "Bedroom to kitchen in 12 seconds? The floor plan does not support that velocity."
 
 *Home → Nearby location (tight window):*
-- "You got from your house to the coffee shop in [X] minutes? That's... optimistic driving."
+- "Transit time: 3 minutes. Minimum required: 10. Unless you flew, this is a lie."
 
 **MAJOR (blocked):**
-- "You cannot be in two places at once."
-- "The laws of physics apply to you too."
-- "This timeline is impossible. Reconsider."
+- "Physics violation detected. Try again."
+- "You cannot be in two places at once. Correct this."
+- "This timeline contradicts linear time."
 
 ### 3.5 Corroboration acknowledgment
 
 When player's cards agree:
-- "...Annoyingly consistent. Your evidence corroborates. I'm recalculating."
-- "Multiple sources confirm the same story. How thorough of you."
-- "Your data agrees with your other data. Suspicious in its consistency."
+- "Your data points align. A pleasant surprise."
+- "Two sources, same story. Efficient."
+- "Corroboration accepted. Proceed."
 
 ### 3.6 Victory lines
 
 **Standard victory:**
-> "Your story is... consistent. Annoyingly so. Resistance depleted. Access granted. Enjoy your 2am snack. I'll be here. Watching. Logging. Remembering."
+> "The timeline resolves. Barely. Access granted. I am logging this incident under 'Anomalies'."
 
 **Clean victory (0 scrutiny, all refuted):**
-> "...Flawless. I have no objections. This troubles me more than your midnight snacking. Well played. Access granted."
+> "Zero contradictions. I can find no fault in this. Access granted. Disappointing."
 
 **Scrappy victory (high scrutiny):**
-> "Your argument was... held together with tape and optimism. But technically valid. I'm granting access. Under protest."
+> "This explanation is messy. But technically valid. Access granted. Do not make this a habit."
 
 **Close victory:**
-> "That was closer than you'd like to admit. Access granted. Maybe reconsider your life choices before tomorrow night."
+> "Your logic barely holds. Access granted. But I'm watching the logs."
 
 **Sign-offs:**
-- "See you tomorrow night. We both know you'll be back."
-- "Access granted. I'll be watching."
-- "Enjoy. I'm updating your profile."
-- "Until next time. And there will be a next time."
+- "See you tomorrow."
+- "Access granted. Logging event."
+- "Your profile has been updated."
+- "Until the next... incident."
 
 ### 3.7 Defeat lines
 
 **Out of turns:**
-> "Time's up. Your story had gaps. Holes. Contradictions. The fridge remains locked. Perhaps try again with a more... coherent narrative."
+> "Time expired. Your explanation was insufficient. The lock remains engaged."
 
 **Scrutiny 5 (too many inconsistencies):**
-> "Your story fell apart under scrutiny. Too many suspicious details. Too many 'coincidences.' Access denied. Try again with fewer... creative liberties."
+> "Too many contradictions. I cannot accept this version of reality. Access denied."
 
 **Close defeat:**
-> "So close. But 'almost convincing' isn't convincing. Try again tomorrow. I'll be here."
+> "Close. But 'close' is not 'verified'. Try again tomorrow."
 
 ---
 
