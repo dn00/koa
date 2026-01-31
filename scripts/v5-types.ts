@@ -26,7 +26,7 @@ export interface Card {
 // Lie Classification (for content constraints)
 // ============================================================================
 
-export type LieType = 'direct_contradiction' | 'relational';
+export type LieType = 'direct_contradiction' | 'relational' | 'implausible_timeline';
 
 export interface LieInfo {
   cardId: string;
@@ -142,7 +142,11 @@ export interface V5Puzzle {
     objectionStoodTruth?: Record<string, string[]>;
     objectionStoodLie?: Record<string, string[]>;
     objectionWithdrew?: Record<string, string[]>;
+    liesRevealed?: Record<string, string[]>;  // Punchlines when lies caught at end
   };
+
+  // Optional epilogue explaining what actually happened
+  epilogue?: string;
 }
 
 // ============================================================================
@@ -157,7 +161,7 @@ export interface GameConfig {
   cardsInHand: number;       // 6
   cardsPerTurn: number;      // 1
   turnsPerGame: number;      // 3
-  liesPerPuzzle: number;     // 2
+  liesPerPuzzle: number;     // 3
 
   // Scoring
   scoring: {
@@ -198,7 +202,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   cardsInHand: 6,
   cardsPerTurn: 1,
   turnsPerGame: 3,
-  liesPerPuzzle: 2,
+  liesPerPuzzle: 3,
 
   scoring: {
     truth: (str) => str,

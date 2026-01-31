@@ -28,4 +28,5 @@ export {
   type TurnOutput,
   type ObjectionOutput,
   type VerdictData,
+  type PenaltySummary,
 } from './engine.js';

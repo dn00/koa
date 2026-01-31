@@ -4,7 +4,7 @@
  *
  * Design:
  *   - 6 cards, play 3 (1 per turn), leave 3
- *   - 4 truths, 2 lies (hidden from player)
+ *   - 3 truths, 3 lies (hidden from player)
  *   - Known Facts for reasoning (no visible risk pips)
  *   - Objection after T2: challenges highest-strength played card
  *
@@ -234,10 +234,10 @@ function runChecks(puzzle: V5Puzzle, sequences: PlaySequence[], config: GameConf
   // Content Constraints
   // ============================================================================
 
-  // C1: ≤1 direct-contradiction lie
+  // C1: No direct-contradiction lies (all require inference)
   const directLies = puzzle.lies.filter(l => l.lieType === 'direct_contradiction');
-  check('C1', 'Direct contradiction lies ≤1', directLies.length <= 1,
-    `${directLies.length} direct contradiction(s)`);
+  check('C1', 'No direct contradiction lies', directLies.length === 0,
+    `${directLies.length} direct contradiction(s) — all lies must require inference`);
 
   // C2: At least one relational lie
   const relationalLies = puzzle.lies.filter(l => l.lieType === 'relational');
@@ -286,11 +286,11 @@ function runChecks(puzzle: V5Puzzle, sequences: PlaySequence[], config: GameConf
   const bustedRate = (tierCounts.BUSTED / total) * 100;
 
   // B5: Win rate
-  check('B5', 'Win rate 15-50%', winRate >= 15 && winRate <= 50,
+  check('B5', 'Win rate 3-15%', winRate >= 3 && winRate <= 15,
     `${winRate.toFixed(1)}%`);
 
   // B6: FLAWLESS rate
-  check('B6', 'FLAWLESS rate 5-25%', flawlessRate >= 5 && flawlessRate <= 25,
+  check('B6', 'FLAWLESS rate 1-10%', flawlessRate >= 1 && flawlessRate <= 10,
     `${flawlessRate.toFixed(1)}%`);
 
   // B7: BUSTED exists
@@ -301,10 +301,31 @@ function runChecks(puzzle: V5Puzzle, sequences: PlaySequence[], config: GameConf
   // Lie Properties
   // ============================================================================
 
-  // L1: Lie strengths differ
-  const lieStrengths = lies.map(c => c.strength);
-  check('L1', 'Lie strengths differ', new Set(lieStrengths).size === lies.length,
-    lieStrengths.join(', '));
+  // L1: Lie strengths are exactly 3, 4, 5 (fixed template)
+  const lieStrengths = lies.map(c => c.strength).sort((a, b) => a - b);
+  const expectedLieStrengths = [3, 4, 5];
+  const lieStrOk = lieStrengths.length === 3 &&
+    lieStrengths.every((s, i) => s === expectedLieStrengths[i]);
+  check('L1', 'Lie strengths are 3, 4, 5', lieStrOk,
+    `got ${lieStrengths.join(', ')} — expected 3, 4, 5`);
+
+  // L1b: Truth strengths are exactly 3, 3, 4 (fixed template)
+  const truthStrengths = truths.map(c => c.strength).sort((a, b) => a - b);
+  const expectedTruthStrengths = [3, 3, 4];
+  const truthStrOk = truthStrengths.length === 3 &&
+    truthStrengths.every((s, i) => s === expectedTruthStrengths[i]);
+  check('L1b', 'Truth strengths are 3, 3, 4', truthStrOk,
+    `got ${truthStrengths.join(', ')} — expected 3, 3, 4`);
+
+  // L1c: Evidence type distribution (3+ types, max 2 of any)
+  const typeCounts = new Map<string, number>();
+  for (const card of puzzle.cards) {
+    typeCounts.set(card.evidenceType, (typeCounts.get(card.evidenceType) || 0) + 1);
+  }
+  const uniqueTypes = typeCounts.size;
+  const maxOfAnyType = Math.max(...typeCounts.values());
+  check('L1c', 'Evidence type distribution', uniqueTypes >= 3 && maxOfAnyType <= 2,
+    `${uniqueTypes} types, max ${maxOfAnyType} of any — want 3+ types, max 2 each`);
 
   // L2: At least one lie is tempting (strength ≥ avg truth strength)
   const avgTruthStrength = truths.reduce((s, c) => s + c.strength, 0) / truths.length;
@@ -359,6 +380,46 @@ function runChecks(puzzle: V5Puzzle, sequences: PlaySequence[], config: GameConf
   check('X3', 'All verdicts defined',
     !!puzzle.verdicts.flawless && !!puzzle.verdicts.cleared && !!puzzle.verdicts.close && !!puzzle.verdicts.busted,
     'verdicts present');
+
+  // ============================================================================
+  // Sequence Bark Checks (New: THE WOW FACTOR)
+  // ============================================================================
+
+  // X4: Sequences barks defined (30 combinations for 6 cards)
+  const sequenceKeys = Object.keys(puzzle.koaBarks?.sequences ?? {});
+  const expectedSequences = cards.length * (cards.length - 1); // 6 * 5 = 30
+  const hasSequences = sequenceKeys.length > 0;
+  check('X4', 'Sequences barks defined', hasSequences,
+    hasSequences ? `${sequenceKeys.length}/${expectedSequences} sequences` : 'no sequences (optional)',
+    'warn');
+
+  // X5: All sequence barks have valid card pairs
+  if (hasSequences) {
+    const cardIds = new Set(cards.map(c => c.id));
+    const invalidSequences = sequenceKeys.filter(key => {
+      const [from, to] = key.split('→');
+      return !from || !to || !cardIds.has(from) || !cardIds.has(to) || from === to;
+    });
+    check('X5', 'Sequence keys are valid card pairs', invalidSequences.length === 0,
+      invalidSequences.length > 0 ? `invalid: ${invalidSequences.join(', ')}` : 'all valid',
+      'warn');
+  }
+
+  // X6: StoryCompletions barks defined
+  const storyKeys = Object.keys(puzzle.koaBarks?.storyCompletions ?? {});
+  const hasStoryCompletions = storyKeys.length > 0;
+  check('X6', 'StoryCompletions barks defined', hasStoryCompletions,
+    hasStoryCompletions ? `${storyKeys.length} patterns` : 'no storyCompletions (optional)',
+    'warn');
+
+  // X7: LiesRevealed barks defined
+  const liesRevealedKeys = Object.keys(puzzle.koaBarks?.liesRevealed ?? {});
+  const lieIds = lies.map(l => l.id);
+  const hasLiesRevealed = liesRevealedKeys.length > 0;
+  const expectedLiesRevealed = lies.length + 2; // lie IDs + "multiple" + "all"
+  check('X7', 'LiesRevealed barks defined', hasLiesRevealed,
+    hasLiesRevealed ? `${liesRevealedKeys.length}/${expectedLiesRevealed} entries` : 'no liesRevealed (optional)',
+    'warn');
 
   return checks;
 }

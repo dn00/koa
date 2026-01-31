@@ -65,4 +65,7 @@ export interface Card {
 
   /** Hidden from player: true if this card is a lie */
   readonly isLie: boolean;
+
+  /** Source of the evidence for display (e.g., "Sleep Tracker", "Router Log") */
+  readonly source: string;
 }

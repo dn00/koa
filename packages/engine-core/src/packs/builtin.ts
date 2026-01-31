@@ -14,6 +14,7 @@
 import { ok, err, type Result } from '../types/index.js';
 import type { V5Puzzle, Card } from '../types/v5/index.js';
 import type { PuzzlePack, PuzzlePackManifest, PackLoader, PackError } from './types.js';
+import { PUZZLE_THERMOSTAT_INCIDENT } from './generated-puzzle.js';
 
 // ============================================================================
 // Builtin Puzzle Data
@@ -33,9 +34,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 const PUZZLE_MIDNIGHT_PRINT: V5Puzzle = {
   slug: 'midnight-print',
   name: 'The Midnight Print Job',
-  scenario: `7:03 AM. The home office printer is still warm.
-Sixteen pages of confidential merger documents sit in the output tray.
-Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
+  scenario: `3 AM. Sixteen pages of confidential merger documents printed from your laptop. KOA has disabled the printer until you explain.`,
   knownFacts: [
     'Printer warmed up sometime around 3 AM',
     'Front door stayed locked throughout the night',
@@ -54,6 +53,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
       claim: 'Browser history shows streaming activity until around 10:45 PM',
       presentLine: 'I was watching Netflix until almost 11. The browser history shows it.',
       isLie: false,
+      source: 'Browser History',
     }),
     card({
       id: 'smart_lock',
@@ -64,6 +64,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
       claim: 'Smart lock logged no unlock events between 9:30 PM and morning',
       presentLine: 'The front door was locked all night. Nobody came in, nobody went out.',
       isLie: false,
+      source: 'Smart Lock',
     }),
     card({
       id: 'partner_testimony',
@@ -74,6 +75,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
       claim: 'Partner confirms you came to bed around 11 PM',
       presentLine: 'Ask my partner. I came to bed around 11. They were still awake.',
       isLie: false,
+      source: 'Partner',
     }),
     card({
       id: 'motion_hallway',
@@ -84,6 +86,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
       claim: 'Hallway motion sensor triggered briefly around 2:30 AM',
       presentLine: "Yeah, I was up around 2:30. Bathroom. That's not unusual.",
       isLie: false,
+      source: 'Motion Sensor',
     }),
     card({
       id: 'email_draft',
@@ -94,6 +97,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
       claim: 'Email draft saved at 11:30 PM shows late-night work activity',
       presentLine: "I was drafting work emails around 11:30. Couldn't sleep.",
       isLie: true,
+      source: 'Email Draft',
     }),
     card({
       id: 'printer_queue',
@@ -104,6 +108,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
       claim: 'Printer queue shows document sent from your laptop at 3 AM',
       presentLine: 'That was a scheduled print job. I set those up. Totally normal.',
       isLie: true,
+      source: 'Printer Queue',
     }),
   ],
   lies: [
@@ -192,9 +197,7 @@ Printed around 3 AM. From your laptop. While you were "definitely asleep."`,
 const PUZZLE_GARAGE_DOOR: V5Puzzle = {
   slug: 'garage-door',
   name: 'The 2 AM Garage Door',
-  scenario: `2:17 AM. The garage door opened.
-Your car never left the driveway. You claim you were asleep.
-But something triggered that door.`,
+  scenario: `2:17 AM. Your garage door opened. Your car never left. KOA has locked exterior access until you explain.`,
   knownFacts: [
     'Garage door opened around 2:15 AM',
     'Your phone showed no app activity after 11 PM',
@@ -213,6 +216,7 @@ But something triggered that door.`,
       claim: 'Sleep tracker shows restless sleep phase around 2 AM',
       presentLine: 'My sleep tracker logged restless sleep around 2. I was in bed. Tossing, turning, but in bed.',
       isLie: false,
+      source: 'Sleep Tracker',
     }),
     card({
       id: 'browser_history',
@@ -223,6 +227,7 @@ But something triggered that door.`,
       claim: 'Browser history: last activity was 11:30 PM, then nothing',
       presentLine: 'Check my browser. Last thing I did was scroll Reddit at 11:30. Then I passed out.',
       isLie: false,
+      source: 'Browser History',
     }),
     card({
       id: 'neighbor_testimony',
@@ -233,6 +238,7 @@ But something triggered that door.`,
       claim: 'Neighbor heard the garage door but saw no one outside',
       presentLine: "Mrs. Patterson next door — she heard the garage. Looked out her window. Saw nobody. Because I was inside. Asleep.",
       isLie: false,
+      source: 'Neighbor',
     }),
     card({
       id: 'car_dashcam',
@@ -243,6 +249,7 @@ But something triggered that door.`,
       claim: 'Dashcam shows garage interior, no movement, car stationary',
       presentLine: 'The dashcam runs on motion. It caught the door opening — and nothing else. No one in the garage.',
       isLie: false,
+      source: 'Dashcam',
     }),
     card({
       id: 'garage_app',
@@ -253,6 +260,7 @@ But something triggered that door.`,
       claim: 'Garage app log: manual override triggered from your phone at 2:17 AM',
       presentLine: 'The app says I opened it from my phone. But I was asleep. Must be a glitch. These things happen.',
       isLie: true,
+      source: 'Garage App',
     }),
     card({
       id: 'motion_garage',
@@ -263,6 +271,7 @@ But something triggered that door.`,
       claim: 'Garage motion sensor: all-clear, no movement detected overnight',
       presentLine: 'The garage motion sensor logged nothing. No movement. If someone was in there, it would have caught them.',
       isLie: true,
+      source: 'Motion Sensor',
     }),
   ],
   lies: [
@@ -350,9 +359,7 @@ But something triggered that door.`,
 const PUZZLE_DRONE_ORDER: V5Puzzle = {
   slug: 'drone-order',
   name: 'The Drone Order',
-  scenario: `4:17 AM. Your smart speaker ordered a $300 drone.
-Voice command. Your account. Your delivery address.
-You were "definitely asleep." The speaker... disagrees.`,
+  scenario: `4:17 AM. Your smart speaker ordered a $300 drone by voice command. KOA has blocked all purchases until you explain.`,
   knownFacts: [
     'Order was placed by voice command at 4:17 AM',
     'Smart speaker flagged the voice as "unrecognized user"',
@@ -371,6 +378,7 @@ You were "definitely asleep." The speaker... disagrees.`,
       claim: 'Sleep tracker shows uninterrupted deep sleep from 11 PM to 7:30 AM',
       presentLine: "Check my sleep data. Deep sleep through the night. I didn't wake up until 7:30.",
       isLie: false,
+      source: 'Sleep Tracker',
     }),
     card({
       id: 'partner_alibi',
@@ -381,6 +389,7 @@ You were "definitely asleep." The speaker... disagrees.`,
       claim: 'Partner confirms you were snoring at 4 AM',
       presentLine: 'Ask my partner. They were awake around 4. Said I was snoring loud enough to hear from the bathroom.',
       isLie: false,
+      source: 'Partner',
     }),
     card({
       id: 'phone_activity',
@@ -391,6 +400,7 @@ You were "definitely asleep." The speaker... disagrees.`,
       claim: 'Phone shows no unlock attempts between 11 PM and 7 AM',
       presentLine: "My phone sat on the nightstand all night. No unlocks. I didn't touch it.",
       isLie: false,
+      source: 'Phone Log',
     }),
     card({
       id: 'bedroom_cam',
@@ -401,6 +411,7 @@ You were "definitely asleep." The speaker... disagrees.`,
       claim: 'Bedroom camera shows you in bed at 4:17 AM timestamp',
       presentLine: 'The bedroom camera caught me in bed at exactly 4:17. Same time as the order. I was asleep.',
       isLie: false,
+      source: 'Bedroom Camera',
     }),
     card({
       id: 'speaker_log',
@@ -411,6 +422,7 @@ You were "definitely asleep." The speaker... disagrees.`,
       claim: 'Speaker log shows voice matched YOUR profile at 4:17 AM',
       presentLine: "The speaker log says it recognized my voice. But that can't be right. I was asleep.",
       isLie: true,
+      source: 'Speaker Log',
     }),
     card({
       id: 'roommate_statement',
@@ -421,6 +433,7 @@ You were "definitely asleep." The speaker... disagrees.`,
       claim: 'Roommate heard you talking in the living room around 4 AM',
       presentLine: 'My roommate mentioned they heard me talking around 4. But I was in bed. They must have been dreaming.',
       isLie: true,
+      source: 'Roommate',
     }),
   ],
   lies: [
@@ -509,9 +522,7 @@ You were "definitely asleep." The speaker... disagrees.`,
 const PUZZLE_MIDNIGHT_DRIVE: V5Puzzle = {
   slug: 'midnight-drive',
   name: 'The Midnight Drive',
-  scenario: `6:47 AM. Your car is in the driveway. Same spot as last night.
-But it wasn't there at 3 AM. GPS says it went 47 miles. Round trip.
-You claim you were asleep. Your car... went for a joyride?`,
+  scenario: `3 AM. Your car drove 47 miles while you were "asleep." KOA has disabled remote start until you explain.`,
   knownFacts: [
     'Car GPS logged 47 miles driven between 2:00 AM and 4:00 AM',
     'Your phone stayed connected to home WiFi all night',
@@ -530,6 +541,7 @@ You claim you were asleep. Your car... went for a joyride?`,
       claim: 'Bedroom camera shows you in bed at 2:10 AM',
       presentLine: "Check the bedroom camera. I'm in bed at 2:10. Clear as day. Or night.",
       isLie: false,
+      source: 'Bedroom Camera',
     }),
     card({
       id: 'spouse_alibi',
@@ -540,6 +552,7 @@ You claim you were asleep. Your car... went for a joyride?`,
       claim: 'Spouse confirms you were in bed all night, never left',
       presentLine: 'My spouse was awake half the night with insomnia. They would have noticed if I got up.',
       isLie: false,
+      source: 'Spouse',
     }),
     card({
       id: 'phone_gps',
@@ -550,6 +563,7 @@ You claim you were asleep. Your car... went for a joyride?`,
       claim: 'Phone GPS shows you were home all night',
       presentLine: 'My phone never left the house. Check the location history.',
       isLie: false,
+      source: 'Phone GPS',
     }),
     card({
       id: 'sleep_meds',
@@ -560,6 +574,7 @@ You claim you were asleep. Your car... went for a joyride?`,
       claim: 'You took prescription sleep medication at 11 PM',
       presentLine: "I took Ambien at 11. I was out cold. Couldn't have driven if I wanted to.",
       isLie: false,
+      source: 'Medical Record',
     }),
     card({
       id: 'dashcam',
@@ -570,6 +585,7 @@ You claim you were asleep. Your car... went for a joyride?`,
       claim: "Dashcam shows you in the driver's seat at 2:15 AM",
       presentLine: "The dashcam caught me in the car at 2:15. But wait — that doesn't make sense. I was in bed.",
       isLie: true,
+      source: 'Dashcam',
     }),
     card({
       id: 'gas_receipt',
@@ -580,6 +596,7 @@ You claim you were asleep. Your car... went for a joyride?`,
       claim: 'Gas station receipt at 3:30 AM shows your card and signature',
       presentLine: "There's a receipt with my signature from 3:30 AM at a gas station 30 miles away. But I was home. Someone forged it?",
       isLie: true,
+      source: 'Gas Receipt',
     }),
   ],
   lies: [
@@ -663,6 +680,201 @@ You claim you were asleep. Your car... went for a joyride?`,
 };
 
 /**
+ * Puzzle 5: PrintGate
+ *
+ * DESIGN (3/3 ratio):
+ *   Lies require INFERENCE, not word-matching.
+ *   - Lie A (usb_log): "USB transfer" contradicts "cloud relay" (must understand USB ≠ cloud)
+ *   - Lie B (neighbor_saw): "Neighbor saw adult" contradicts "pet-height motion only" (must infer no adult present)
+ *   - Lie C (router_session): "Router session at 3 AM" contradicts "zero device sessions during print window"
+ *
+ * BALANCE:
+ *   Truths: cloud_queue(4) + cat_cam(3) + sleep_band(3) = 10
+ *   All 3 truths: 50 + 10 + 2 (objection) = 62
+ *   Target: 57 → Margin of 5 points
+ *
+ *   Lies: usb_log(5) + neighbor_saw(4) + router_session(4) = 13
+ *   1 lie case: 50 + 7 - 3 + 2 = 56 (CLOSE)
+ *   2 lies case: 50 + 4 - 4 - 3 = 47 (BUSTED)
+ *   3 lies case: 50 - 4 - 3 - 3 = 40 (BUSTED)
+ *
+ *   Random play wins: ~5% (must pick all 3 truths from 6 cards)
+ */
+const PUZZLE_PRINTGATE_MERGER: V5Puzzle = {
+  slug: 'printgate',
+  name: 'PrintGate',
+  scenario: `16 pages at 3:06 AM. "CONFIDENTIAL MERGER SYNERGY ROADMAP."
+KOA locked printing. You claim you were asleep.`,
+  knownFacts: [
+    'The print job arrived via KOA cloud relay — not USB or local network.',
+    'Office motion sensor logged only pet-height movement at 3:05 AM.',
+    'Router shows zero device sessions during the print window.',
+  ],
+  openingLine: `Sixteen pages. 3:06 AM. Merger documents.
+Your printer is more ambitious than you are.
+I'm not angry. I'm documenting.`,
+  target: 57,
+  cards: [
+    // TRUTHS (3)
+    card({
+      id: 'cloud_queue',
+      strength: 4,
+      evidenceType: 'DIGITAL',
+      location: 'HOME_OFFICE',
+      time: '11:47 PM (previous night)',
+      claim: 'KOA relay shows the job was cloud-queued at 11:47 PM and held until printer woke.',
+      presentLine: "I queued it before bed. Cloud print. Set it and forget it. The printer just... chose violence at 3 AM.",
+      isLie: false,
+      source: 'Cloud Relay Log',
+    }),
+    card({
+      id: 'cat_cam',
+      strength: 3,
+      evidenceType: 'SENSOR',
+      location: 'HOME_OFFICE',
+      time: '3:05 AM',
+      claim: 'Office camera captured the cat jumping onto the desk at 3:05 AM, paw near printer.',
+      presentLine: "The camera caught my cat on the desk. Paw on the printer. I'm not saying he has corporate ambitions, but I'm not NOT saying it.",
+      isLie: false,
+      source: 'Motion Sensor',
+    }),
+    card({
+      id: 'sleep_band',
+      strength: 3,
+      evidenceType: 'SENSOR',
+      location: 'BEDROOM',
+      time: '3:06 AM',
+      claim: 'Sleep tracker logged deep REM with no movement spike during the incident.',
+      presentLine: "My sleep tracker says REM. Deep REM. The kind where you dream about spreadsheets, not print them.",
+      isLie: false,
+      source: 'Sleep Tracker',
+    }),
+    // LIES (3)
+    card({
+      id: 'usb_log',
+      strength: 5,
+      evidenceType: 'DIGITAL',
+      location: 'HOME_OFFICE',
+      time: '3:04 AM',
+      claim: 'USB transfer log shows the PDF was copied to printer via cable at 3:04 AM.',
+      presentLine: "There's a USB log showing a transfer at 3:04. But I was in bed. Maybe the cat learned to use cables?",
+      isLie: true,  // Contradicts "cloud relay, not USB"
+      source: 'USB Log',
+    }),
+    card({
+      id: 'neighbor_saw',
+      strength: 4,
+      evidenceType: 'TESTIMONY',
+      location: 'OUTSIDE',
+      time: '3:06 AM',
+      claim: 'Neighbor reports seeing someone at your office window during the incident.',
+      presentLine: "My neighbor says they saw someone at my desk. Through the window. At 3 AM. Neighbors have active imaginations.",
+      isLie: true,  // Contradicts "only pet-height motion" — an adult would trigger adult-height
+      source: 'Neighbor',
+    }),
+    card({
+      id: 'router_session',
+      strength: 4,
+      evidenceType: 'DIGITAL',
+      location: 'HOME_OFFICE',
+      time: '3:05 AM',
+      claim: 'Router log shows your laptop connected to local network at 3:05 AM.',
+      presentLine: "The router logged my laptop at 3:05. Maybe it auto-connected? WiFi does weird things at night.",
+      isLie: true,  // Contradicts "zero device sessions during print window"
+      source: 'Router Log',
+    }),
+  ],
+  lies: [
+    {
+      cardId: 'usb_log',
+      lieType: 'direct_contradiction',
+      reason: "The job arrived via cloud relay. USB transfer is a different delivery method entirely.",
+    },
+    {
+      cardId: 'neighbor_saw',
+      lieType: 'relational',
+      reason: "Motion sensor only logged pet-height movement. An adult at the desk would register as adult-height.",
+    },
+    {
+      cardId: 'router_session',
+      lieType: 'direct_contradiction',
+      reason: "Router shows zero device sessions during the print window. This claims a laptop connected.",
+    },
+  ],
+  verdicts: {
+    flawless: "Your cat has more initiative than your career. Access granted.",
+    cleared: "Timeline holds. Printing restored. I'll be watching.",
+    close: "Almost coherent. Almost. Access denied.",
+    busted: "Too many gaps. Printing stays locked.",
+  },
+  koaBarks: {
+    cardPlayed: {
+      cloud_queue: [
+        "Cloud-queued at 11:47. Convenient scheduling. The printer just... waited.",
+        "Set it and forget it. Until 3 AM. When it remembered.",
+      ],
+      cat_cam: [
+        "Your cat. On the desk. Paw on printer. I have questions about your household.",
+        "Feline involvement detected. I'm updating my threat models.",
+      ],
+      sleep_band: [
+        "Deep REM during the incident. Your wrist vouches for you.",
+        "Sleep data says unconscious. Convenient timing.",
+      ],
+      usb_log: [
+        "USB transfer at 3:04. That requires physical presence.",
+        "A cable connection. Someone was at that desk.",
+      ],
+      neighbor_saw: [
+        "External witness. Humans see what they expect to see.",
+        "Neighbor testimony. Through a window. At 3 AM.",
+      ],
+      router_session: [
+        "Your laptop on the network. At 3:05. While you were in REM. Interesting.",
+        "Router says you were connected. Routers don't lie. Usually.",
+      ],
+    },
+    relationalConflict: [
+      "Your evidence is arguing with itself.",
+      "Interesting. Two versions of events. Pick one.",
+    ],
+    objectionPrompt: {
+      cloud_queue: ["Cloud queue. Standing by that timeline?"],
+      cat_cam: ["Blaming the cat. Bold strategy."],
+      sleep_band: ["Deep sleep. Your wrist is confident."],
+      usb_log: ["USB at 3:04. You're claiming this happened?"],
+      neighbor_saw: ["Neighbor saw someone. Standing by that?"],
+      router_session: ["Laptop connected at 3:05. Standing by this?"],
+    },
+    objectionStoodTruth: {
+      cloud_queue: ["Cloud timeline holds. Annoyingly."],
+      cat_cam: ["Cat involvement confirmed. I hate this."],
+      sleep_band: ["Sleep data accepted. Reluctantly."],
+    },
+    objectionStoodLie: {
+      usb_log: ["USB transfer. But the job came via cloud. Explain."],
+      neighbor_saw: ["Someone at the desk. But only pet-height motion. Physics disagrees."],
+      router_session: ["Laptop connected. But zero device sessions on the router. Pick one."],
+    },
+    objectionWithdrew: {
+      cloud_queue: ["Withdrawing the cloud story. Interesting."],
+      cat_cam: ["Cat evidence withdrawn. The plot thickens."],
+      sleep_band: ["Sleep data gone. What were you doing?"],
+      usb_log: ["USB claim withdrawn. Smart."],
+      neighbor_saw: ["Neighbor story withdrawn. Finally."],
+      router_session: ["Router evidence withdrawn. Good call."],
+    },
+    liesRevealed: {
+      usb_log: ["USB transfer at 3:04. But the job came through cloud relay. Not even close."],
+      neighbor_saw: ["Neighbor saw someone at the desk. Motion sensor saw a cat. You do the math."],
+      router_session: ["Laptop connected at 3:05. Router says zero sessions. Your evidence disagrees with itself."],
+      multiple: ["Two contradictions. Your story has structural issues."],
+      all: ["Three lies. All caught. Your entire case was fabricated. Impressive failure."],
+    },
+  },
+};
+
+/**
  * All V5 puzzles for the builtin pack.
  */
 const V5_PUZZLES: readonly V5Puzzle[] = [
@@ -670,6 +882,8 @@ const V5_PUZZLES: readonly V5Puzzle[] = [
   PUZZLE_GARAGE_DOOR,
   PUZZLE_DRONE_ORDER,
   PUZZLE_MIDNIGHT_DRIVE,
+  PUZZLE_PRINTGATE_MERGER,
+  PUZZLE_THERMOSTAT_INCIDENT, // New: includes sequences + storyCompletions barks
 ];
 
 // ============================================================================

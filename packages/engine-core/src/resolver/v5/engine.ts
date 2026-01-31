@@ -60,6 +60,18 @@ export interface ObjectionOutput {
 }
 
 /**
+ * Penalty summary for verdict screen
+ */
+export interface PenaltySummary {
+  /** Number of times type tax was applied */
+  readonly typeTaxCount: number;
+  /** Total penalty points from type tax */
+  readonly typeTaxTotal: number;
+  /** Which turns had type tax applied (1-indexed) */
+  readonly typeTaxTurns: readonly number[];
+}
+
+/**
  * Final verdict data at end of game
  */
 export interface VerdictData {
@@ -72,6 +84,8 @@ export interface VerdictData {
     readonly wasLie: boolean;
     readonly contradictionReason?: string;
   }>;
+  /** Penalty summary (type tax, etc.) */
+  readonly penalties: PenaltySummary;
 }
 
 // ============================================================================
@@ -252,6 +266,43 @@ export function isGameOver(state: GameState, config: GameConfig): boolean {
 }
 
 /**
+ * Get the verdict bark based on lies played.
+ * Uses liesRevealed if available, falls back to tier-based verdict.
+ *
+ * @param puzzle - The puzzle being played
+ * @param played - Cards that were played
+ * @param tier - Final tier achieved
+ * @returns The KOA bark text
+ */
+function getVerdictBark(
+  puzzle: V5Puzzle,
+  played: readonly Card[],
+  tier: Tier
+): string {
+  const liesPlayed = played.filter(c => c.isLie);
+  const tierKey = tier.toLowerCase() as keyof typeof puzzle.verdicts;
+
+  // No lies → use tier-based verdict
+  if (liesPlayed.length === 0) {
+    return puzzle.verdicts[tierKey];
+  }
+
+  // Determine lie key based on count
+  let lieKey: string;
+  if (liesPlayed.length === 1 && liesPlayed[0]) {
+    lieKey = liesPlayed[0].id;
+  } else if (liesPlayed.length === 2) {
+    lieKey = 'multiple';
+  } else {
+    lieKey = 'all';
+  }
+
+  // Try liesRevealed, fallback to tier-based verdict
+  const bark = puzzle.koaBarks.liesRevealed?.[lieKey]?.[0];
+  return bark ?? puzzle.verdicts[tierKey];
+}
+
+/**
  * Calculate final verdict.
  * Pure function - computes tier and verdict data.
  *
@@ -267,9 +318,8 @@ export function getVerdict(
 ): VerdictData {
   const tier = getTier(state.belief, puzzle.target, config);
 
-  // Get verdict line from puzzle
-  const tierKey = tier.toLowerCase() as keyof typeof puzzle.verdicts;
-  const koaLine = puzzle.verdicts[tierKey];
+  // Get verdict bark based on lies played (uses liesRevealed if available)
+  const koaLine = getVerdictBark(puzzle, state.played, tier);
 
   // Build played cards with lie info
   const playedCards = state.played.map(card => {
@@ -281,11 +331,26 @@ export function getVerdict(
     };
   });
 
+  // Calculate penalty summary from turn results
+  const typeTaxTurns: number[] = [];
+  state.turnResults.forEach((result, index) => {
+    if (result.typeTaxApplied) {
+      typeTaxTurns.push(index + 1); // 1-indexed turns
+    }
+  });
+
+  const penalties: PenaltySummary = {
+    typeTaxCount: typeTaxTurns.length,
+    typeTaxTotal: typeTaxTurns.length * config.typeTax.penalty,
+    typeTaxTurns,
+  };
+
   return {
     tier,
     beliefFinal: state.belief,
     beliefTarget: puzzle.target,
     koaLine,
     playedCards,
+    penalties,
   };
 }

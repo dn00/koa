@@ -63,8 +63,20 @@ export interface V5Puzzle {
 
   /** Puzzle-specific KOA barks/dialogue */
   readonly koaBarks: {
-    /** Response when specific card is played */
+    /** Response when specific card is played (Turn 1 only) */
     readonly cardPlayed?: Readonly<Record<string, readonly string[]>>;
+    /**
+     * Sequence-aware barks for Turn 2+ (keyed by "cardA→cardB")
+     * KOA reacts to the ORDER of cards, not just individual cards.
+     * Example: "browser_history→smart_lock" vs "smart_lock→browser_history"
+     */
+    readonly sequences?: Readonly<Record<string, readonly string[]>>;
+    /**
+     * Story completion barks for Turn 3 (keyed by pattern name)
+     * Patterns: all_digital, all_sensor, all_testimony, all_physical,
+     * mixed_strong, mixed_weak, digital_heavy, sensor_heavy, etc.
+     */
+    readonly storyCompletions?: Readonly<Record<string, readonly string[]>>;
     /** When played cards conflict with each other */
     readonly relationalConflict?: readonly string[];
     /** Objection prompt for specific cards */
@@ -75,5 +87,7 @@ export interface V5Puzzle {
     readonly objectionStoodLie?: Readonly<Record<string, readonly string[]>>;
     /** Response when player withdrew */
     readonly objectionWithdrew?: Readonly<Record<string, readonly string[]>>;
+    /** Final bark when lies are revealed at game end (keyed by cardId, "both" for 2 lies) */
+    readonly liesRevealed?: Readonly<Record<string, readonly string[]>>;
   };
 }

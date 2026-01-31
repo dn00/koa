@@ -17,5 +17,8 @@ export * from './packs/index.js';
 // Hash utilities
 export * from './hash.js';
 
+// Narration (system-level barks)
+export * from './narration/index.js';
+
 // Version
 export const ENGINE_VERSION = '0.1.0' as const;
