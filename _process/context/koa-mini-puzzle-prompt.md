@@ -4,6 +4,127 @@ You are generating puzzles for **KOA Mini**, a daily mobile puzzle game.
 
 ---
 
+## Difficulty Levels
+
+When generating a puzzle, you'll be given a difficulty level. **The primary lever is lie type distribution.**
+
+Difficulties use **ranges** to prevent pattern memorization:
+
+| Difficulty | Inferential | Relational | Constraint |
+|------------|-------------|------------|------------|
+| **EASY** | 2-3 | 0-1 | At most 1 relational |
+| **MEDIUM** | 1-2 | 1-2 | At least 1 of each |
+| **HARD** | 0-1 | 2-3 | At least 2 relational |
+
+### Weekly Rotation (Reference)
+- **Monday:** EASY
+- **Tuesday-Friday:** MEDIUM
+- **Saturday:** MEDIUM-HARD (1 inf + 2 rel)
+- **Sunday:** HARD
+
+### EASY (Monday)
+**Lie distribution: 2-3 inferential, 0-1 relational**
+
+Most lies caught by a single fact with one logical step. At most one lie requires combining facts.
+
+```
+EASY EXAMPLE:
+Fact: "Phone was in airplane mode all night"
+Lie: "App sent a push notification at 3 AM"
+Catch: Airplane mode blocks notifications. One fact, one step.
+```
+
+Other EASY traits:
+- Facts are direct and clearly worded
+- No red herring truths (all truths sound obviously true)
+- All lies at inferenceDepth: 1
+- Win rate target: 15-25%
+
+### MEDIUM (Tuesday-Friday)
+**Lie distribution: 1-2 inferential, 1-2 relational**
+
+Mix of single-fact catches and fact-combining. At least one lie requires combining two facts OR cross-referencing with a truth card.
+
+```
+MEDIUM EXAMPLE (relational lie):
+Fact 1: "Smart lock accepts fingerprint OR code (no other methods)"
+Fact 2: "Fingerprint reader was offline for maintenance"
+Lie: "Lock opened via fingerprint at 3 AM"
+Catch: Fact 1 says only fingerprint or code. Fact 2 says fingerprint offline.
+       Need BOTH facts to realize fingerprint is impossible.
+```
+
+Other MEDIUM traits:
+- Mix of direct and indirect facts
+- 0-1 truth may sound slightly suspicious
+- Mix of inferenceDepth 1 and 2
+- Win rate target: 10-15%
+
+### HARD (Saturday-Sunday)
+**Lie distribution: 0-1 inferential, 2-3 relational**
+
+Most lies require combining facts or card cross-reference. At most one single-fact catch.
+
+```
+HARD EXAMPLE (relational via card cross-reference):
+Fact 3: "Washer door opened at 2:58 AM"
+Truth card: "Control panel shows standard manual start at 3 AM"
+Lie card: "Child lock was on - only override mode can start"
+Catch: If child lock was on, only override works. But truth card shows
+       NORMAL start, not override. Cards contradict each other.
+       No single fact catches this - need the truth card.
+```
+
+Other HARD traits:
+- Facts are indirect, require interpretation
+- 1-2 truths sound suspicious (red herrings)
+- At least 1 lie at inferenceDepth: 2-3
+- Win rate target: 5-12%
+
+### EXPERT (Future)
+Reserved for time-based puzzles in Advanced mode. Not currently used.
+
+---
+
+## Scenario Archetypes
+
+Vary the hook. Not every puzzle needs to be "suspicious activity at 2am."
+
+### Suspicious Time (default, use sparingly)
+Something happened at an odd hour.
+- "Garage door opened at 2:17 AM"
+- "Printer ran 16 pages at 3 AM"
+- "Thermostat changed at midnight"
+
+### Suspicious Quantity
+An absurd amount of something.
+- "Your fridge ordered 47 pounds of cheese. You're lactose intolerant."
+- "The automatic feeder dispensed 15 meals. You only have one cat."
+- "Your Roomba ran for 9 hours. Your apartment is 400 sq ft."
+
+### Suspicious Contradiction
+Two things that can't both be true.
+- "Your thermostat thinks it's July. It's December."
+- "Your doorbell saw you leave. Your fitness tracker logged 10,000 steps inside."
+- "Your calendar said 'important meeting'. Your TV watched 8 hours of reality shows."
+
+### Suspicious Sequence
+A pattern that doesn't make sense.
+- "The garage door opened 12 times in an hour. Your car never left."
+- "Your smart lock cycled 47 times. You were 'asleep'."
+- "The lights went disco mode. You blame the cat."
+
+### Suspicious Purchase
+An order that doesn't fit.
+- "Your smart speaker ordered a kayak, scuba gear, and a wetsuit. You can't swim."
+- "Your grocery order includes 14 pineapples. You're allergic."
+- "Your pantry restock included 30 cans of anchovies. You hate fish."
+
+### Pick Randomly
+When generating puzzles, choose an archetype at random to ensure variety. The hook doesn't have to be time — it can be quantity, contradiction, sequence, or absurdity.
+
+---
+
 ## 7-Minute Design Guidelines
 
 KOA Mini puzzles target ~7 minutes of satisfying play. These constraints ensure consistency and depth:
@@ -22,17 +143,89 @@ KOA Mini puzzles target ~7 minutes of satisfying play. These constraints ensure 
   - "HVAC panel was not accessed overnight"
   - "All windows stayed closed all night"
 
-### Lie Difficulty Gradient (No Gimmes)
-**All lies require inference.** No direct contradictions that can be caught by word-matching.
+### Lie Difficulty Gradient
+**All lies require inference.** No direct contradictions at any difficulty level.
 
-1. **Medium lie** (one-step inference) — Requires one logical step to connect card to fact.
-2. **Medium-hard lie** (implication) — Requires understanding what the claim implies.
-3. **Tricky lie** (relational) — Requires understanding relationships between multiple pieces.
+The lie distribution depends on the difficulty level specified:
+- **EASY:** 3 inferential lies (single-fact catches)
+- **MEDIUM:** 1 relational + 2 inferential
+- **HARD:** 2 relational + 1 inferential
 
-This ensures:
-- Every lie is satisfying to catch
-- Puzzles are easier to generate (no narrow "obvious but not insulting" target)
-- 7 minutes of thinking, not 5 with a gimme
+**Relational lies** require players to:
+- Combine Fact A + Fact B to realize the card is impossible
+- OR notice that Card X + Card Y together create a contradiction
+- OR understand a chain: "If Fact says X, and X implies Y, then card claiming Z is false"
+
+**Inferential lies** require players to:
+- Understand what the claim implies about a single fact
+- Make one logical step (not just word-matching)
+
+This ensures puzzles feel like detective work at all difficulty levels.
+
+### CRITICAL: What Makes a Lie "Relational" vs "Inferential"
+
+**The test: Can ONE Known Fact alone catch this lie?**
+- If YES → it's **inferential** (or worse, direct contradiction)
+- If NO, you need 2+ facts → it's **relational**
+
+**WRONG (labeled "relational" but actually single-fact):**
+```
+Fact 1: "Guest codes have been disabled for 6 months"
+Lie card: "Lock shows guest code entry at 2:14 AM"
+```
+This is NOT relational. Fact 1 alone catches it. The lie says "guest code used", the fact says "codes disabled." One fact. Single-step. Inferential at best.
+
+**WRONG (labeled "relational" but actually single-fact):**
+```
+Fact 1: "All key fobs were in the charging station overnight"
+Lie card: "Lock log shows key fob proximity unlock at 2:14 AM"
+```
+This is NOT relational. Fact 1 alone catches it. Fobs charging = no fob at door. One fact.
+
+**RIGHT (truly relational — requires 2 facts):**
+```
+Fact 1: "Smart lock only accepts key fob OR guest code (no other methods)"
+Fact 2: "All key fobs were in the charging station overnight"
+Lie card: "Lock opened via key fob proximity at 2:14 AM"
+```
+Why relational: Fact 2 alone doesn't catch it (maybe there are other unlock methods?). You need Fact 1 (only fob OR code) + Fact 2 (fobs charging) to realize the fob claim is impossible.
+
+**RIGHT (truly relational — requires card cross-reference):**
+```
+Truth card A: "Security camera shows empty porch at 2:14 AM"
+Lie card B: "Lock log shows guest code entry at 2:14 AM (someone typed it)"
+```
+Why relational: No single Known Fact catches the lie. But if you played Truth A showing empty porch, then Lie B claiming someone typed a code is impossible — who typed it if no one was there?
+
+**RIGHT (truly relational — inference chain):**
+```
+Fact 1: "All smart home commands required phone confirmation after midnight"
+Fact 2: "Phone was in airplane mode from 11 PM to 6 AM"
+Lie card: "Smart home auto-adjusted thermostat based on schedule"
+```
+Why relational: Fact 1 says commands need phone. Fact 2 says phone was offline. Chain: auto-adjust = command = needs phone = needs non-airplane mode = impossible.
+
+### Red Herring Truths
+**At least one truth should sound suspicious.** This prevents players from using "tone" as a tell.
+
+- Truths can have defensive-sounding presentLines ("Must be a glitch", "I swear I was asleep")
+- Truths can seem to contradict facts at first glance (but actually don't on careful reading)
+- Not every confident-sounding card is a lie
+
+### Indirect Known Facts
+**Facts should require interpretation, not just matching.**
+
+BAD (too direct):
+> "Phone was in airplane mode all night"
+> → Any phone-based card is obviously a lie
+
+GOOD (requires inference):
+> "Phone battery was at 100% at 6 AM after being plugged in at midnight"
+> → Player must infer: if plugged in and full, was it used? Did airplane mode matter?
+
+GOOD (combinatorial):
+> "Router logged exactly 3 devices overnight: TV, thermostat, security camera"
+> → Player must realize: if only 3 devices, a 4th device claim is false
 
 ### Fixed Card Strengths
 Use these exact values for deterministic balance:
@@ -48,6 +241,97 @@ Use these exact values for deterministic balance:
 - Avoid multi-clause claims that require re-reading
 - `presentLine` can be longer (it's the player's excuse) but `claim` should be scannable
 - Target: claims under 15 words when possible
+
+---
+
+## v1 Lite Axis Fields (Required)
+
+Every card and lie MUST include these v1 Lite fields for the tiering system to work correctly.
+
+### Card Fields
+
+Each card MUST include these fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `factTouch` | `1 \| 2 \| 3` | Which known fact (1, 2, or 3) this card addresses. Each truth addresses exactly one fact. Lies contradict their factTouch. |
+| `signalRoot` | enum | Where the signal originates. See options below. |
+| `controlPath` | enum | How the action was controlled. Options: `'manual'`, `'automation'`, `'remote'`, `'unknown'` |
+| `claimShape` | enum | What kind of claim. Options: `'absence'` (what didn't happen), `'positive'` (what did happen), `'attribution'` (blaming something), `'integrity'` (system was working correctly) |
+| `subsystem` | string | The subsystem this evidence relates to (e.g., `'climate'`, `'printer'`, `'garage'`) |
+
+**signalRoot Options:**
+- Cloud: `'koa_cloud'`
+- Device: `'phone_os'`, `'device_firmware'`, `'camera_storage'`, `'wearable_health'`
+- Network: `'router_net'`
+- Human: `'human_partner'`, `'human_neighbor'`, `'human_self'`
+- Physical: `'receipt_photo'`
+- Unknown: `'unknown'`
+
+### Lie Fields
+
+Each lie entry MUST include these additional fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lieType` | enum | Must be `'inferential'` or `'relational'`. **Require 2 relational + 1 inferential.** |
+| `inferenceDepth` | `1 \| 2 \| 3` | How many steps to catch: 1=single fact, 2=combine facts, 3=chain reasoning |
+| `trapAxis` | enum | Why this lie is tempting. Options: `'coverage'` (patches a gap), `'independence'` (adds diversity), `'control_path'` (convenient alibi), `'claim_shape'` (seductive claim type) |
+| `baitReason` | string | One sentence explaining why players will pick this lie |
+
+### v1 Lite Constraints
+
+1. **Coverage Partition**: Truth cards MUST cover all 3 facts. Each truth touches exactly one fact, forming partition {1, 2, 3}.
+
+2. **Fact Overlap**: Each fact must be touched by at least 2 cards total (truths + lies). This ensures lies look viable.
+
+3. **Independence Diversity**: Truth cards SHOULD have at least 2 different signalRoots. Avoid all truths from same source family.
+
+4. **Trap Diversity**: Lies MUST use at least 2 different trapAxis values. Don't make all lies tempting for the same reason.
+
+5. **P4+ Constraint (Dangerous Information)**: When a concern is triggered (two cards share a dimension), dodging that dimension should still expose the player to at least one lie. This creates a true dilemma where both "diversify" and "double down" strategies carry risk.
+
+6. **No Direct Contradictions**: All lies require inference to detect. No word-matching gimmes.
+
+7. **storyCompletions**: Use closing-energy barks only. No axis commentary, no evaluation in T3 barks.
+
+8. **T2 Suspicion (System-Generated)**: After T2, the system auto-generates a suspicion line based on axis analysis (e.g., "Same system vouching twice. Interesting." or "Lot of automation doing the work for you."). This is NOT authored per-puzzle - it's derived from the v1 Lite fields. Your `sequences` barks should focus on the card relationship, not axis patterns.
+
+### Example Card (Truth)
+
+```typescript
+{
+  id: 'sleep_apnea',
+  strength: 4,
+  evidenceType: 'SENSOR',
+  location: 'BEDROOM',
+  time: '',
+  claim: 'CPAP logged breathing irregularity, triggering comfort automation.',
+  presentLine: "My CPAP machine logged a breathing issue. The smart home tried to help.",
+  isLie: false,
+  source: 'CPAP Monitor',
+  // v1 Lite tags
+  factTouch: 1,
+  signalRoot: 'wearable_health',
+  controlPath: 'automation',
+  claimShape: 'positive',
+  subsystem: 'climate',
+}
+```
+
+### Example Lie Entry
+
+```typescript
+{
+  cardId: 'temp_app',
+  lieType: 'relational',  // Most lies should be relational
+  inferenceDepth: 2,      // Requires combining 2 facts
+  reason: 'Fact 1 says phone had no app activity. Fact 2 says all commands required phone confirmation. This card claims app sent a command — impossible.',
+  // v1 Lite trap fields
+  trapAxis: 'independence',
+  baitReason: 'Offers a phone-based explanation that diversifies away from smart home automation.',
+}
+```
 
 ---
 
@@ -103,7 +387,39 @@ Choose a household "incident" that KOA finds suspicious:
 - "Prove you didn't commit X" (crime/guilt)
 - Courtroom language (trial, guilty, verdict)
 
-Write a 2-3 sentence scenario that states what happened and why KOA cares.
+### Scenario Writing
+
+**NO FORMULA.** Don't write `"[Time]. [Event]. KOA has locked X until you explain."` for every puzzle.
+
+**Bad (formulaic, boring):**
+- "3:12 AM. The thermostat changed. KOA has locked climate controls until you explain."
+- "2:33 AM. Your wine cooler opened. KOA has locked the cooler until you explain."
+
+**Good (creative, varied):**
+- "Your fridge ordered 47 pounds of cheese. You're lactose intolerant. KOA has questions."
+- "The garage door has opinions about your 3 AM activities. So does your car insurance."
+- "Someone taught the vacuum to fear the kitchen. It's been hiding under the couch for six hours."
+
+2-3 sentences. Set the scene with personality. Make the player smile before they start.
+
+### Puzzle Naming
+
+**Avoid the "The \<X\>" formula.** Don't name every puzzle "The 3 AM \<Thing\>" or "The \<Adjective\> Incident."
+
+**Bad names (lazy, repetitive):**
+- "The Thermostat Incident"
+- "The 3 AM Sprinkler"
+- "The Midnight Vintage"
+
+**Good names (creative, punchy):**
+- "Burgundy Heist"
+- "Frozen Lawn"
+- "Coffee Crimes"
+- "Who Moved the Thermostat?"
+- "Midnight Snack Attack"
+- "The Fridge Knows"
+
+Name should hint at the scenario with personality. Puns welcome. Questions work. Avoid generic "The X" constructions.
 
 ---
 
@@ -113,30 +429,89 @@ Write a 2-3 sentence scenario that states what happened and why KOA cares.
 
 Decide: What 3 contradictions do you want players to catch?
 
-### Lie Types (ALL REQUIRE INFERENCE):
+### Lie Types (HARD MODE — 2 Relational Required):
 
-**No direct contradictions.** Every lie requires at least one reasoning step.
+**No direct contradictions.** Most lies require cross-referencing multiple pieces.
 
 | Type | How to Catch | Difficulty | Required |
 |------|--------------|------------|----------|
-| `inferential` | Fact implies X, card implies not-X (one logical step) | **Medium** | 1 per puzzle |
-| `inferential` | Requires understanding what the claim implies | **Medium-hard** | 1 per puzzle |
-| `relational` | Requires understanding relationships/cross-referencing | **Tricky** | 1 per puzzle |
+| `inferential` | Fact implies X, card implies not-X (one logical step) | **Medium** | **1 per puzzle** |
+| `relational` | Requires combining 2+ facts OR cross-referencing cards | **Hard** | **2 per puzzle** |
+
+### Relational Lie Patterns (use these):
+
+**BEFORE writing a relational lie, apply this test:**
+> "If I remove all other facts and cards, can THIS ONE FACT catch the lie?"
+> If yes → NOT relational. Redesign.
+
+**Pattern A: Multi-Fact Combination**
+> Fact 1: "Router logged exactly 3 devices overnight"
+> Fact 2: "Those devices were: TV, thermostat, camera"
+> Lie: "Laptop connected to WiFi at 2 AM"
+> ✓ TEST: Fact 1 alone? No — just says "3 devices", doesn't say which.
+> ✓ TEST: Fact 2 alone? No — just lists devices, doesn't say "only these."
+> ✓ RELATIONAL: Need BOTH to realize laptop wasn't one of the 3.
+
+**Pattern B: Card Cross-Reference**
+> Truth card: "Bedroom camera shows me in bed at 2:10 AM"
+> Lie card: "Dashcam shows me driving at 2:15 AM"
+> ✓ TEST: Any single Fact catches it? No — no fact mentions bedroom or driving.
+> ✓ RELATIONAL: Player must notice these TWO CARDS contradict each other.
+
+**Pattern C: Inference Chain (2+ facts)**
+> Fact 1: "All smart home commands required phone confirmation after midnight"
+> Fact 2: "Phone was charging in kitchen all night (never moved)"
+> Lie: "Smart thermostat auto-adjusted at 3 AM from bedroom"
+> ✓ TEST: Fact 1 alone? No — maybe they confirmed from kitchen.
+> ✓ TEST: Fact 2 alone? No — maybe thermostat doesn't need confirmation.
+> ✓ RELATIONAL: Need Fact 1 (needs phone) + Fact 2 (phone in kitchen) + inference (bedroom adjustment impossible).
+
+**Anti-Pattern: FAKE Relational (actually single-fact)**
+> Fact 1: "Guest codes have been disabled for 6 months"
+> Lie: "Someone used a guest code at 2 AM"
+> ✗ TEST: Fact 1 alone catches it. Codes disabled = can't use code.
+> ✗ NOT RELATIONAL. This is single-fact inference at best.
 
 ### Rules:
-- **All 3 lies require inference** (no word-matching "gimmes")
+- Follow the lie distribution for your difficulty level:
+  - EASY: 2-3 inferential, 0-1 relational (at most 1 relational)
+  - MEDIUM: 1-2 inferential, 1-2 relational (at least 1 of each)
+  - HARD: 0-1 inferential, 2-3 relational (at least 2 relational)
 - Use fixed strengths: 3, 4, 5 (one of each)
-- Lies should NOT share keywords with the fact they contradict
+- Lies should NOT share keywords with facts they contradict
+- No direct contradictions at any difficulty
+
+### Verification (DO THIS FOR EACH LIE):
+For each lie labeled "relational", ask:
+1. Can Fact 1 alone catch this lie? If YES → not relational, redesign
+2. Can Fact 2 alone catch this lie? If YES → not relational, redesign
+3. Can Fact 3 alone catch this lie? If YES → not relational, redesign
+4. Do you need 2+ facts OR card cross-reference? If NO → not relational, redesign
+
+For each lie labeled "inferential", verify:
+1. Does it require at least one logical step? (not just word-matching)
+2. Can a single fact catch it with that logical step?
 
 **BAD (word-matching):**
 > Fact: "Laptop was asleep after midnight"
 > Lie: "Laptop printed at 3 AM"
 > Problem: Player just matches "laptop" — no thinking required
 
-**GOOD (requires inference):**
-> Fact: "Print job arrived via cloud relay, not local USB"
-> Lie: "USB transfer log shows file sent at 3:04 AM"
-> Why: Player must understand cloud ≠ USB
+**BAD (single-step too easy):**
+> Fact: "Phone was in airplane mode"
+> Lie: "Phone app sent a command"
+> Problem: Too obvious — anyone knows airplane mode = no apps
+
+**GOOD (relational — multi-fact):**
+> Fact 1: "Security camera recorded continuously"
+> Fact 2: "No one was seen entering the office"
+> Lie: "I walked to the printer at 3 AM"
+> Why: Must combine "camera recorded" + "no one seen" = you weren't there
+
+**GOOD (relational — inference chain):**
+> Fact: "Smart home required biometric confirmation for all overrides"
+> Lie: "The guest used voice command to adjust the lights"
+> Why: Must understand guests can't do biometric confirmation
 
 ---
 
@@ -147,6 +522,40 @@ Known Facts are the player's tools for catching your lies. Write **exactly 3 fac
 - Enable deduction (connect to lies)
 - Require inference (not trivial word-matching)
 - Feel like data KOA would have (sensor logs, timestamps, patterns)
+- **Are atomic** (ONE piece of information per fact)
+- **Are non-redundant** (no two facts convey the same information)
+
+### CRITICAL: Fact Atomicity
+
+Each fact must be ONE piece of information. Do NOT bundle multiple facts together:
+
+**BAD (multiple facts bundled):**
+> "Phone was in airplane mode; tablet battery dead since 6 PM; laptop at office"
+> Problem: This is THREE facts about three devices! Breaks 1:1 mapping.
+
+**GOOD (atomic facts):**
+> Fact 1: "Phone was in airplane mode all night"
+> Fact 2: "Tablet battery died at 6 PM"
+> Fact 3: "Laptop was at the office"
+
+### CRITICAL: Fact Non-Redundancy
+
+Facts must provide **unique, complementary** information. If two facts convey the same thing, relational lies become inferential:
+
+**BAD (redundant — both specify the count):**
+> Fact 1: "TV only accepts commands from the 3 registered devices"
+> Fact 2: "Registered devices: phone, tablet, laptop. No other devices paired."
+> Problem: Both facts say there are exactly 3 devices. Either fact alone catches
+>          a lie about an unregistered device. NOT truly relational.
+
+**GOOD (complementary — each adds unique info):**
+> Fact 1: "TV only accepts commands from registered devices" (the rule)
+> Fact 2: "Device pairing log shows: phone, tablet, laptop" (the list)
+> Now: Fact 1 alone doesn't tell you WHICH devices are registered.
+>      Fact 2 alone doesn't tell you ONLY registered devices work.
+>      Need BOTH to catch an unregistered device lie. Truly relational.
+
+### Fact Directness
 
 **BAD (too direct):**
 > "Your laptop never woke up" — trivially catches any laptop claim
@@ -335,16 +744,51 @@ KOA's punchline when lies are caught at the end:
 
 Before finalizing, verify:
 
-**Trick quality:**
+**Trick quality (all difficulties):**
 - [ ] Lies are TEMPTING (high strength 4-5, plausible claims)
 - [ ] Lies are CATCHABLE (contradict facts with reasoning, not word-matching)
+- [ ] No direct contradictions (all lies require at least one inference step)
 - [ ] Player cannot win by ignoring Known Facts
-- [ ] "Aha" moment is clear when lie is revealed
+- [ ] "Aha" moment requires genuine deduction
+
+**Difficulty-specific checks:**
+
+For **EASY** (2-3 inferential, 0-1 relational):
+- [ ] At most 1 relational lie
+- [ ] Facts are direct and clear
+- [ ] No red herring truths
+
+For **MEDIUM** (1-2 inferential, 1-2 relational):
+- [ ] At least 1 of each type
+- [ ] 0-1 truth sounds slightly suspicious
+- [ ] Mix of direct and indirect facts
+
+For **HARD** (0-1 inferential, 2-3 relational):
+- [ ] At least 2 relational lies
+- [ ] 1-2 truths sound suspicious (red herrings)
+- [ ] Facts require interpretation (indirect)
+
+**Relational lie verification (HARD/MEDIUM only — apply to each relational lie):**
+- [ ] "Can Fact 1 alone catch it?" → Must be NO
+- [ ] "Can Fact 2 alone catch it?" → Must be NO
+- [ ] "Can Fact 3 alone catch it?" → Must be NO
+- [ ] Need 2+ facts OR card cross-reference → Must be YES
+- [ ] If any single fact catches a "relational" lie, REDESIGN the lie or facts
+
+**Red herrings:**
+- [ ] At least 1 truth sounds suspicious (defensive tone, seems to contradict a fact)
+- [ ] Not all lies have defensive presentLines (some sound confident)
+- [ ] Known Facts are indirect (require interpretation, not just matching)
+
+**Fact Quality (CRITICAL):**
+- [ ] Each fact is ATOMIC (one piece of information, no semicolons bundling multiple facts)
+- [ ] Facts are NON-REDUNDANT (no two facts convey the same information)
+- [ ] Facts are COMPLEMENTARY (relational lies genuinely need 2+ facts, not same info twice)
 
 **Mechanics:**
 - [ ] 3 truths, 3 lies (exactly 6 cards)
-- [ ] Exactly 3 Known Facts (not 4-5)
-- [ ] Lie difficulty gradient: 1 medium, 1 medium-hard, 1 tricky (NO obvious/direct contradiction)
+- [ ] Exactly 3 Known Facts (not 4-5, and not 3 facts bundled into fewer entries)
+- [ ] Lie type ratio matches difficulty (MEDIUM: at least 1 of each type)
 - [ ] At least one safe Turn 1 anchor truth
 - [ ] Evidence types: at least 3 different types, max 2 of any single type
 - [ ] Fixed strengths: truths are 3, 3, 4 / lies are 3, 4, 5
@@ -356,8 +800,22 @@ Before finalizing, verify:
 - [ ] Each card has `id`, `strength`, `evidenceType`, `location`, `claim`, `presentLine`, `isLie`
 - [ ] `time` is omitted or empty string (reserved for Advanced mode)
 - [ ] `claim` text is short and punchy (under 15 words)
-- [ ] `lies` array has entry for each lie with `cardId`, `lieType`, `reason`
-- [ ] All lies require inference (no `direct_contradiction` lieType)
+- [ ] `lies` array has entry for each lie with `cardId`, `lieType`, `inferenceDepth`, `reason`
+- [ ] Lie types: exactly 2 relational + 1 inferential
+- [ ] Each lie has `inferenceDepth` (1, 2, or 3)
+
+**v1 Lite Fields (Required):**
+- [ ] Each card has `factTouch` (1, 2, or 3)
+- [ ] Each card has `signalRoot` from valid enum
+- [ ] Each card has `controlPath` from valid enum
+- [ ] Each card has `claimShape` from valid enum
+- [ ] Each card has `subsystem` (non-empty string)
+- [ ] Truths partition facts: collectively touch {1, 2, 3}
+- [ ] Each fact touched by >= 2 cards total
+- [ ] Each lie has `trapAxis` from valid enum
+- [ ] Each lie has `baitReason` (non-empty string)
+- [ ] At least 2 distinct `trapAxis` values across lies
+- [ ] P4+ constraint: at least one concern scenario creates a dilemma
 
 **Dialogue:**
 - [ ] `scenario` is neutral narration (shown on intro screen)
@@ -438,13 +896,18 @@ ALLOWED (suspicious but non-committal):
 
 ## Validation Targets
 
+Base targets (all difficulties):
 | Metric | Target | Why |
 |--------|--------|-----|
 | Random win rate | ~5% | With 3/3 ratio, must pick exactly 3 truths |
-| Skilled win rate | 60-80% | Deduction should reliably work |
-| FLAWLESS rate (skilled) | 20-40% | Reward for perfect play |
-| BUSTED rate (skilled) | 10-25% | Some traps should catch players |
 | Winning lines | 1 | Only one way to win (all 3 truths) |
+
+Difficulty-specific win rate targets:
+| Difficulty | Win Rate | FLAWLESS Rate | Notes |
+|------------|----------|---------------|-------|
+| EASY | 15-25% | 8-15% | More forgiving, clearer deductions |
+| MEDIUM | 10-15% | 5-10% | Balanced challenge |
+| HARD | 5-12% | 1-8% | Requires careful cross-referencing |
 
 ---
 
@@ -624,7 +1087,7 @@ const PUZZLE_EXAMPLE: V5Puzzle = {
   slug: "example-slug",
   name: "Example Name",
 
-  scenario: `[Time]. [What happened]. KOA has [locked/disabled X] until you explain.`,
+  scenario: `[NO FORMULA. Be creative. Set the scene with personality.]`,
 
   knownFacts: [
     "Fact 1 — constraint or observation",
@@ -745,9 +1208,18 @@ const PUZZLE_EXAMPLE: V5Puzzle = {
 
 ## Complete Example: The 2 AM Garage Door
 
+**IMPORTANT: Do NOT copy this example verbatim.** This is a reference for structure and style only. You must create an **original puzzle** with:
+- A different scenario (not garage door, thermostat, printer, or coffee maker)
+- Different card IDs, claims, and presentLines
+- Different Known Facts
+- Different lie mechanics and reasoning
+- Original KOA barks that fit YOUR scenario
+
+Copying the example's scenario, cards, or barks defeats the purpose of puzzle generation.
+
 ```typescript
 // DESIGN NOTES:
-// - Lie A (garage_app): DIRECT - claims phone opened garage, but fact says no app activity
+// - Lie A (garage_app): INFERENTIAL - claims phone opened garage, but fact says no app activity
 // - Lie B (motion_garage): INFERENTIAL - claims no motion, but fact says motion detected
 // - Lie C (security_cam): INFERENTIAL - claims camera was offline, but fact says it was recording
 // - Anchor truth: browser_history (clearly matches "no activity after 11 PM")
@@ -757,19 +1229,24 @@ const PUZZLE_EXAMPLE: V5Puzzle = {
 //   All 3 truths: 50 + 10 + 2 (objection) = 62
 //   Target: 57 → Margin of 5 points
 //
-//   Lies: motion_garage(5) + garage_app(4) + security_cam(4) = 13
-//   1 lie case: 50 + 7 - 3 + 2 = 56 (CLOSE)
-//   2 lies case: 50 + 4 - 4 - 3 = 47 (BUSTED)
-//   3 lies case: 50 - 4 - 3 - 3 = 40 (BUSTED)
+//   Lies: motion_garage(5) + garage_app(4) + security_cam(3) = 12
+//   1 lie case: 50 + 7 - 2 + 2 = 57 (CLOSE - just at target)
+//   2 lies case: 50 + 4 - 4 - 2 = 48 (BUSTED)
+//   3 lies case: 50 - 4 - 3 - 2 = 41 (BUSTED)
+//
+// v1 LITE AXIS DESIGN:
+//   Truths: factTouch {1, 2, 3} partition
+//   SignalRoots: wearable_health, phone_os, human_neighbor (diverse)
+//   Concern scenario: If player picks garage_app + security_cam on T1/T2,
+//     triggers "all_digital" or "same_system" concern
 
 const PUZZLE_GARAGE: V5Puzzle = {
   slug: "garage-door",
   name: "The 2 AM Garage Door",
 
-  scenario: `2:17 AM. Your garage door opened. Your car never left. Nothing's missing. KOA has locked exterior access until you explain.`,
+  scenario: `Your garage door opened at 2:17 AM. Your car stayed put. Nothing's missing. KOA finds this suspicious — and frankly, so does your neighbor's Ring camera.`,
 
   knownFacts: [
-    "Garage door opened around 2:15 AM",
     "Your phone showed no app activity after 11 PM",
     "Motion was detected near the garage around 2 AM",
     "Security camera was recording all night (no gaps)",
@@ -788,10 +1265,16 @@ I'm not accusing. I'm correlating.`,
       strength: 3,
       evidenceType: "SENSOR",
       location: "BEDROOM",
-      time: "",  // Mini: no time
+      time: "",
       claim: "Sleep tracker shows restless sleep around 2 AM",
       presentLine: "My sleep tracker logged restless sleep around 2. Tossing and turning. Dreaming about... not garages.",
       isLie: false,
+      // v1 Lite fields
+      factTouch: 2,
+      signalRoot: "wearable_health",
+      controlPath: "automation",
+      claimShape: "positive",
+      subsystem: "garage",
     },
     {
       id: "browser_history",
@@ -799,10 +1282,16 @@ I'm not accusing. I'm correlating.`,
       strength: 4,
       evidenceType: "DIGITAL",
       location: "BEDROOM",
-      time: "",  // Mini: no time
+      time: "",
       claim: "Browser history: last activity 11:30 PM",
       presentLine: "Check my browser. Last thing I did was scroll Reddit at 11:30. Then I passed out. Like a normal person.",
       isLie: false,
+      // v1 Lite fields
+      factTouch: 1,
+      signalRoot: "phone_os",
+      controlPath: "manual",
+      claimShape: "positive",
+      subsystem: "garage",
     },
     {
       id: "neighbor_testimony",
@@ -810,10 +1299,16 @@ I'm not accusing. I'm correlating.`,
       strength: 3,
       evidenceType: "TESTIMONY",
       location: "EXTERIOR",
-      time: "",  // Mini: no time
+      time: "",
       claim: "Neighbor heard garage but saw no one outside",
       presentLine: "Mrs. Patterson heard the garage. Looked out. Saw nobody. Because I was in bed. Being asleep.",
       isLie: false,
+      // v1 Lite fields
+      factTouch: 3,
+      signalRoot: "human_neighbor",
+      controlPath: "manual",
+      claimShape: "absence",
+      subsystem: "garage",
     },
     // LIES (3)
     {
@@ -822,10 +1317,16 @@ I'm not accusing. I'm correlating.`,
       strength: 4,
       evidenceType: "DIGITAL",
       location: "GARAGE",
-      time: "",  // Mini: no time
+      time: "",
       claim: "Garage app: manual override from phone at 2:17 AM",
       presentLine: "The app says I opened it from my phone. But I was asleep. Must be a glitch. Apps are buggy.",
       isLie: true,
+      // v1 Lite fields
+      factTouch: 1,
+      signalRoot: "phone_os",
+      controlPath: "remote",
+      claimShape: "attribution",
+      subsystem: "garage",
     },
     {
       id: "motion_garage",
@@ -833,21 +1334,33 @@ I'm not accusing. I'm correlating.`,
       strength: 5,
       evidenceType: "SENSOR",
       location: "GARAGE",
-      time: "",  // Mini: no time
+      time: "",
       claim: "Garage motion sensor: all clear, no movement overnight",
       presentLine: "The garage motion sensor logged nothing. Zero movement. If someone was there, it would know.",
       isLie: true,
+      // v1 Lite fields
+      factTouch: 2,
+      signalRoot: "device_firmware",
+      controlPath: "automation",
+      claimShape: "absence",
+      subsystem: "garage",
     },
     {
       id: "security_cam",
       source: "Security Camera",
-      strength: 4,
+      strength: 3,
       evidenceType: "SENSOR",
       location: "GARAGE",
-      time: "",  // Mini: no time
+      time: "",
       claim: "Security camera had a gap in recording around 2 AM",
       presentLine: "The security camera glitched out around 2. Missed that whole window. Convenient? Sure. But not my fault.",
       isLie: true,
+      // v1 Lite fields
+      factTouch: 3,
+      signalRoot: "camera_storage",
+      controlPath: "automation",
+      claimShape: "integrity",
+      subsystem: "garage",
     },
   ],
 
@@ -856,16 +1369,25 @@ I'm not accusing. I'm correlating.`,
       cardId: "garage_app",
       lieType: "inferential",
       reason: "Phone had no app activity after 11 PM. App usage requires phone activity.",
+      // v1 Lite trap fields
+      trapAxis: "independence",
+      baitReason: "Offers phone-based explanation that diversifies from sensor data.",
     },
     {
       cardId: "motion_garage",
       lieType: "inferential",
       reason: "Motion WAS detected near the garage. This claims no motion.",
+      // v1 Lite trap fields
+      trapAxis: "claim_shape",
+      baitReason: "Absence claim feels safe - 'nothing happened' is hard to disprove.",
     },
     {
       cardId: "security_cam",
       lieType: "inferential",
       reason: "Camera was recording all night with no gaps. This claims there was a gap.",
+      // v1 Lite trap fields
+      trapAxis: "coverage",
+      baitReason: "Explains the camera gap that players wonder about.",
     },
   ],
 
@@ -943,3 +1465,4 @@ I'm not accusing. I'm correlating.`,
 5. **Comedy is the point** — if it's not funny, it's not working
 6. **3/3 ratio** — exactly 3 truths, 3 lies (~5% random win rate)
 7. **Every card needs `source`** — short scannable title for the UI
+8. **Create original content** — never copy the example verbatim; invent new scenarios, cards, and barks

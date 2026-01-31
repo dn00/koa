@@ -17,6 +17,13 @@
 
 import type { Card, V5Puzzle, LieInfo } from './v5-types.js';
 import { PUZZLE_THERMOSTAT_INCIDENT } from '../packages/engine-core/src/packs/generated-puzzle.js';
+import { PUZZLE_COFFEE_INCIDENT } from '../packages/engine-core/src/packs/coffee-maker-puzzle.js';
+import { PUZZLE_VACUUM_INCIDENT } from '../packages/engine-core/src/packs/vacuum-puzzle.js';
+import { PUZZLE_BINGE_WATCH } from '../packages/engine-core/src/packs/hard-puzzle.js';
+import { PUZZLE_DOORBELL } from '../packages/engine-core/src/packs/doorbell-puzzle.js';
+import { PUZZLE_SPEAKER } from '../packages/engine-core/src/packs/speaker-puzzle.js';
+import { PUZZLE_SPRINKLER } from '../packages/engine-core/src/packs/sprinkler-puzzle.js';
+import { PUZZLE_WASHER } from '../packages/engine-core/src/packs/washer-puzzle.js';
 
 // ============================================================================
 // Puzzle 1: The Midnight Print Job
@@ -1231,7 +1238,14 @@ export const V5_PUZZLES: V5Puzzle[] = [
   PUZZLE_MIDNIGHT_DRIVE,
   PUZZLE_CACTUS_CALAMITY,
   PUZZLE_PRINTGATE_MERGER,
-  PUZZLE_THERMOSTAT_INCIDENT, // New: includes sequences + storyCompletions barks
+  PUZZLE_THERMOSTAT_INCIDENT,
+  PUZZLE_COFFEE_INCIDENT, // v1 Lite with all axis fields
+  PUZZLE_VACUUM_INCIDENT, // v1 Lite with all axis fields
+  PUZZLE_BINGE_WATCH, // Hard mode: 2 relational + 1 inferential
+  PUZZLE_DOORBELL, // v1 Lite
+  PUZZLE_SPEAKER, // v1 Lite with speaker scenario
+  PUZZLE_SPRINKLER, // v1 Lite with truly relational lies
+  PUZZLE_WASHER, // v1 Lite washer flood scenario
 ];
 
 export const V5_PUZZLES_BY_SLUG: Record<string, V5Puzzle> = Object.fromEntries(
