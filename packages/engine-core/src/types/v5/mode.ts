@@ -41,6 +41,21 @@ export interface ModeConfig {
 
   /** Which barks to show */
   readonly barkFilter: BarkFilter;
+
+  /**
+   * When true, use Mini Lite tiering (axis-based: coverage, independence, concern).
+   * When false, use V5 Belief tiering (numeric score vs target threshold).
+   *
+   * Mini Lite tiering rules (from spec section 5.2):
+   * - 2 truths + 1 lie => CLOSE
+   * - 1 truth + 2 lies => BUSTED
+   * - 0 truths + 3 lies => BUSTED
+   * - All truths + concernHit => CLEARED
+   * - All truths + correlated => CLEARED
+   * - All truths + diverse + diversified => FLAWLESS
+   * - Fairness clamp: All truths => at least CLEARED, always
+   */
+  readonly useLiteTiering: boolean;
 }
 
 /**
@@ -60,6 +75,7 @@ export const MINI_MODE: ModeConfig = {
   playerChoosesObjection: false,
   showTypeTaxRule: false,
   barkFilter: 'mini-safe',
+  useLiteTiering: true,
 } as const;
 
 /**
@@ -72,4 +88,5 @@ export const ADVANCED_MODE: ModeConfig = {
   playerChoosesObjection: true,
   showTypeTaxRule: true,
   barkFilter: 'all',
+  useLiteTiering: false,
 } as const;

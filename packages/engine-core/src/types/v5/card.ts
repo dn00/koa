@@ -3,7 +3,7 @@
  * CardId branded type and Card interface
  */
 
-import type { EvidenceType } from './enums.js';
+import type { EvidenceType, SignalRoot, ControlPath, ClaimShape } from './enums.js';
 
 /**
  * Branded type for Card IDs.
@@ -68,4 +68,23 @@ export interface Card {
 
   /** Source of the evidence for display (e.g., "Sleep Tracker", "Router Log") */
   readonly source: string;
+
+  // ============================================================================
+  // v1 Lite Axis Fields (required for Mini mode, optional until Task 801)
+  // ============================================================================
+
+  /** Which known fact this card addresses (exactly one). Scalar, not array. */
+  readonly factTouch?: 1 | 2 | 3;
+
+  /** The underlying data source for independence computation. */
+  readonly signalRoot?: SignalRoot;
+
+  /** How the evidence was obtained/controlled. */
+  readonly controlPath?: ControlPath;
+
+  /** What kind of claim the evidence makes. */
+  readonly claimShape?: ClaimShape;
+
+  /** The subsystem this evidence relates to (e.g., 'thermostat', 'printer', 'garage'). */
+  readonly subsystem?: string;
 }

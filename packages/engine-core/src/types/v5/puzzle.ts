@@ -4,7 +4,7 @@
  */
 
 import type { Card } from './card.js';
-import type { LieType } from './enums.js';
+import type { LieType, TrapAxis } from './enums.js';
 
 /**
  * Information about a lie in the puzzle.
@@ -14,7 +14,7 @@ export interface LieInfo {
   /** ID of the card that is a lie */
   readonly cardId: string;
 
-  /** Type of lie: direct contradiction or relational */
+  /** Type of lie: inferential or relational (no direct contradictions) */
   readonly lieType: LieType;
 
   /** Why it's a lie (for verdicts/explanation) */
@@ -22,6 +22,19 @@ export interface LieInfo {
 
   /** For relational lies: which card or fact it conflicts with */
   readonly contradictsWith?: string;
+
+  // ============================================================================
+  // v1 Lite Trap Fields (required for Mini mode, optional until Task 801)
+  // ============================================================================
+
+  /** Why this lie is tempting from an axis perspective. */
+  readonly trapAxis?: TrapAxis;
+
+  /** One sentence explaining why players will pick this lie. */
+  readonly baitReason?: string;
+
+  /** How many steps to catch: 1=single fact, 2=combine facts, 3=chain reasoning */
+  readonly inferenceDepth?: 1 | 2 | 3;
 }
 
 /**
@@ -90,4 +103,7 @@ export interface V5Puzzle {
     /** Final bark when lies are revealed at game end (keyed by cardId, "both" for 2 lies) */
     readonly liesRevealed?: Readonly<Record<string, readonly string[]>>;
   };
+
+  /** Optional epilogue explaining what actually happened */
+  readonly epilogue?: string;
 }

@@ -7,7 +7,16 @@
 // Enums and Type Aliases
 // ============================================================================
 
-export type { EvidenceType, Tier, LieType } from './enums.js';
+export type {
+  EvidenceType,
+  Tier,
+  LieType,
+  ControlPath,
+  ClaimShape,
+  SignalRoot,
+  SignalRootGroup,
+  TrapAxis,
+} from './enums.js';
 
 // ============================================================================
 // Card Types
