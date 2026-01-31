@@ -1,13 +1,13 @@
 /**
- * Task 007: Verdict + Share Screen Tests
+ * Task 007: Result + Share Screen Tests (renamed from VerdictScreen)
  *
- * Tests for the Verdict Screen showing tier badge, played cards with lie reveal,
+ * Tests for the Result Screen showing tier badge, played cards with lie reveal,
  * contradictions, and ShareCard artifact generation.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/svelte';
-import VerdictScreen from '$lib/components/VerdictScreen.svelte';
+import ResultScreen from '$lib/components/ResultScreen.svelte';
 import type { Tier, Card } from '@hsh/engine-core';
 import type { VerdictData } from '@hsh/engine-core';
 import { resetStores, mode } from '$lib/stores/game';
@@ -108,7 +108,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3', true), wasLie: true }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -126,7 +126,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -144,7 +144,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3', true), wasLie: true }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -161,7 +161,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3', true), wasLie: true }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -182,7 +182,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -203,7 +203,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -223,7 +223,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3', true), wasLie: true }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -250,7 +250,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -271,7 +271,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -297,7 +297,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -315,7 +315,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -335,7 +335,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -352,7 +352,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3', true), wasLie: true }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -380,7 +380,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -398,7 +398,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -417,7 +417,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -439,7 +439,7 @@ describe('Task 007: Verdict + Share Screen', () => {
 				{ card: createTestCard('card-3'), wasLie: false }
 			]);
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
