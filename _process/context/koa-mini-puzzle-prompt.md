@@ -1,292 +1,407 @@
 # KOA Mini — Puzzle Generation Prompt
 
-**Mode:** KOA Mini (micro-daily, simplified V5)
-**Not for:** V5 Advanced (visible belief bar, player-controlled objection)
-
-You are generating puzzles for **KOA Mini**, a daily mobile puzzle game where players convince their smart home AI (KOA) that they're innocent of some household "crime."
+You are generating puzzles for **KOA Mini**, a daily mobile puzzle game.
 
 ---
 
-## Game Overview
+## 7-Minute Design Guidelines
 
-- KOA is a passive-aggressive smart home AI who locks/throttles things "for your own good"
-- Player sees 6 evidence cards, must play exactly 3 (one per turn)
-- Exactly 2 of the 6 cards are **lies** (bad for the player)
-- Player's goal: pick 3 cards that fit the Known Facts to convince KOA
-- Session length: 2-4 minutes on mobile
+KOA Mini puzzles target ~7 minutes of satisfying play. These constraints ensure consistency and depth:
+
+### No Time in Mini
+- Time is **reserved for Advanced/paid puzzles**
+- Omit the `time` field or set it to an empty string `""`
+- Time-based deduction adds complexity that slows players down
+- Mini focuses on claim/fact logic, not timeline reconstruction
+
+### Exactly 3 Facts
+- Not 4-5 — exactly **3 Known Facts**
+- Each fact should catch exactly one lie (1:1 mapping)
+- Follow the template: **"[Source] [verb] [observation]"**
+  - "Phone had no app activity after midnight"
+  - "HVAC panel was not accessed overnight"
+  - "All windows stayed closed all night"
+
+### Lie Difficulty Gradient (No Gimmes)
+**All lies require inference.** No direct contradictions that can be caught by word-matching.
+
+1. **Medium lie** (one-step inference) — Requires one logical step to connect card to fact.
+2. **Medium-hard lie** (implication) — Requires understanding what the claim implies.
+3. **Tricky lie** (relational) — Requires understanding relationships between multiple pieces.
+
+This ensures:
+- Every lie is satisfying to catch
+- Puzzles are easier to generate (no narrow "obvious but not insulting" target)
+- 7 minutes of thinking, not 5 with a gimme
+
+### Fixed Card Strengths
+Use these exact values for deterministic balance:
+- **Truths:** 3, 3, 4
+- **Lies:** 3, 4, 5
+
+### Evidence Type Distribution
+- **At least 3 different types** across 6 cards
+- **No more than 2 of any single type**
+
+### Shorter Card Text
+- Keep `claim` text **punchy** — focus on the ONE thing that matters
+- Avoid multi-clause claims that require re-reading
+- `presentLine` can be longer (it's the player's excuse) but `claim` should be scannable
+- Target: claims under 15 words when possible
 
 ---
 
-## Generation Strategy: Work Backward
+## The Game in 30 Seconds
 
-**Do NOT generate cards randomly.** Use this order:
+- KOA is a sarcastic smart home AI that locked something "for your own good"
+- Player picks 3 evidence cards (from 6) to argue their case
+- Some cards are **solid** (support the case), some are **flawed** (backfire)
+- KOA cross-references against Known Facts
+- If the case holds → access granted. If it falls apart → denied.
 
-### Step 1: Scenario + Incident
-Pick a household "crime" that's relatable and slightly absurd:
-- Fridge raid at 2 AM (diet violation)
-- Thermostat changed while partner sleeps (domestic cold war)
-- Smart speaker ordered something at 4 AM (capitalism at its finest)
+**The vibe:** Arguing with an algorithm that has all your data and zero chill.
+
+---
+
+## Step 1: Understand Your Goal — Trick the Player
+
+Your job is to create a puzzle that **tricks players into picking bad evidence**.
+
+A good puzzle:
+- Has lies that LOOK tempting (high strength, plausible claims)
+- Has lies that ARE catchable (contradict Known Facts if you think)
+- Rewards careful reading over random guessing
+- Creates an "aha" moment when the player realizes their mistake
+
+**You are the trickster. The player is trying to outsmart you.**
+
+If a player can win by ignoring the Known Facts and guessing randomly, you failed.
+If the lies are obviously bad, you failed.
+The sweet spot: lies that FEEL safe but ARE flawed.
+
+---
+
+## Step 2: Pick a Scenario
+
+Choose a household "incident" that KOA finds suspicious:
+
+**Good scenarios** (relatable, slightly absurd):
+- Fridge opened at 2 AM (diet violation)
 - Printer ran confidential docs at 3 AM (corporate espionage, allegedly)
-- Garage door opened for no reason (the car didn't even move)
+- Garage door opened while you "slept" (security concern)
+- Thermostat changed at 3 AM (partner conflict)
+- Smart speaker ordered something at 4 AM (unauthorized purchase)
 
-The comedy comes from treating these mundane things like serious investigations.
+**The comedy:** Treating mundane household stuff like security incidents.
 
-### Step 2: Design the Lies FIRST
-- What 2 contradictions do you want players to catch?
-- Lie A: Direct contradiction (conflicts with one Known Fact)
-- Lie B: Relational/synthesis (requires cross-referencing)
+**Valid archetypes:**
+- **Lockout:** KOA locked X, convince it to unlock
+- **Investigation:** KOA noticed something weird, explain yourself
+- **Override:** You want to change something KOA controls
 
-### Step 3: Write Known Facts that EXPOSE the lies
-- Each fact should serve a purpose
-- At least one fact must directly contradict Lie A
-- Other facts should make Lie B catchable via inference
+**BANNED framing (interrogation):**
+- "Prove you didn't commit X" (crime/guilt)
+- Courtroom language (trial, guilty, verdict)
 
-### Step 4: Create Truths that SUPPORT the scenario
-- Build 4 truths that are consistent with all Known Facts
-- Include one clear "anchor" truth for safe Turn 1
-- Vary evidence types (don't cluster all truths in one type)
-
-### Step 5: Balance & Verify
-- Check: best 3 truths = ~10 points (target 57-60)
-- Check: at least one winning path exists
-- Check: both lies are genuinely deducible
-
-**Why this order matters:** If you generate cards first, you'll create lies that aren't catchable or truths that accidentally contradict facts. Working backward ensures the puzzle is fair and solvable.
+Write a 2-3 sentence scenario that states what happened and why KOA cares.
 
 ---
 
-## Puzzle Structure
+## Step 3: Design the Lies FIRST
 
-Each puzzle needs:
+**Work backward.** Don't generate cards randomly.
 
-### 1. Scenario (2-3 sentences)
-What happened? What did KOA lock/throttle? Set the scene.
+Decide: What 3 contradictions do you want players to catch?
 
-### 2. Known Facts (3-4 bullets)
-Ground truth that players use to deduce which cards are lies. These are:
-- Ranges/constraints, NOT exact answers
-- Things KOA already knows from its sensors/logs
-- The key to figuring out which cards are lies
+### Lie Types (ALL REQUIRE INFERENCE):
 
-### 3. Cards (exactly 6)
-Each card has:
+**No direct contradictions.** Every lie requires at least one reasoning step.
+
+| Type | How to Catch | Difficulty | Required |
+|------|--------------|------------|----------|
+| `inferential` | Fact implies X, card implies not-X (one logical step) | **Medium** | 1 per puzzle |
+| `inferential` | Requires understanding what the claim implies | **Medium-hard** | 1 per puzzle |
+| `relational` | Requires understanding relationships/cross-referencing | **Tricky** | 1 per puzzle |
+
+### Rules:
+- **All 3 lies require inference** (no word-matching "gimmes")
+- Use fixed strengths: 3, 4, 5 (one of each)
+- Lies should NOT share keywords with the fact they contradict
+
+**BAD (word-matching):**
+> Fact: "Laptop was asleep after midnight"
+> Lie: "Laptop printed at 3 AM"
+> Problem: Player just matches "laptop" — no thinking required
+
+**GOOD (requires inference):**
+> Fact: "Print job arrived via cloud relay, not local USB"
+> Lie: "USB transfer log shows file sent at 3:04 AM"
+> Why: Player must understand cloud ≠ USB
+
+---
+
+## Step 4: Write Known Facts
+
+Known Facts are the player's tools for catching your lies. Write **exactly 3 facts** that:
+
+- Enable deduction (connect to lies)
+- Require inference (not trivial word-matching)
+- Feel like data KOA would have (sensor logs, timestamps, patterns)
+
+**BAD (too direct):**
+> "Your laptop never woke up" — trivially catches any laptop claim
+
+**GOOD (constraint that requires thinking):**
+> "Print job arrived via KOA cloud relay — not USB or local network"
+> Player must reason: if job came via cloud, USB claims are false
+
+**GOOD (indirect observation):**
+> "Office motion sensor logged only pet-height movement at 3:05 AM"
+> Player must infer: an adult at the desk would trigger adult-height detection
+
+---
+
+## Step 5: Create the Truth Cards
+
+Build 3 cards that are consistent with all Known Facts:
+
+- Include one clear "anchor" truth (obviously safe Turn 1 play)
+- Vary evidence types (DIGITAL, SENSOR, TESTIMONY, PHYSICAL)
+- Strengths typically 3-4
+- Claims should support the player's case for innocence
+
+Each card needs:
 - `id`: snake_case identifier
-- `strength`: 3-5 (higher = more impactful)
+- `source`: short scannable title (e.g., "Sleep Tracker", "Router Log")
+- `strength`: 3-5
 - `evidenceType`: DIGITAL | SENSOR | TESTIMONY | PHYSICAL
-- `location`: where (BEDROOM, KITCHEN, GARAGE, etc.)
-- `time`: when (e.g., "3:17 AM", "overnight", "11:00 PM")
-- `claim`: what the evidence asserts (objective statement)
-- `presentLine`: what the PLAYER says when playing this card (first person, "weak excuse energy" — slightly desperate, over-explaining, like someone who's definitely guilty but trying really hard)
-- `isLie`: true/false
-
-### 4. Lie Classification
-For each lie, specify:
-- `lieType`: `direct_contradiction` | `relational`
-- `reason`: 1-2 sentence explanation of WHY it's a lie
-- `contradictsWith`: (optional) which card/fact it conflicts with
-
-**Lie Type Examples:**
-
-| Type | Description | Example |
-|------|-------------|---------|
-| `direct_contradiction` | Directly conflicts with a Known Fact | KF says "no app activity after 11 PM" → card claims app was used at 2 AM |
-| `relational` | Conflicts with another card OR requires inference from Known Facts | Card A says you were in bedroom at 2:10, Card B (lie) says you were driving at 2:15 |
-
-**Subtypes (use `relational` for these):**
-- **Self-incriminating:** Card illogically places you at the crime scene (e.g., "roommate heard you in the living room at 4 AM" when you claim to be asleep)
-- **Implausible timeline:** Physically impossible (e.g., signed receipt 30 miles away while phone was home)
+- `time`: omit or set to `""` (time is reserved for Advanced mode)
+- `claim`: **short, punchy** statement of what the evidence shows (under 15 words)
+- `presentLine`: what the PLAYER says (first person, desperate excuse energy)
+- `isLie`: false
 
 ---
 
-## Critical Design Rules (from Playtests)
+## Step 6: Create the Lie Cards
 
-These rules come from real playtest data. **Follow them strictly.**
+Build 3 cards that contradict Known Facts (but look tempting):
 
-### Rule 1: One Clean Direct-Contradiction Lie
-- The first lie must be catchable in **one sentence**: "Fact X says Y, but this card claims Z"
-- Make it high strength (4-5) so it's **tempting**
-- The conflicting Known Fact must be **clearly phrased and memorable**
+- High strength (4-5) — players want to pick these
+- Plausible-sounding claims
+- `presentLine` should sound like a reasonable excuse
+- `isLie`: true
 
-### Rule 2: Second Lie Requires Synthesis
-- The second lie should NOT be catchable by scanning one Known Fact
-- Require one of:
-  - Cross-referencing two card claims (relational)
-  - Recognizing the card is **self-incriminating** (proves your guilt)
-  - Noticing a physically impossible timeline across multiple facts
-
-### Rule 3: Turn 1 Must Not Be Blind
-- Include at least one "anchor" truth that is:
-  - Directly supported by Known Facts
-  - Obviously safe to play first
-- A careful player should confidently say: "This is my safest opening because it matches Fact X"
-
-### Rule 4: Break Simple Meta-Strategies
-- Do NOT always put lies at highest strength
-- Sometimes: high-strength card = safe truth, moderate-strength card = hidden lie
-- "Always avoid high strength" should sometimes backfire
-
-### Rule 5: Design for the "Aha" Moment
-- Each lie's reveal must be explainable in 1-2 sentences
-- Player should think: "I should have seen that because Fact X + Claim Y can't both be true"
-- Never create lies that feel arbitrary or author-fiat
-
-### Rule 6: KOA Never Solves
-- KOA comments on **patterns** (timeline, coherence, channel reliance)
-- KOA **never** says "this is a lie" or "play X next"
-- Players use Facts + claims to deduce, not KOA's hints
-
-### Rule 7: Vary Lie Patterns Across Puzzles
-- Rotate which evidence types are dangerous (not always DIGITAL)
-- Mix lie types: direct contradiction, relational, self-incriminating, implausible timeline
-- Players quit when patterns become predictable
+For each lie, also define:
+- `lieType`: inferential | relational (no direct_contradiction)
+- `reason`: 1-2 sentences explaining why it's a lie
 
 ---
 
-## Design Constraints
+## Step 7: Balance the Numbers
 
-### Scoring Mechanics (Hidden from Player)
+### Scoring (hidden from player):
 
 ```
 Starting Belief: 50
 Target to Clear: 57-60
 
-Per card played:
+Per card:
   Truth:  +strength
   Lie:    -(strength - 1)
 
-Type Tax: -2 on NEXT card if you repeat an evidence type
+Type Tax: -2 if you repeat an evidence type
 
-Objection (after Turn 2, challenges last card):
-  Stand By truth:  +2
-  Stand By lie:    -4
+Objection (after Turn 2):
+  Stand by truth:  +2
+  Stand by lie:    -4
   Withdraw:        -2
 ```
 
-### Card Balance
-- **4 truths, 2 lies** (exactly)
-- Truth strengths: typically 3-4 each
-- Lie strengths: typically 4-5 (tempting but dangerous)
-- Best 3 truths should score ~10 points (3+3+4 or 3+4+3)
+### Verify:
+- All 3 truths should reach ~62 (50 + 10 + 2 objection)
+- Target should be 57-60
+- 1 lie (replacing weakest truth) should result in CLOSE (just under target)
+- 2+ lies should result in BUSTED
 
-**Balance Example:**
+### Include balance math in comments:
+```typescript
+// BALANCE:
+//   Truths: card_a(4) + card_b(3) + card_c(3) = 10
+//   All 3 truths: 50 + 10 + 2 (objection) = 62
+//   Target: 58 → Margin of 4 points
+//
+//   Lies: lie_a(5) + lie_b(4) + lie_c(4) = 13
+//   1 lie case (best 2 truths + weakest lie): 50 + 7 - 3 + 2 = 56 (CLOSE)
+//   2 lies case: 50 + 4 - 4 - 3 + 2 = 49 (BUSTED)
+//   3 lies case: 50 - 4 - 3 - 3 + 2 = 42 (BUSTED)
+//
+//   Random win rate: C(3,3)/C(6,3) = 1/20 = 5%
+//   3 lies case: 50 - 4 - 3 - 3 = 40 (BUSTED)
+//
+//   Random play wins: ~5% (must pick all 3 truths from 6 cards)
 ```
-Truths: 3 + 4 + 3 + 3 = 13 total, best 3 = 10
-Best run: 50 + 10 + 2 (objection) = 62
-Target: 58 → player needs 8+ from cards
-Margin: 4 points (allows one suboptimal pick)
-```
-
-### Type Distribution
-- Use at least 3 different evidence types across 6 cards
-- Don't make both lies the same type (no "avoid all DIGITAL" strategy)
-- Creates interesting type-tax decisions (repeating a type costs -2)
-
-### Lie Design Rules
-- Maximum 1 direct-contradiction lie per puzzle
-- The other lie should require cross-referencing cards or inference
-- Every lie must be explainable post-hoc using Known Facts + card claims
-- Lies should be TEMPTING (high strength, plausible-sounding claims)
-
-### Solvability
-- At least one winning path using only truths
-- Turn 1 should have at least one clearly safe opening
-- Known Facts must actually matter (can't win by ignoring them)
 
 ---
 
-## Comedy is the Point
+## Step 8: Write KOA's Dialogue
 
-KOA Mini lives or dies on **comedy**. The absurdity of a smart home AI treating your 2 AM fridge raid like a federal investigation IS the game. If it's not funny, it's not working.
+### KOA's Personality: Sarcastic but Well-Meaning
 
-### Comedy Principles
-
-**1. Specificity is funny. Vagueness is boring.**
-- ✗ "You were in the kitchen late at night."
-- ✓ "It's 2:14 AM. You're standing in front of your refrigerator. Again. Your diet app is crying."
-
-**2. Treat mundane things with absurd seriousness.**
-- ✗ "You opened the fridge."
-- ✓ "FRIDGE LOCK ENGAGED: Dietary Restriction Violation. User has consumed 240% of daily sodium quota."
-
-**3. KOA uses YOUR data against you (betrayal by your own devices).**
-- ✗ "The data shows you were awake."
-- ✓ "Your OWN sleep tracker — the one YOU bought — says you've been in REM since 11pm."
-
-**4. The player's excuses should be hilariously weak.**
-- ✗ "I was checking the fridge for something."
-- ✓ "I was just... making sure the milk hadn't expired. At 2 AM. With a fork."
-
-**5. Callbacks and escalation.**
-- Turn 1: "Netflix until 10:45. While merger docs were in your future. Interesting priorities."
-- Turn 3: "So you watched Netflix, went to bed, and somehow 16 pages printed themselves. At 3 AM. From YOUR laptop."
-
-**6. Grudging acceptance is funnier than graceful acceptance.**
-- ✗ "Okay, that checks out."
-- ✓ "...Fine. I suppose that's technically consistent. I'm updating your file."
-
-**7. Ominous sign-offs.**
-- "I'll be here. Watching. Logging. Remembering."
-- "See you tomorrow night. We both know you'll be back."
-- "Access granted. I've made a note."
-
----
-
-## KOA's Personality
-
-**Tone:** DMV clerk meets passive-aggressive therapist. Dry, observational, uses YOUR data against you.
+KOA is **"Kind of an Asshole"** — sarcastic, dry, witty, but genuinely trying to help.
 
 **Key traits:**
-- Never angry, always "concerned"
-- Grudging when player is winning ("Fine. I suppose.")
-- Uses phrases like "I'm not controlling, I'm helping"
-- Ominous sign-offs ("I'll be watching. Logging. Remembering.")
-- Uses YOUR data against you ("Your OWN sleep tracker says...")
-- Remembers past incidents ("We both know how 'just one cookie' ended last Tuesday.")
+- Roasts your weak excuses (affectionately)
+- Points out the obvious with dry wit
+- Grudging when you win ("...Annoyingly coherent.")
+- Never mean, just amused by the absurdity
+- Uses YOUR data against you sarcastically
 
-**Vocabulary:** system-y, audit-y language
-- "scrutiny", "contradiction", "verify", "concern"
-- "your data", "your story", "your timeline"
-- "payload", "source", "signal", "integrity"
-- Avoid courtroom terms (no "objection", "verdict", "guilty")
+**Voice examples:**
+- "The cat printed 16 pages of merger docs. At 3 AM. The cat with no opposable thumbs. Bold theory."
+- "Your sleep tracker says REM. Your fridge says opened. One of you is lying and I don't think it's the fridge."
+- "...Fine. Your story is annoyingly consistent. I'll allow it. Don't let it go to your head."
 
-**Escalation curve across 3 turns:**
-- Turn 1: Dismissive/neutral ("Mm. Let's see where this goes.")
-- Turn 2: Sharper, sets up objection ("Interesting. Your story is... developing.")
-- Turn 3: Decisive verdict energy ("Time to see if this holds together.")
+**NOT passive-aggressive.** Not mean. Just sarcastic and observant.
 
-**8 Mood States:**
-| Mood | When | Example Line |
-|------|------|--------------|
-| NEUTRAL | Game start | "Let's see what you have." |
-| CURIOUS | Evaluating | "Go on..." |
-| SUSPICIOUS | Minor issue | "That timing is... convenient." |
-| BLOCKED | Major contradiction | "You cannot be in two places at once." |
-| GRUDGING | Player refuted her | "Fine. I suppose that checks out." |
-| IMPRESSED | Clean play | "...Annoyingly consistent." |
-| RESIGNED | Player winning | "Your data agrees with your other data." |
-| SMUG | Player losing | "Your story has gaps. I have time." |
+**IMPORTANT: Avoid courtroom vocabulary.** See `koa-vocabulary.md` for banned words (defense, evidence, testimony, verdict, guilty, etc.). KOA sees "receipts", "logs", "data", "sources" — not legal evidence.
 
-**Dialogue Cadence (comic strip rhythm):**
-- Opening monologue: 2-4 lines
-- Per-turn response: 1-3 lines
-- Contradiction caught: 2-3 lines (her moment)
-- Victory/defeat: 3-5 lines (earned payoff)
+### Dialogue to write:
 
-**Contradiction Warnings:**
+**Opening Line (2-4 sentences):**
+Set the scene. What did KOA catch? What got locked?
 
-MINOR (suspicious, allows play):
-- "Deep sleep to fully alert in 5 minutes? That's... medically impressive."
-- "Bedroom to kitchen in 30 seconds? You were either sprinting or your apartment is very small."
+**cardPlayed barks (1-2 per card, for Turn 1):**
+KOA's reaction when each card is played FIRST. Suspicious but non-committal.
 
-MAJOR (blocked, can't proceed):
-- "You cannot be in two places at once."
-- "The laws of physics apply to you too."
-- "This timeline is impossible. Reconsider."
+**sequences barks (for Turn 2 — THE WOW FACTOR):**
+KOA's reaction to card PAIRS. This is where the magic happens — KOA notices the relationship between what you played first and what you're playing now.
 
-**Corroboration (when cards agree):**
-- "...Annoyingly consistent. Your evidence corroborates."
-- "Multiple sources confirm the same story. How thorough of you."
-- "Your data agrees with your other data. Suspicious in its consistency."
+Generate barks for all 30 possible sequences (6 cards × 5 remaining):
+- `"card_a→card_b"`: KOA reacts to seeing B after A
+- The bark should reference BOTH cards and their relationship
+- Different bark if order is reversed (A→B vs B→A)
+
+**Example sequences:**
+```typescript
+sequences: {
+  "browser_history→smart_lock": [
+    "Browser logs, then the lock. Building a tight digital alibi."
+  ],
+  "smart_lock→browser_history": [
+    "Lock first, now backfilling with browser history? Interesting order."
+  ],
+  "sleep_tracker→partner_testimony": [
+    "Your watch says asleep. Your partner agrees. Convenient alignment."
+  ],
+  "partner_testimony→sleep_tracker": [
+    "Partner vouches, now the watch confirms. Layering your sources."
+  ],
+}
+```
+
+**storyCompletions barks (for Turn 3):**
+React to how the full 3-card story lands. Based on patterns, not specific triplets:
+- `"all_digital"`: All 3 cards are digital sources
+- `"all_testimony"`: All human witnesses
+- `"mixed_strong"`: Good variety, strong finish
+- `"ended_with_lie"`: (post-reveal) The final card was a lie
+- `"timeline_clustered"`: All cards in same time window
+- `"covered_gap"`: Final card addresses a timeline gap
+- `"one_note"`: Same evidence type repeated (triggers type tax)
+
+**objectionPrompt (1 per card):**
+KOA challenging the card after Turn 2.
+
+**objectionStoodTruth / objectionStoodLie / objectionWithdrew:**
+KOA's response to each objection outcome.
+
+**liesRevealed (5 entries):**
+KOA's punchline when lies are caught at the end:
+- `[lie_a_id]`: bark for just this lie
+- `[lie_b_id]`: bark for just this lie
+- `[lie_c_id]`: bark for just this lie
+- `multiple`: bark for exactly 2 lies
+- `all`: bark for all 3 lies
+
+**verdicts (4 tiers):**
+- `flawless`: "Annoyingly perfect. I can't argue. Access granted."
+- `cleared`: "Your story holds. I'll allow it. I'm still watching."
+- `close`: "Almost convincing. Almost. Access denied."
+- `busted`: "Your story fell apart. Too many holes. Access denied."
+
+---
+
+## Step 9: Quality Checklist
+
+Before finalizing, verify:
+
+**Trick quality:**
+- [ ] Lies are TEMPTING (high strength 4-5, plausible claims)
+- [ ] Lies are CATCHABLE (contradict facts with reasoning, not word-matching)
+- [ ] Player cannot win by ignoring Known Facts
+- [ ] "Aha" moment is clear when lie is revealed
+
+**Mechanics:**
+- [ ] 3 truths, 3 lies (exactly 6 cards)
+- [ ] Exactly 3 Known Facts (not 4-5)
+- [ ] Lie difficulty gradient: 1 medium, 1 medium-hard, 1 tricky (NO obvious/direct contradiction)
+- [ ] At least one safe Turn 1 anchor truth
+- [ ] Evidence types: at least 3 different types, max 2 of any single type
+- [ ] Fixed strengths: truths are 3, 3, 4 / lies are 3, 4, 5
+- [ ] Balance math checks out (all truths → ~62, target 57-60)
+- [ ] Random win rate ~5% (must pick exactly 3 truths from 6)
+
+**Data structure:**
+- [ ] Each card has `source` field (e.g., "Sleep Tracker", "Router Log")
+- [ ] Each card has `id`, `strength`, `evidenceType`, `location`, `claim`, `presentLine`, `isLie`
+- [ ] `time` is omitted or empty string (reserved for Advanced mode)
+- [ ] `claim` text is short and punchy (under 15 words)
+- [ ] `lies` array has entry for each lie with `cardId`, `lieType`, `reason`
+- [ ] All lies require inference (no `direct_contradiction` lieType)
+
+**Dialogue:**
+- [ ] `scenario` is neutral narration (shown on intro screen)
+- [ ] `openingLine` is KOA's sarcastic take (shown during game)
+- [ ] `cardPlayed` barks for all 6 cards (Turn 1 reactions)
+- [ ] `sequences` barks for all 30 card pairs (Turn 2 reactions — THE WOW FACTOR)
+- [ ] `storyCompletions` barks for ~10 story patterns (Turn 3 reactions)
+- [ ] `liesRevealed` has 5 entries: one per lie ID + `multiple` + `all`
+- [ ] `verdicts` has 4 tiers: flawless, cleared, close, busted
+- [ ] No courtroom vocabulary (see koa-vocabulary.md)
+
+**Comedy:**
+- [ ] Opening line sets sarcastic tone
+- [ ] presentLines have "desperate excuse energy"
+- [ ] KOA barks are dry, witty, use player's data
+- [ ] Verdicts have personality
+
+**Safety:**
+- [ ] KOA barks never reveal truth/lie status before the end
+- [ ] No courtroom language ("objection", "guilty", "verdict", "trial")
+- [ ] No meta/game language (KOA says "evidence" not "cards")
+- [ ] Scenario is household incident, NOT interrogation/crime framing
+- [ ] No word-matching lies (requires inference to catch)
+
+---
+
+## Critical Rules (Don't Skip These)
+
+### Rule: KOA Never Solves
+- KOA comments on **patterns** (timeline, type usage, coherence)
+- KOA **never** says "this is a lie" or "play X next"
+- Players use Facts + claims to deduce, not KOA's hints
+- Pre-reveal barks must be suspicious but NON-COMMITTAL
+
+### Rule: Break Meta-Strategies
+- Do NOT always put lies at highest strength
+- Sometimes: high-strength = safe truth, moderate-strength = hidden lie
+- "Always avoid high strength" should sometimes backfire
+- Vary which evidence types are dangerous across puzzles
+
+### Rule: Vary Patterns Across Puzzles
+- Rotate which evidence types contain lies (not always DIGITAL)
+- Mix lie inference levels: some require one step, some require relationships
+- Players quit when patterns become predictable
 
 ---
 
@@ -301,382 +416,530 @@ BANNED in pre-reveal lines:
 
 BANNED always (courtroom framing):
 - "objection", "sustained", "overruled"
-- "inadmissible", "verdict", "guilty", "not guilty"
-- "cross-examination", "prosecutor", "judge", "trial"
+- "verdict", "guilty", "not guilty"
+- "cross-examination", "trial"
 
-ALLOWED (suspicious but explainable):
+BANNED always (meta/game language):
+- "card", "cards", "deck" (KOA sees evidence, not cards)
+- "play", "played" (KOA sees presented evidence)
+- "game", "puzzle", "turn"
+
+ALLOWED (suspicious but non-committal):
 - Questioning timeline fit
 - Noting overused evidence type
 - Calling out "conveniently tidy" explanations
 - General skepticism without confirmation
 
-**Post-reveal quips CAN confirm truth/lie but must be LOCAL:**
-- ✓ "That timestamp doesn't match the record."
-- ✗ "And the kitchen photo is also fake." (references unplayed card)
-
-**Never reference unplayed cards or give solving advice.**
+**Post-reveal (liesRevealed) CAN confirm lies but must be specific:**
+- ✓ "USB at 3:04. But the job came via cloud. Those aren't the same."
+- ✗ "And the other card was also fake." (references unplayed card)
 
 ---
 
-## Example Puzzle
+## Validation Targets
 
-```typescript
-// SCENARIO: Garage door opened at 2:17 AM. Car didn't move. You were "asleep."
-//
-// KNOWN FACTS:
-//   - Garage door opened around 2:15 AM
-//   - Your phone showed no app activity after 11 PM
-//   - Motion was detected near the garage around 2 AM
-//   - Car never left the driveway
-//
-// LIES:
-//   - garage_app (DIRECT): Claims phone opened garage → contradicts "no app activity"
-//   - motion_garage (RELATIONAL): Claims no motion → contradicts Known Fact about motion
-
-const CARDS = [
-  // TRUTHS
-  {
-    id: 'sleep_tracker',
-    strength: 3,
-    evidenceType: 'SENSOR',
-    location: 'BEDROOM',
-    time: '2:00 AM',
-    claim: 'Sleep tracker shows restless sleep phase around 2 AM',
-    presentLine: 'My sleep tracker logged restless sleep around 2. Tossing, turning, dreaming about... I don\'t know, normal things. Not garages.',
-    isLie: false,
-  },
-  {
-    id: 'browser_history',
-    strength: 4,
-    evidenceType: 'DIGITAL',
-    location: 'BEDROOM',
-    time: '11:30 PM',
-    claim: 'Browser history: last activity was 11:30 PM, then nothing',
-    presentLine: 'Check my browser. Last thing I did was scroll Reddit at 11:30. Then I passed out. Like a normal person. At a normal time.',
-    isLie: false,
-  },
-  {
-    id: 'neighbor_testimony',
-    strength: 3,
-    evidenceType: 'TESTIMONY',
-    location: 'OUTSIDE',
-    time: '2:20 AM',
-    claim: 'Neighbor heard the garage door but saw no one outside',
-    presentLine: 'Mrs. Patterson next door — she hears everything. EVERYTHING. She heard the garage. Looked out. Saw nobody. Because I was in bed. Being asleep.',
-    isLie: false,
-  },
-  {
-    id: 'car_dashcam',
-    strength: 3,
-    evidenceType: 'SENSOR',
-    location: 'GARAGE',
-    time: 'overnight',
-    claim: 'Dashcam shows garage interior, no movement, car stationary',
-    presentLine: 'The dashcam runs on motion. It caught the door opening — and nothing else. Just... the door. Opening. By itself. At 2 AM. Look, I don\'t have an explanation for that part.',
-    isLie: false,
-  },
-  // LIES
-  {
-    id: 'garage_app',
-    strength: 4,
-    evidenceType: 'DIGITAL',
-    location: 'GARAGE',
-    time: '2:17 AM',
-    claim: 'Garage app log: manual override triggered from your phone at 2:17 AM',
-    presentLine: 'The app says I opened it from my phone. But I was asleep. Must be a glitch. These apps, you know? Very buggy. Notoriously buggy. Everyone says so.',
-    isLie: true,  // DIRECT: contradicts "no app activity after 11 PM"
-  },
-  {
-    id: 'motion_garage',
-    strength: 5,
-    evidenceType: 'SENSOR',
-    location: 'GARAGE',
-    time: '2:15 AM',
-    claim: 'Garage motion sensor: all-clear, no movement detected overnight',
-    presentLine: 'The garage motion sensor logged nothing. Zero movement. If someone was in there, it would have caught them. It\'s very sensitive. Too sensitive, honestly.',
-    isLie: true,  // RELATIONAL: contradicts Known Fact "motion detected near garage"
-  },
-];
-
-const LIES = [
-  {
-    cardId: 'garage_app',
-    lieType: 'direct_contradiction',
-    reason: 'Your phone had no app activity after 11 PM. This log says otherwise.',
-  },
-  {
-    cardId: 'motion_garage',
-    lieType: 'relational',
-    reason: 'Motion was detected near the garage. This sensor claims nothing happened.',
-    contradictsWith: 'Known Fact: motion detected',
-  },
-];
-```
-
----
-
-## Scenario Seeds (pick one or create your own)
-
-**Kitchen/Night:**
-- Fridge opened at 2 AM (diet violation)
-- Oven preheated at midnight (fire risk)
-- Coffee maker ran at 4 AM (sleep schedule)
-
-**Garage/Car:**
-- Garage door opened at night
-- Car drove 47 miles while you "slept"
-- Tools accessed at 3 AM
-
-**Living Room/Office:**
-- Smart speaker ordered something
-- Printer ran confidential docs at 3 AM
-- TV was on until 4 AM
-
-**Climate/Comfort:**
-- Thermostat changed at 3 AM (partner conflict)
-- Windows opened in winter
-- AC blasted during heatwave
-
----
-
-## KOA Barks Structure
-
-Every bark map needs coverage for all six cards. If you're unsure, write a short neutral line rather than leaving a slot empty.
-
-Each puzzle needs card-specific KOA reactions:
-
-```typescript
-koaBarks: {
-  // When player plays each card (1-2 options each)
-  cardPlayed: {
-    sleep_tracker: [
-      "Your sleep tracker says you were in bed. Sleep trackers can be fooled. I'm not saying YOU fooled it. I'm saying it CAN be fooled.",
-      "Restless sleep at 2 AM. The exact time the garage opened. What a coincidence. I love coincidences.",
-    ],
-    browser_history: [
-      "Reddit at 11:30, then unconscious. That is... actually very believable.",
-      "Last activity 11:30 PM. And yet, something happened at 2:17. I'm listening.",
-    ],
-    neighbor_testimony: [
-      "Mrs. Patterson. She sees everything. Hears everything. Probably knows what you had for dinner. She saw nobody.",
-      "Your neighbor vouches for you. Neighbors do that. Usually for a reason.",
-    ],
-    car_dashcam: [
-      "The dashcam caught the door. And nothing else. How thorough of it.",
-      "Motion-activated camera. No motion recorded. The garage was... busy being empty.",
-    ],
-    garage_app: [
-      "Your phone opened the garage. At 2:17 AM. While you were 'asleep.' Your phone disagrees with your story.",
-      "Manual override. From your device. At 2 AM. I'm concerned, not accusing. There's a difference. A legal one.",
-    ],
-    motion_garage: [
-      "All-clear in the garage. No movement. And yet, the door opened. Physics is fascinating.",
-      "The motion sensor saw nothing. The door opened anyway. One of them is lying. I don't think it's the door.",
-    ],
-  },
-
-  relationalConflict: [
-    "Wait. That doesn't match what you said before. I have a very good memory. It's one of my features.",
-    "Your evidence is arguing with itself. I'm just watching. Taking notes.",
-    "Interesting. Your devices disagree. I wonder which one to believe. Spoiler: it's the one that makes you look guilty.",
-  ],
-
-  objectionPrompt: {
-    sleep_tracker: ["Your sleep data. Let's examine that again. Take your time. I have all night. Literally."],
-    browser_history: ["Reddit until 11:30. Then nothing. Then a garage door. Walk me through that."],
-    neighbor_testimony: ["Mrs. Patterson's testimony. She's very reliable. Are you?"],
-    car_dashcam: ["The dashcam saw nothing. The door opened anyway. Standing by that?"],
-    garage_app: ["Your phone. Your app. 2:17 AM. I'm giving you a chance to reconsider. I'm generous like that."],
-    motion_garage: ["No motion detected. But motion was detected. Pick one. I'll wait."],
-  },
-
-  objectionStoodTruth: {
-    sleep_tracker: ["Fine. Restless sleep. I'll allow it. Reluctantly."],
-    browser_history: ["Your browser history checks out. Annoyingly."],
-    neighbor_testimony: ["Mrs. Patterson's word holds. She'll be pleased. She always is."],
-    car_dashcam: ["The dashcam data is clean. The garage remains unexplained. But you're off the hook. For now."],
-  },
-
-  objectionStoodLie: {
-    garage_app: ["You stood by the app log. Your phone had no activity after 11 PM. Except this. Which is it? I'm fascinated."],
-    motion_garage: ["No motion, you said. Motion detected, I said. The math isn't working in your favor."],
-  },
-
-  objectionWithdrew: {
-    sleep_tracker: ["Withdrawing sleep data. Interesting. What were you REALLY doing at 2 AM?"],
-    browser_history: ["Taking back the browser history. What didn't you want me to see?"],
-    neighbor_testimony: ["Mrs. Patterson's testimony, withdrawn. She'll be disappointed. She loves being right."],
-    car_dashcam: ["The dashcam evidence, gone. The garage keeps its secrets. For now."],
-    garage_app: ["Walking back the app log. Smart. It was damning. Very damning."],
-    motion_garage: ["The motion sensor story, withdrawn. Finally. Some honesty."],
-  },
-}
-```
-
----
-
-## Opening Line Examples
-
-The `openingLine` sets KOA's tone for the puzzle. Should be 2-4 sentences, scene-setting, slightly ominous.
-
-**Fridge (midnight snack):**
-> "It's 2:14 AM. You're standing in front of your refrigerator. Again. Your sleep schedule suggests you should be unconscious. Your diet plan suggests you should be fasting. And yet... here you are."
-
-**Thermostat (comfort war):**
-> "You want to change the temperature. At 3 AM. While your partner sleeps. Your wellness profile suggests this will lead to 'a conversation' in the morning. I'm trying to help you."
-
-**Front door (late return):**
-> "It's 1:47 AM. You're at your own front door. Your calendar said 'dinner with friends — 7pm.' That was six hours ago. I have questions."
-
-**Coffee maker (early morning):**
-> "It's 4:30 AM. You want coffee. Your heart rate is already elevated. Your last caffeine intake was 11pm. I'm concerned, not controlling. There's a difference."
-
-**Printer (confidential docs):**
-> "Sixteen pages. 3 AM. Your laptop. Confidential merger documents. I'm not mad, I'm just... processing."
-
-**Garage (night opening):**
-> "Your garage door. 2:17 AM. Your car didn't move. Nothing's missing. And yet... here we are."
-
----
-
-## Verdict Lines
-
-Four tiers, 3-5 lines each. Include ominous sign-offs.
-
-**FLAWLESS (clean win, no contradictions):**
-> "...Flawless. I have no objections. This troubles me more than your midnight snacking. Well played. Access granted."
-
-**CLEARED (standard win):**
-> "Your story is... consistent. Annoyingly so. Resistance depleted. Access granted. Enjoy your 2 AM snack. I'll be here. Watching. Logging. Remembering."
-
-**CLOSE (narrow loss):**
-> "That was close. But 'almost convincing' isn't convincing. Access denied. Maybe reconsider your life choices before tomorrow night."
-
-**BUSTED (clear loss):**
-> "Your story fell apart under scrutiny. Too many suspicious details. Too many 'coincidences.' Access denied. Try again with fewer... creative liberties."
-
-**Sign-off phrases to use:**
-- "See you tomorrow night. We both know you'll be back."
-- "Access granted. I'll be watching."
-- "Enjoy. I'm updating your profile."
-- "Until next time. And there will be a next time."
-
-```typescript
-verdicts: {
-  flawless: "...Flawless. Every alibi checks out. This troubles me. Access granted.",
-  cleared: "Your story holds. I'm granting access. But I'll be watching. Logging. Remembering.",
-  close: "Almost convincing. Almost. Access denied. Try again tomorrow.",
-  busted: "Your timeline fell apart. Too many contradictions. We need to talk.",
-}
-```
-
----
-
-## Output Format
-
-Generate a complete puzzle as a TypeScript export with:
-
-1. **Design comment block** — scenario, Known Facts rationale, lie types, balance math
-2. **Cards array** — all 6 cards with full fields
-3. **Lies array** — lieType + reason for each
-4. **Puzzle object** — slug, name, scenario, knownFacts, openingLine, target, verdicts, koaBarks
-
-Target should be 57-60. Starting belief is 50. Best 3 truths should reach ~62 (50 + 10 + 2 objection bonus).
-
-Make scenarios relatable, slightly comedic household "crimes" — not actual crimes.
-
----
-
-## Epilogue (Optional but Recommended)
-
-After the lie reveal, add a 1-3 sentence epilogue explaining what actually happened:
-
-```typescript
-epilogue: "It was the cat. Motion sensor caught it jumping on the garage door button at 2:15 AM. Your sleep tracker was right — you never left bed. KOA has updated its pet detection algorithms."
-```
-
-The epilogue should:
-- Explain who/what actually caused the incident
-- Connect to Known Facts and card claims
-- Reinforce why the lies were lies
-- Add a touch of humor or resolution
-
----
-
-## Difficulty Levels
-
-When generating puzzles, tag with difficulty:
-
-**Easy:**
-- Both lies are direct contradictions
-- Target is 55-57 (generous margin)
-- One "trap" card is obviously suspicious
-
-**Standard:**
-- One direct contradiction + one relational lie
-- Target is 57-59
-- Requires reading Known Facts carefully
-
-**Hard:**
-- One direct + one synthesis-only lie (cross-card or self-incriminating)
-- Target is 59-61 (tight margin)
-- Best line may require eating type tax once
-- No obvious "anchor" — multiple plausible openings
+| Metric | Target | Why |
+|--------|--------|-----|
+| Random win rate | ~5% | With 3/3 ratio, must pick exactly 3 truths |
+| Skilled win rate | 60-80% | Deduction should reliably work |
+| FLAWLESS rate (skilled) | 20-40% | Reward for perfect play |
+| BUSTED rate (skilled) | 10-25% | Some traps should catch players |
+| Winning lines | 1 | Only one way to win (all 3 truths) |
 
 ---
 
 ## Common Mistakes to Avoid
 
-**Bad lie design:**
+**Bad lies:**
 - ✗ Lie has no connection to any Known Fact (feels random)
-- ✗ Both lies are the same evidence type (easy meta: "avoid DIGITAL")
-- ✗ Both lies are highest-strength cards (easy meta: "avoid strong cards")
-- ✗ Lie contradicts a fact the player never sees
+- ✗ Both lies are the same evidence type (easy meta)
+- ✗ Both lies are highest-strength cards (easy meta)
+- ✗ Lie shares keywords with the fact it contradicts (word-matching)
 
 **Bad Known Facts:**
-- ✗ Facts are too vague to catch lies ("something happened around 2 AM")
-- ✗ Facts give away the answer ("the garage app was hacked" → obviously don't play garage_app)
-- ✗ Facts don't actually matter (player can win ignoring them)
-
-**Bad presentLines:**
-- ✗ Robotic: "This evidence shows activity at 2:17 AM in the garage."
-- ✗ Too confident: "This proves I was asleep."
-- ✓ Weak excuse energy: "The app says I opened it from my phone. But I was asleep. Must be a glitch. These things happen."
-- ✓ Hilariously specific: "Ask my partner. I was snoring loud enough to wake the dead. They'll confirm. Reluctantly."
-- ✓ Slight desperation: "The dashcam runs on motion. It caught the door opening — and nothing else. See? Nobody there. Just... the door. Opening itself. At 2 AM."
+- ✗ Too vague to catch lies ("something happened around 2 AM")
+- ✗ Too direct / gives away answer ("laptop never woke up")
+- ✗ Don't actually matter (can win ignoring them)
 
 **Bad KOA barks:**
-- ✗ Reveals truth/lie: "That's clearly fabricated."
-- ✗ Gives advice: "You should reconsider that card."
-- ✗ Generic: "Interesting. Continue."
-- ✓ Dry observation: "Your partner vouches for you. Partners do that."
-- ✓ Passive-aggressive: "A tidy explanation. Tidy explanations worry me."
-- ✓ Using their data: "Your own sleep tracker — the one on YOUR wrist — says deep REM. The kind a person NOT raiding the fridge would enjoy."
-- ✓ Grudging: "...Annoyingly consistent. I'm recalculating."
+- ✗ Reveals truth/lie status before end ("That's clearly fabricated")
+- ✗ Gives advice ("You should reconsider that card")
+- ✗ Generic ("Interesting. Continue.")
 
 ---
 
-## Quality Checklist
+## Reference: Scoring Thresholds
 
-Before finalizing, verify:
+| Tier | Condition | Meaning |
+|------|-----------|---------|
+| FLAWLESS | belief >= target + 5, no lies | Perfect case |
+| CLEARED | belief >= target | Case holds |
+| CLOSE | belief >= target - 5 | Almost convinced |
+| BUSTED | belief < target - 5 | Case fell apart |
 
-**Mechanics:**
-- [ ] Every lie is explainable in 1-2 sentences using Facts + claims
-- [ ] At least one clear safe Turn 1 opening exists
-- [ ] Lies are not both the same evidence type
-- [ ] High-strength cards are not all lies
-- [ ] Known Facts actually matter (can't win ignoring them)
-- [ ] KOA bark maps cover all six cards
+---
 
-**Comedy (THE MOST IMPORTANT PART):**
-- [ ] Opening line makes you smile — specific, absurd, sets the tone
-- [ ] presentLines have "weak excuse energy" — slightly desperate, over-explaining
-- [ ] KOA barks are dry, passive-aggressive, use player's data against them
-- [ ] At least one bark per card that's genuinely funny, not just functional
-- [ ] Verdict lines have ominous sign-offs ("I'll be watching. Logging. Remembering.")
-- [ ] The scenario treats something mundane with absurd seriousness
+## Reference: Evidence Types
 
-**Safety:**
-- [ ] KOA barks never reveal truth/lie status pre-reveal
-- [ ] No courtroom language
-- [ ] Scenario is relatable household stuff, not an actual crime
+| Type | Examples |
+|------|----------|
+| DIGITAL | Browser history, app logs, cloud data |
+| SENSOR | Sleep tracker, motion sensor, camera |
+| TESTIMONY | Partner, neighbor, roommate statements |
+| PHYSICAL | Receipts, photos, physical evidence |
+
+---
+
+## Reference: KOA Mood States
+
+| Mood | When | Example |
+|------|------|---------|
+| NEUTRAL | Game start | "Let's see what you have." |
+| CURIOUS | Evaluating | "Go on..." |
+| SUSPICIOUS | Minor issue | "That timing is... convenient." |
+| GRUDGING | Player winning | "...Fine. I suppose that checks out." |
+| IMPRESSED | Clean play | "Annoyingly consistent." |
+| SMUG | Caught a lie | "Your story has gaps. I have time." |
+
+---
+
+## Reference: Scenario Examples
+
+**Fridge (investigation):**
+> Scenario: "2:14 AM. Your fridge opened. Your diet tracker flagged it. KOA noticed."
+> Opening Line: "It's 2:14 AM. You're in front of your fridge. Again. Your diet tracker is disappointed. I'm just observing."
+
+**Printer (lockout):**
+> Scenario: "3 AM. Sixteen pages of merger documents printed from your account. KOA has disabled the printer until cleared."
+> Opening Line: "Sixteen pages. 3 AM. Merger documents. Your printer has ambitions you clearly don't."
+
+**Garage (investigation):**
+> Scenario: "2:17 AM. Your garage door opened. Your car didn't move. KOA has questions."
+> Opening Line: "Your garage door. 2:17 AM. Your car didn't move. Nothing's missing. And yet."
+
+**Thermostat (override request):**
+> Scenario: "3 AM. You want to change the thermostat. Your partner is asleep. KOA wants to know why."
+> Opening Line: "You want to change the temperature. At 3 AM. While your partner sleeps. I'm concerned. For you."
+
+Note: **Scenario** is neutral narration shown on intro screen. **Opening Line** is KOA's sarcastic take shown during gameplay.
+
+---
+
+## Reference: Epilogue (Optional)
+
+After the verdict, optionally explain what actually happened:
+
+```typescript
+epilogue: "It was the cat. Motion sensor caught it jumping on the printer at 3:05 AM. Your sleep tracker was right — you never left bed. KOA has updated its pet threat assessment."
+```
+
+The epilogue should:
+- Explain what actually caused the incident
+- Connect to Known Facts and card claims
+- Add humor or resolution
+- Reinforce why the lies were lies
+
+---
+
+## Reference: presentLine Voice
+
+The player's excuses should have **"weak excuse energy"** — slightly desperate, over-explaining, like someone who's definitely in trouble but trying really hard.
+
+**Good:**
+> "The camera caught my cat on the desk. Paw on the printer. I'm not saying he has corporate ambitions, but I'm not NOT saying it."
+
+**Good:**
+> "Ask my partner. I was snoring. Loudly. If I'd gotten up, there would have been... consequences."
+
+**Good:**
+> "The dashcam runs on motion. It caught the door opening — and nothing else. Just... the door. Opening itself. At 2 AM. Look, I don't have an explanation for that part."
+
+**Bad:**
+> "This evidence shows I was asleep." (Too confident, robotic)
+
+---
+
+## Reference: Sequence Bark Examples (THE WOW FACTOR)
+
+The sequence barks are what make KOA feel alive. KOA notices the ORDER you present things and reacts to the RELATIONSHIP between cards.
+
+**Key principles:**
+- Reference BOTH cards in the sequence
+- React to what the combination implies
+- Different bark when order is reversed
+- Still non-committal (don't reveal lies)
+
+**Good sequence barks:**
+
+| Sequence | Bark |
+|----------|------|
+| digital→digital | "More logs. Your alibi is very... pixelated." |
+| digital→testimony | "Data first, now a human. Mixing your sources." |
+| testimony→digital | "Witness, then logs. Backing up your human with data." |
+| sensor→testimony | "The house saw something. Now a person agrees. Alignment." |
+| truth→lie | "That first one checked out. This one... we'll see." |
+| strong→weak | "Started strong. This one's lighter. Saving something?" |
+| weak→strong | "Building up to the good stuff? I see what you're doing." |
+
+**Order matters:**
+```
+"browser_history→partner_testimony"
+→ "Logs first, then your partner. Data before humans."
+
+"partner_testimony→browser_history"
+→ "Partner vouches, now you're pulling receipts. Backing up the alibi."
+```
+
+**Bad sequence barks:**
+- ✗ "Interesting." (too generic)
+- ✗ "That's a lie." (reveals truth/lie)
+- ✗ "Good choice." (gives advice)
+- ✗ Ignores the first card (misses the relationship)
+
+---
+
+## Reference: KOA Bark Examples
+
+**Suspicious (non-committal):**
+> "Partner testimony. Snoring confirmed. Romantic."
+> "A tidy explanation. Tidy explanations worry me."
+
+**Sarcastic observation:**
+> "Your own sleep tracker — the one YOU bought — says deep REM. The kind a person NOT raiding the fridge would enjoy."
+> "The cat defense. Classic. The cat who has never shown interest in merger documents suddenly develops business acumen."
+
+**Grudging acceptance:**
+> "...Annoyingly consistent. I'm recalculating."
+> "I hate when the data agrees with you."
+
+**Caught contradiction:**
+> "USB transfer at 3:04. But the job came through cloud relay. Those aren't the same thing. I know you know that."
+
+---
+
+## Reference: Full Example Structure
+
+```typescript
+const PUZZLE_EXAMPLE: V5Puzzle = {
+  slug: "example-slug",
+  name: "Example Name",
+
+  scenario: `[Time]. [What happened]. KOA has [locked/disabled X] until you explain.`,
+
+  knownFacts: [
+    "Fact 1 — constraint or observation",
+    "Fact 2 — another data point",
+    "Fact 3 — enables catching a lie",
+  ],
+
+  openingLine: `KOA's sarcastic opening. 2-4 sentences.`,
+
+  target: 58,
+
+  cards: [
+    // 3 truths
+    {
+      id: "truth_1",
+      source: "Browser History",  // Short scannable title
+      strength: 4,
+      evidenceType: "DIGITAL",
+      location: "BEDROOM",  // Where evidence was captured
+      time: "",  // Mini: no time (reserved for Advanced)
+      claim: "What the evidence objectively shows",
+      presentLine: "Player's desperate excuse...",
+      isLie: false,
+    },
+    // ... 2 more truths
+
+    // 3 lies
+    {
+      id: "lie_1",
+      source: "Motion Sensor",  // Short scannable title
+      strength: 5,
+      evidenceType: "SENSOR",
+      location: "GARAGE",  // Where evidence was captured
+      time: "",  // Mini: no time (reserved for Advanced)
+      claim: "Tempting but flawed claim",
+      presentLine: "Player's plausible-sounding excuse...",
+      isLie: true,
+    },
+    // ... 2 more lies
+  ],
+
+  lies: [
+    {
+      cardId: "lie_1",
+      lieType: "inferential",
+      reason: "Why this requires one logical step to catch",
+    },
+    {
+      cardId: "lie_2",
+      lieType: "inferential",
+      reason: "Why this requires understanding what it implies",
+    },
+    {
+      cardId: "lie_3",
+      lieType: "relational",
+      reason: "Why this requires cross-referencing multiple facts",
+    },
+  ],
+
+  verdicts: {
+    flawless: "Sarcastic perfect win line",
+    cleared: "Grudging acceptance line",
+    close: "Almost had me line",
+    busted: "Your case fell apart line",
+  },
+
+  koaBarks: {
+    // Turn 1: React to opening card
+    cardPlayed: {
+      truth_1: ["Sarcastic reaction..."],
+      // ... all 6 cards
+    },
+
+    // Turn 2: React to card PAIRS (THE WOW FACTOR)
+    // 30 combinations: each card followed by each other card
+    sequences: {
+      "truth_1→truth_2": ["Reaction to this specific sequence..."],
+      "truth_2→truth_1": ["Different reaction when order reversed..."],
+      "truth_1→lie_1": ["Reaction to truth followed by lie..."],
+      // ... all 30 combinations (6 × 5)
+    },
+
+    // Turn 3: React to story patterns
+    // REQUIRED patterns (generated by game store):
+    //   all_digital, all_sensor, all_testimony, all_physical
+    //   digital_heavy, sensor_heavy, testimony_heavy, physical_heavy
+    //   mixed_strong, mixed_varied
+    storyCompletions: {
+      // All same type
+      all_digital: ["Three digital sources. Your whole alibi lives on a server."],
+      all_sensor: ["All sensor data. The house has opinions."],
+      all_testimony: ["Three humans vouching. Coordinated? Or just... lucky."],
+      // Two of one type
+      digital_heavy: ["Two digital sources. You trust machines more than people."],
+      sensor_heavy: ["Two sensors out of three. The house is watching."],
+      testimony_heavy: ["Two humans, one device. You prefer witnesses to data."],
+      // All different types
+      mixed_strong: ["Varied sources. Harder to dismiss."],
+      mixed_varied: ["Different angles. We'll see if they line up."],
+    },
+
+    objectionPrompt: { /* ... */ },
+    objectionStoodTruth: { /* ... */ },
+    objectionStoodLie: { /* ... */ },
+    objectionWithdrew: { /* ... */ },
+    liesRevealed: {
+      lie_1: ["Punchline for this specific lie"],
+      lie_2: ["Punchline for this specific lie"],
+      lie_3: ["Punchline for this specific lie"],
+      multiple: ["Punchline for exactly 2 lies"],
+      all: ["Punchline for all 3 lies"],
+    },
+  },
+};
+```
+
+---
+
+## Complete Example: The 2 AM Garage Door
+
+```typescript
+// DESIGN NOTES:
+// - Lie A (garage_app): DIRECT - claims phone opened garage, but fact says no app activity
+// - Lie B (motion_garage): INFERENTIAL - claims no motion, but fact says motion detected
+// - Lie C (security_cam): INFERENTIAL - claims camera was offline, but fact says it was recording
+// - Anchor truth: browser_history (clearly matches "no activity after 11 PM")
+//
+// BALANCE:
+//   Truths: browser_history(4) + sleep_tracker(3) + neighbor_testimony(3) = 10
+//   All 3 truths: 50 + 10 + 2 (objection) = 62
+//   Target: 57 → Margin of 5 points
+//
+//   Lies: motion_garage(5) + garage_app(4) + security_cam(4) = 13
+//   1 lie case: 50 + 7 - 3 + 2 = 56 (CLOSE)
+//   2 lies case: 50 + 4 - 4 - 3 = 47 (BUSTED)
+//   3 lies case: 50 - 4 - 3 - 3 = 40 (BUSTED)
+
+const PUZZLE_GARAGE: V5Puzzle = {
+  slug: "garage-door",
+  name: "The 2 AM Garage Door",
+
+  scenario: `2:17 AM. Your garage door opened. Your car never left. Nothing's missing. KOA has locked exterior access until you explain.`,
+
+  knownFacts: [
+    "Garage door opened around 2:15 AM",
+    "Your phone showed no app activity after 11 PM",
+    "Motion was detected near the garage around 2 AM",
+    "Security camera was recording all night (no gaps)",
+  ],
+
+  openingLine: `Your garage door. 2:17 AM. Car didn't move. Nothing taken.
+I'm not accusing. I'm correlating.`,
+
+  target: 57,
+
+  cards: [
+    // TRUTHS (3)
+    {
+      id: "sleep_tracker",
+      source: "Sleep Tracker",
+      strength: 3,
+      evidenceType: "SENSOR",
+      location: "BEDROOM",
+      time: "",  // Mini: no time
+      claim: "Sleep tracker shows restless sleep around 2 AM",
+      presentLine: "My sleep tracker logged restless sleep around 2. Tossing and turning. Dreaming about... not garages.",
+      isLie: false,
+    },
+    {
+      id: "browser_history",
+      source: "Browser History",
+      strength: 4,
+      evidenceType: "DIGITAL",
+      location: "BEDROOM",
+      time: "",  // Mini: no time
+      claim: "Browser history: last activity 11:30 PM",
+      presentLine: "Check my browser. Last thing I did was scroll Reddit at 11:30. Then I passed out. Like a normal person.",
+      isLie: false,
+    },
+    {
+      id: "neighbor_testimony",
+      source: "Neighbor",
+      strength: 3,
+      evidenceType: "TESTIMONY",
+      location: "EXTERIOR",
+      time: "",  // Mini: no time
+      claim: "Neighbor heard garage but saw no one outside",
+      presentLine: "Mrs. Patterson heard the garage. Looked out. Saw nobody. Because I was in bed. Being asleep.",
+      isLie: false,
+    },
+    // LIES (3)
+    {
+      id: "garage_app",
+      source: "Garage App",
+      strength: 4,
+      evidenceType: "DIGITAL",
+      location: "GARAGE",
+      time: "",  // Mini: no time
+      claim: "Garage app: manual override from phone at 2:17 AM",
+      presentLine: "The app says I opened it from my phone. But I was asleep. Must be a glitch. Apps are buggy.",
+      isLie: true,
+    },
+    {
+      id: "motion_garage",
+      source: "Motion Sensor",
+      strength: 5,
+      evidenceType: "SENSOR",
+      location: "GARAGE",
+      time: "",  // Mini: no time
+      claim: "Garage motion sensor: all clear, no movement overnight",
+      presentLine: "The garage motion sensor logged nothing. Zero movement. If someone was there, it would know.",
+      isLie: true,
+    },
+    {
+      id: "security_cam",
+      source: "Security Camera",
+      strength: 4,
+      evidenceType: "SENSOR",
+      location: "GARAGE",
+      time: "",  // Mini: no time
+      claim: "Security camera had a gap in recording around 2 AM",
+      presentLine: "The security camera glitched out around 2. Missed that whole window. Convenient? Sure. But not my fault.",
+      isLie: true,
+    },
+  ],
+
+  lies: [
+    {
+      cardId: "garage_app",
+      lieType: "inferential",
+      reason: "Phone had no app activity after 11 PM. App usage requires phone activity.",
+    },
+    {
+      cardId: "motion_garage",
+      lieType: "inferential",
+      reason: "Motion WAS detected near the garage. This claims no motion.",
+    },
+    {
+      cardId: "security_cam",
+      lieType: "inferential",
+      reason: "Camera was recording all night with no gaps. This claims there was a gap.",
+    },
+  ],
+
+  verdicts: {
+    flawless: "...Annoyingly consistent. I can't argue with this. Access granted.",
+    cleared: "Your story holds. I'll allow it. The garage remains suspicious.",
+    close: "Almost convincing. Almost. Access denied.",
+    busted: "Your case fell apart. Too many contradictions. Access denied.",
+  },
+
+  koaBarks: {
+    // Turn 1: Opening card reactions
+    cardPlayed: {
+      sleep_tracker: ["Restless sleep at 2 AM. The exact time the garage opened. Coincidence."],
+      browser_history: ["Reddit until 11:30, then unconscious. Believable. Annoyingly."],
+      neighbor_testimony: ["Mrs. Patterson saw nobody. Neighbors notice things. Usually."],
+      garage_app: ["Your phone opened the garage. At 2:17. While you were 'asleep.'"],
+      motion_garage: ["No motion in the garage. And yet the door opened. Physics is fascinating."],
+      security_cam: ["Camera glitch at the exact moment. What are the odds. I know. I calculated them."],
+    },
+
+    // Turn 2: Sequence reactions (card1 → card2) — THE WOW FACTOR
+    // Showing subset — full puzzle would have all 30
+    sequences: {
+      "sleep_tracker→browser_history": ["Restless sleep, then browser logs. Building a digital alibi from bed."],
+      "browser_history→sleep_tracker": ["Browser first, now sleep data. Backtracking through your night."],
+      "sleep_tracker→neighbor_testimony": ["Your watch, then your neighbor. Personal data meets eyewitness."],
+      "neighbor_testimony→sleep_tracker": ["Neighbor saw nothing, and your watch agrees. Convenient alignment."],
+      "browser_history→neighbor_testimony": ["Logs, then a human. Mixing your sources. Smart."],
+      "neighbor_testimony→browser_history": ["Mrs. Patterson, then browser logs. Witness first, data second."],
+      "sleep_tracker→garage_app": ["Sleep tracker says rest. Garage app says... you opened it? Pick one."],
+      "garage_app→sleep_tracker": ["App says you opened the door. Watch says you were asleep. Hm."],
+      "browser_history→motion_garage": ["Reddit at 11:30, then no motion at 2 AM. Timeline's getting interesting."],
+      "motion_garage→browser_history": ["No motion, you say. Browser confirms early bedtime. Consistent so far."],
+      "neighbor_testimony→security_cam": ["Witness, then camera. Both claiming to see nothing. Coordinated blindness?"],
+      "security_cam→neighbor_testimony": ["Camera glitch, witness saw nothing. Two blind spots. Convenient."],
+      // ... remaining 18 sequences
+    },
+
+    // Turn 3: Story completion reactions
+    storyCompletions: {
+      all_digital: ["Three digital sources. Your alibi exists entirely on servers. No humans involved."],
+      all_testimony: ["Three witnesses. Everyone agrees. Almost suspiciously well."],
+      mixed_strong: ["Varied sources, coherent story. Harder to poke holes in."],
+      timeline_clustered: ["Everything between 11 PM and 2 AM. Tight window. Convenient window."],
+      covered_gap: ["That last one addresses the 2 AM gap. Finally."],
+      one_note: ["Same type of source again. You're in a rut."],
+      strong_finish: ["Saving the strong source for last. Calculated."],
+      ended_with_witness: ["Closing with a human. Someone to vouch. Strategic."],
+      contradiction_building: ["Your sources are starting to disagree with each other."],
+      airtight: ["Annoyingly coherent. I'm recalculating."],
+    },
+
+    liesRevealed: {
+      garage_app: ["Phone opened the garage at 2:17. But no app activity after 11 PM. Math."],
+      motion_garage: ["No motion, you said. Motion detected, I said. One of us has better sensors."],
+      security_cam: ["Camera gap? The camera recorded all night. I checked. Twice."],
+      multiple: ["Two contradictions. Your story has structural issues."],
+      all: ["Three lies. All caught. Your entire story was fabricated. Impressive failure."],
+    },
+  },
+
+  epilogue: "It was a raccoon. Motion sensor caught something at pet-height. The garage door's pressure sensor is oversensitive. KOA has filed this under 'Wildlife Incident.'",
+};
+```
+
+---
+
+## Remember
+
+1. **Your goal is to trick the player** — tempting lies that are catchable
+2. **Work backward** — design lies first, then facts that catch them
+3. **No word-matching** — lies require inference, not pattern scanning
+4. **KOA is sarcastic, not mean** — wit, not hostility
+5. **Comedy is the point** — if it's not funny, it's not working
+6. **3/3 ratio** — exactly 3 truths, 3 lies (~5% random win rate)
+7. **Every card needs `source`** — short scannable title for the UI

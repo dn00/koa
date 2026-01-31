@@ -2,33 +2,96 @@
 
 **Purpose:** Define the simplified, Wordle-style daily mode for Home Smart Home (“KOA Mini”) that uses the V5 engine under the hood but exposes a much lighter rule surface. This is the mode most players see by default; V5 “Advanced” remains available for depth.
 
-**Last Updated:** 2026-01-28  
-**Related docs:**  
-- `_process/v5-design/v5-design.md` — full V5 design  
-- `_process/v5-design/v5-design-context.md` — V5 invariants  
-- `_process/context/v5-daily-rotation.md` — weekly difficulty pattern  
-- `_process/context/v5-scenario-seeds.md` — incident seeds  
-- `_process/context/v5-daily-schedule-100.md` — example 100‑day schedule  
+**Last Updated:** 2026-01-30  
+**Related docs:**
+- `_process/v5-design/v5-design.md` — full V5 design
+- `_process/v5-design/v5-design-context.md` — V5 invariants
+- `_process/context/v5-daily-rotation.md` — weekly difficulty pattern
+- `_process/context/v5-scenario-seeds.md` — incident seeds
+- `_process/context/v5-daily-schedule-100.md` — example 100‑day schedule
+- `_process/context/koa-vocabulary.md` — approved/banned vocabulary
 - `scripts/prototype-v5.ts` — validator
 
 ---
 
 ## 1. High-Level Concept
 
-**KOA Mini** is the **default daily puzzle**: a 2–4 minute, phone-first, “three picks and a verdict” experience.
+**KOA Mini** is the **default daily puzzle**: a ~7 minute, phone-first, "three picks and a verdict" experience.
 
 - KOA is your slightly overprotective smart home AI. When your data looks weird, KOA **turns things off or locks you out** “for your own good.”  
 - Each day you read a short **scenario** and a few **Known Facts** (what KOA already knows from its logs).  
-- You see **6 evidence cards**. Exactly **2 are “bad signals”** (lies/red flags) that make KOA more nervous.  
+- You see **6 evidence cards**. Exactly **3 are "bad signals"** (lies/red flags) that make KOA more nervous.  
 - You **play 3 cards total**; after each one, KOA reacts with a short bark that comments on **patterns and axes** in your story (timeline, channel reliance, coherence), but does **not** explicitly say whether that card was truth or lie.  
 - At the end, KOA summarizes how your cards landed, reveals which ones were bad signals, and gives a **tier verdict** (BUSTED / CLOSE / CLEARED / FLAWLESS) with a short quip.  
 - There are **no visible numbers**, no explicit scoring formula, and no explicit KOA Flag choice; all numeric mechanics stay under the hood.
 
 KOA Mini is meant to feel as simple to explain as:
 
-> “KOA turned something off. Pick 3 cards that fit the facts and see if you can convince it to turn things back on.”
+> "KOA turned something off. Pick 3 cards that fit the facts and see if you can convince it to turn things back on."
+
+**Framing: Household Incidents, NOT Interrogation**
+
+KOA Mini puzzles are about **household incidents** that KOA finds suspicious, not **interrogations** about crimes.
+
+Valid scenario archetypes:
+- **Lockout:** KOA locked/disabled something until you explain
+- **Investigation:** KOA noticed something suspicious and wants answers
+- **Override request:** You want to change something KOA controls
+
+**BANNED framing (interrogation):**
+- "Prove you didn't commit X" (crime/guilt framing)
+- Courtroom language (objection, verdict, guilty, trial)
+- Treating player as a suspect in an actual crime
+
+The comedy comes from KOA treating mundane household stuff like security incidents, not from actual crime/guilt dynamics.
 
 V5 Advanced mode exposes the full Belief bar, Type Tax rule, and KOA Flag decision for players who want deeper mechanics.
+
+---
+
+## 1.1 Seven-Minute Design Philosophy
+
+KOA Mini targets a **~7 minute** play session. Every design decision balances accessibility with satisfying depth.
+
+### No Time Field
+- **Time is reserved for Advanced/paid puzzles**
+- Mini cards do NOT display timestamps
+- Lies are logical/factual contradictions, not temporal impossibilities
+- This removes timeline reconstruction from the player's cognitive load
+
+### Exactly 3 Known Facts
+- Not 4-5 — exactly **3 facts**
+- Each fact catches exactly one lie (1:1 mapping)
+- Fewer facts = less reading = faster sessions
+- **Fact template:** "[Source] [verb] [observation]" (e.g., "Phone had no app activity after midnight")
+
+### Lie Difficulty Gradient (No Gimmes)
+Every puzzle has **three lies that require inference**:
+1. **Medium** (one-step inference): Requires one logical step to connect card to fact.
+2. **Medium-hard** (multi-element): Requires understanding what the claim implies.
+3. **Tricky** (relational): Requires understanding relationships between multiple pieces.
+
+**No obvious/direct-contradiction lies.** Players must think through each one—no freebies.
+
+This ensures:
+- Every lie is satisfying to catch
+- Puzzles are easier to generate (no narrow "obvious but not insulting" target)
+- 7 minutes of actual thinking, not 5 minutes with a 30-second gimme
+
+### Fixed Card Strengths
+Deterministic balance—no iteration needed:
+- **Truths:** 3, 3, 4 (total: 10)
+- **Lies:** 3, 4, 5 (total: 12)
+
+### Evidence Type Distribution
+- **At least 3 different types** across 6 cards
+- **No more than 2 of any single type**
+- Ensures variety without creative burden
+
+### Punchy Card Text
+- Claims should be **scannable** (target: under 15 words)
+- Focus on the ONE thing that matters for contradiction detection
+- `presentLine` (player's excuse) can be longer; `claim` must be tight
 
 ---
 
@@ -37,17 +100,17 @@ V5 Advanced mode exposes the full Belief bar, Type Tax rule, and KOA Flag decisi
 Everything a KOA Mini player needs to know should fit on one screen:
 
 1. **Scenario & Facts**
-   - Scenario: 1–2 sentences about what KOA has locked or throttled and why it’s concerned (“The printer ran at 3 AM, so I paused print jobs until I’m sure this wasn’t you sleepwalking.”).  
-   - Known Facts: 3–5 bullet points that are guaranteed true.
+   - Scenario: 1–2 sentences about what KOA has locked or throttled and why it's concerned ("The printer ran at 3 AM, so I paused print jobs until I'm sure this wasn't you sleepwalking.").
+   - Known Facts: Exactly **3 bullet points** that are guaranteed true (each catches one lie).
 
 2. **Evidence Cards**
    - You see 6 cards. Each card shows:
-     - A short name (id / label)  
-     - Type (DIGITAL / SENSOR / TESTIMONY / PHYSICAL)  
-     - Location (where)  
-     - Time (when)  
+     - A short name (source)
+     - Type (DIGITAL / SENSOR / TESTIMONY / PHYSICAL)
+     - Location (where)
      - Claim (what it asserts)
-   - You know 2 of these are lies, but not which ones.
+   - **Note:** Time is NOT shown in Mini mode (reserved for Advanced). Lies are logical/factual, not temporal.
+   - You know 3 of these are lies, but not which ones.
 
 3. **Your Task**
    - “Pick **3 evidence cards** that best support your story and fit the Known Facts so KOA feels safe turning things back on.”  
@@ -67,13 +130,14 @@ No mention of Belief numbers, type tax, or KOA Flag appears in the KOA Mini rule
 
 **Step 1: Read**
 - Top of screen:
-  - Scenario (1–2 lines).  
-  - Known Facts (3–5 bullets).
+  - Scenario (1–2 lines).
+  - Known Facts (exactly 3 bullets).
 
 **Step 2: Inspect Cards**
 - Middle of screen:
-  - 6 cards visible (2×3 grid or scroll).  
-  - Each card shows type, time, location, strength icon, and claim in a compact layout.
+  - 6 cards visible (2×3 grid or scroll).
+  - Each card shows type, location, and claim in a compact layout.
+  - **No time shown** in Mini mode (time is reserved for Advanced puzzles).
 
 **Step 3: Pick Card 1**
 - Player taps a card → it becomes “played”:
@@ -116,7 +180,7 @@ KOA Mini uses the existing V5 engine; the difference is **presentation**, not co
 
 **4.1 Cards & Lies**
 - Use `V5Puzzle` shape (`scripts/v5-types.ts`):
-  - 6 cards (4 truths, 2 lies).  
+  - 6 cards (3 truths, 3 lies).  
   - `lies` metadata with `lieType` and `reason`.  
   - Tuning as per `puzzle-archetype-spec.md` and validated by `prototype-v5.ts`.
 
@@ -305,15 +369,75 @@ Puzzle-specific overrides are allowed (a puzzle can define its own custom sequen
 
 On the verdict screen:
 
-- KOA gives a verdict line per tier (FLAWLESS/CLEARED/CLOSE/BUSTED).  
-- Optionally show a **“how KOA saw it”** block:
+- KOA gives a verdict line per tier (FLAWLESS/CLEARED/CLOSE/BUSTED).
+- Optionally show a **"how KOA saw it"** block:
   - 1–2 bullets mapping lies to specific facts:
-    - “`email_draft` contradicted Fact #2 (you claimed to be in bed by 11).”  
-    - “`printer_queue` essentially proved my suspicion; that job came from your laptop at 3 AM.”
+    - "`email_draft` contradicted Fact #2 (you claimed to be in bed by 11)."
+    - "`printer_queue` essentially proved my suspicion; that job came from your laptop at 3 AM."
+- If penalties were triggered, show subtle hints (see §6.4 Penalty Feedback System):
+  - Mini mode: Vague observations ("Evidence variety could use work.")
+  - Advanced mode: Explicit penalty breakdown with turn numbers and point values.
 
-This optional teaching mode helps “Literal” personas learn without changing the in-play puzzle.
+This optional teaching mode helps "Literal" personas learn without changing the in-play puzzle.
 
-**6.4 Long-Term KOA Commentary (Optional)**
+**6.4 Penalty Feedback System**
+
+Type Tax and other penalties affect scoring but should not break immersion with explicit game-mechanic barks. The feedback system uses two channels:
+
+**During Gameplay: Expression-Based Feedback**
+
+When a penalty triggers (e.g., type tax from playing same evidence type consecutively):
+
+- KOA's expression/mood shifts briefly (e.g., `UNIMPRESSED`, `SKEPTICAL`)
+- No verbal bark about the penalty—the face communicates "something's off"
+- Card-specific barks remain pristine and uninterrupted
+- Players who pay attention notice the pattern over multiple games
+
+Timing:
+```
+Card played → Energy animation → KOA PROCESSING →
+[If penalty] → KOA expression shifts (UNIMPRESSED) →
+KOA responds with card-specific bark (expression returns to normal)
+```
+
+**On Verdict Screen: Penalty Hints**
+
+After the game ends, the verdict screen may include subtle hints about penalties:
+
+- **Mini mode:** Vague, in-character observations
+  - "KOA noticed some repetitive patterns in your evidence."
+  - "Your defense was... somewhat predictable."
+  - "Evidence variety could use work."
+
+- **Advanced mode:** More explicit breakdown
+  - Show which turns had penalties applied
+  - Show total penalty points
+  - Still don't spell out the exact trigger rule (discovery is part of the game)
+
+Example (Advanced):
+```
+Penalties detected:
+  Turn 2: Same evidence type (-2)
+  Turn 3: Same evidence type (-2)
+  Total: -4
+```
+
+**Design Rationale:**
+
+- Barks are written independently (card-specific, penalty-specific) and don't combine well
+- Expression system provides immediate non-verbal feedback without interrupting flow
+- Verdict screen is the "teaching moment"—reflection after the round, not mid-game interruption
+- Players learn through pattern recognition, not tutorials
+- Advanced mode satisfies players who want explicit mechanics
+
+**Scaling to Future Penalties:**
+
+When new penalty types are added (time clustering, strength stacking, etc.):
+- Add corresponding expression trigger
+- Add verdict screen hint text
+- No need to write barks that combine with puzzle-specific content
+
+**6.5 Long-Term KOA Commentary (Optional)**
 
 Over many days, KOA can:
 
@@ -375,8 +499,8 @@ This keeps:
 
 On top of V5 invariants, KOA Mini adds:
 
-- **No numeric UI:** No Belief numbers, targets, or penalties are shown. Tiers only.  
-- **No explicit tax rule:** Type Tax may exist under the hood but is never described as a rule; KOA can comment about overreliance on channels.  
+- **No numeric UI:** No Belief numbers, targets, or penalties are shown. Tiers only.
+- **No explicit tax rule:** Type Tax may exist under the hood but is never described as a rule. Feedback is through KOA's expression (during play) and vague hints on verdict screen—never explicit mid-game barks.  
 - **No player‑facing KOA Flag choice:** System check is narrative only; any Belief adjustments from flagging are internal.  
 - **3 picks only:** Exactly 3 cards per run; no multi‑card turns or tactics in Mini.  
 - **2–4 minute sessions:** Puzzles must be solvable (or at least readable) in a few minutes on a phone.  

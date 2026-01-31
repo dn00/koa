@@ -1,0 +1,67 @@
+{
+  "task": "020",
+  "name": "Card Source Field",
+  "status": "COMPLETE",
+  "timestamp": "2026-01-31T00:15:00Z",
+  "changes": [
+    {
+      "file": "/home/denk/Code/aura/packages/engine-core/src/types/v5/card.ts",
+      "description": "Added `source: string` field to Card interface",
+      "lines_modified": 1
+    },
+    {
+      "file": "/home/denk/Code/aura/packages/app-svelte/src/lib/components/EvidenceCard.svelte",
+      "description": "Updated icon variant to display `card.source` instead of truncated claim in title",
+      "lines_modified": 1
+    },
+    {
+      "file": "/home/denk/Code/aura/packages/engine-core/src/packs/builtin.ts",
+      "description": "Added source field to all cards across all 5 puzzles (PrintGate sources: Sleep Tracker, Motion Sensor, Cloud Relay Log, USB Log, Neighbor, Router Log)",
+      "puzzles_updated": [
+        "PUZZLE_MIDNIGHT_PRINT (6 cards)",
+        "PUZZLE_GARAGE_DOOR (6 cards)",
+        "PUZZLE_DRONE_ORDER (6 cards)",
+        "PUZZLE_MIDNIGHT_DRIVE (6 cards)",
+        "PUZZLE_PRINTGATE_MERGER (6 cards)"
+      ],
+      "lines_modified": 30
+    },
+    {
+      "file": "/home/denk/Code/aura/scripts/v5-puzzles.ts",
+      "description": "Added source field to all cards across all 6 puzzles (P1-P6, including PrintGate with same source values)",
+      "puzzles_updated": [
+        "P1_CARDS (6 cards)",
+        "P2_CARDS (6 cards)",
+        "P3_CARDS (6 cards)",
+        "P4_CARDS (6 cards)",
+        "P5_CARDS (6 cards)",
+        "P6_CARDS (6 cards - PrintGate)"
+      ],
+      "lines_modified": 36
+    },
+    {
+      "file": "/home/denk/Code/aura/packages/app-svelte/src/lib/components/RunScreen.svelte",
+      "description": "Updated UICard title derivation to use `card.source` instead of truncated claim (lines 66 and 75)",
+      "lines_modified": 2
+    }
+  ],
+  "printgate_sources": {
+    "sleep_tracker": "Sleep Tracker",
+    "motion_pet": "Motion Sensor",
+    "cloud_relay": "Cloud Relay Log",
+    "usb_log": "USB Log",
+    "neighbor_saw": "Neighbor",
+    "router_session": "Router Log"
+  },
+  "verification": {
+    "typescript_compilation": "PASSED",
+    "all_cards_updated": true,
+    "total_cards_modified": 66
+  },
+  "notes": [
+    "All cards now have scannable source labels",
+    "EvidenceCard component displays source in icon variant",
+    "RunScreen creates UICard objects with source-based titles",
+    "TypeScript compilation passes with no errors"
+  ]
+}
