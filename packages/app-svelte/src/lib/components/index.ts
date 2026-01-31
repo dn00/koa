@@ -19,8 +19,8 @@ export { default as EvidenceCard } from './EvidenceCard.svelte';
 // Task 006: Run Screen
 export { default as RunScreen } from './RunScreen.svelte';
 
-// Task 007: Verdict Screen
-export { default as VerdictScreen } from './VerdictScreen.svelte';
+// Task 007: Result Screen (renamed from VerdictScreen)
+export { default as ResultScreen } from './ResultScreen.svelte';
 
 // Task 012: KOA Avatar
 export { default as KoaAvatar } from './KoaAvatar.svelte';

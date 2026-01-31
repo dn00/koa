@@ -15,7 +15,7 @@
 
 	// Navigate to result when game ends
 	$effect(() => {
-		if ($phase === 'VERDICT' || $phase === 'SHARE') {
+		if ($phase === 'RESULT' || $phase === 'SHARE') {
 			goto('/result');
 		}
 	});

@@ -24,7 +24,7 @@ import type { ModeConfig } from '@hsh/engine-core';
 // Types
 // ============================================================================
 
-export type GamePhase = 'READING' | 'PICKING' | 'VERDICT' | 'SHARE';
+export type GamePhase = 'READING' | 'PICKING' | 'RESULT' | 'SHARE';
 export type Mode = 'mini' | 'advanced';
 
 /**
@@ -367,7 +367,7 @@ export function playCardAction(cardId: string, uiCard: UICard): PlayCardActionRe
 
 	// Check for game over
 	if (isGameOver(finalState, DEFAULT_CONFIG)) {
-		phase.set('VERDICT');
+		phase.set('RESULT');
 	}
 
 	return {

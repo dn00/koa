@@ -223,8 +223,8 @@
 
 				selectedCardId = null;
 
-				// Check if game is over - navigate to verdict
-				if ($phase === 'VERDICT') {
+				// Check if game is over - navigate to result
+				if ($phase === 'RESULT') {
 					setTimeout(() => {
 						goto('/result');
 					}, TIMING.verdictTransition);
