@@ -17,6 +17,9 @@ export {
 // Task 006: Tier Calculation
 export { getTier } from './tier.js';
 
+// Task 302: Mini Lite Tier Calculation
+export { getMiniLiteTier, type MiniLiteTierInput } from './tier.js';
+
 // Task 007: Engine Core
 export {
   createGameState,
@@ -30,3 +33,25 @@ export {
   type VerdictData,
   type PenaltySummary,
 } from './engine.js';
+
+// Task 103: SignalRootGroup Derivation & Task 202: Independence Computation
+export {
+  signalRootGroup,
+  getSignalRootGroup,
+  computeIndependence,
+  type IndependenceLevel,
+} from './independence.js';
+
+// Task 201: Coverage Computation
+export { computeCoverage, type CoverageResult } from './coverage.js';
+
+// Task 203 & 204: Concern Computation & Hit Test
+export {
+  computeConcern,
+  matchesConcern,
+  getConcernKey,
+  evaluateConcernResult,
+  type Concern,
+  type ConcernKey,
+  type ConcernResult,
+} from './concern.js';
