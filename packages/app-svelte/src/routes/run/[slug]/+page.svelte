@@ -1,4 +1,10 @@
 <script lang="ts">
+	/**
+	 * Task 901: Wire Complete v1 Lite Game Flow
+	 *
+	 * Coordinates the game flow: Intro → RunScreen (T1 → T2 → T3) → Final Audit → Result
+	 * Navigation to /result is now handled by RunScreen after FinalAuditPanel completes.
+	 */
 	import { goto } from '$app/navigation';
 	import { RunScreen, IntroScreen } from '$components';
 	import { gameState, currentPuzzle, phase } from '$stores/game';
@@ -13,9 +19,11 @@
 		}
 	});
 
-	// Navigate to result when game ends
+	// NOTE: Navigation to /result is now handled by RunScreen after FinalAuditPanel completes
+	// This ensures the Final Audit animation plays before showing results.
+	// Only navigate on SHARE phase (for future share functionality)
 	$effect(() => {
-		if ($phase === 'RESULT' || $phase === 'SHARE') {
+		if ($phase === 'SHARE') {
 			goto('/result');
 		}
 	});

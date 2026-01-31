@@ -6,7 +6,7 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import type { Card, GameState, V5Puzzle, EngineError } from '@hsh/engine-core';
+import type { Card, GameState, V5Puzzle, EngineError, Concern, CoverageResult, IndependenceLevel, MiniLiteTierInput, Tier } from '@hsh/engine-core';
 import {
 	createGameState,
 	playCard,
@@ -16,7 +16,13 @@ import {
 	autoResolveObjection,
 	DEFAULT_CONFIG,
 	MINI_MODE,
-	ADVANCED_MODE
+	ADVANCED_MODE,
+	computeConcern,
+	evaluateConcernResult,
+	computeCoverage,
+	computeIndependence,
+	getMiniLiteTier,
+	getSuspicionText
 } from '@hsh/engine-core';
 import type { ModeConfig } from '@hsh/engine-core';
 
@@ -55,6 +61,21 @@ export interface ObjectionResult {
 	readonly beliefChange: number;
 	readonly autoResolved: boolean;
 }
+
+/**
+ * Computed axis results for Final Audit display.
+ */
+export interface AxisResults {
+	readonly coverage: CoverageResult;
+	readonly independence: IndependenceLevel;
+	readonly concernHit: boolean;
+	readonly noConcern: boolean;
+}
+
+/**
+ * Type for ceiling blockers that prevent FLAWLESS.
+ */
+export type CeilingBlocker = 'concern' | 'correlation' | 'both' | null;
 
 /**
  * Result of playing a card, including potential objection.
@@ -99,9 +120,59 @@ export const currentPuzzle = writable<V5Puzzle | null>(null);
 export const chatLogs = writable<MiniLog[]>([]);
 
 /**
- * Current game phase (READING, PICKING, VERDICT, SHARE).
+ * Current game phase (READING, PICKING, RESULT, SHARE).
  */
 export const phase = writable<GamePhase>('READING');
+
+// ============================================================================
+// Task 501: Concern State Stores
+// ============================================================================
+
+/**
+ * Concern computed after T2 submission. null before T2.
+ */
+export const concern = writable<Concern | null>(null);
+
+/**
+ * Whether player hit the concern (3-of-3) or avoided (2-of-3). null before T3.
+ */
+export const concernResult = writable<'hit' | 'avoided' | null>(null);
+
+/**
+ * Axis results computed after T3 submission. null before T3.
+ */
+export const axisResults = writable<AxisResults | null>(null);
+
+/**
+ * What blocked FLAWLESS (for ceiling explanation). null if FLAWLESS or not all truths.
+ */
+export const ceilingBlocker = writable<CeilingBlocker>(null);
+
+/**
+ * Final outcome tier. null before T3.
+ */
+export const outcome = writable<Tier | null>(null);
+
+// ============================================================================
+// Task 502: T2 Suspicion State Stores
+// ============================================================================
+
+/**
+ * T2 suspicion text to display. null if no suspicion or not T2 yet.
+ */
+export const suspicionText = writable<{ line: string; subtitle: string | null } | null>(null);
+
+/**
+ * Whether T2 suspicion has been shown (for animation control).
+ */
+export const suspicionShown = writable<boolean>(false);
+
+/**
+ * Mark T2 suspicion as shown (called by UI after animation completes).
+ */
+export function markSuspicionShown(): void {
+	suspicionShown.set(true);
+}
 
 // ============================================================================
 // Mode Store (with persistence)
@@ -278,6 +349,35 @@ function getKoaResponse(
 }
 
 /**
+ * Compute ceiling blocker after T3 (only for CLEARED with all truths).
+ */
+function computeCeilingBlockerValue(
+	outcomeValue: Tier,
+	axisResultsValue: AxisResults,
+	concernValue: Concern,
+	truthCount: number
+): CeilingBlocker {
+	// Only relevant for CLEARED with all truths
+	if (outcomeValue !== 'CLEARED' || truthCount !== 3) {
+		return null;
+	}
+
+	const { concernHit, independence } = axisResultsValue;
+
+	// same_system overlap rule: only concern matters, independence is display-only
+	if (concernValue.key === 'same_system') {
+		return concernHit ? 'concern' : null;
+	}
+
+	const isCorrelated = independence === 'correlated_weak' || independence === 'correlated_strong';
+
+	if (concernHit && isCorrelated) return 'both';
+	if (concernHit) return 'concern';
+	if (isCorrelated) return 'correlation';
+	return null;
+}
+
+/**
  * Start a new game with the given puzzle.
  *
  * @param puzzle - The V5 puzzle to play
@@ -290,6 +390,17 @@ export function startGame(puzzle: V5Puzzle, _seed: number): void {
 	chatLogs.set([]);
 	addLog('KOA', puzzle.openingLine || 'Access denied. Review the logs.');
 	phase.set('READING');
+
+	// Reset concern state stores
+	concern.set(null);
+	concernResult.set(null);
+	axisResults.set(null);
+	ceilingBlocker.set(null);
+	outcome.set(null);
+
+	// Reset suspicion state stores (Task 502)
+	suspicionText.set(null);
+	suspicionShown.set(false);
 }
 
 /**
@@ -365,6 +476,72 @@ export function playCardAction(cardId: string, uiCard: UICard): PlayCardActionRe
 	// Update game state
 	gameState.set(finalState);
 
+	// Task 501: Compute concern state after T2
+	// Task 502: Trigger suspicion text after T2
+	if (finalState.turnsPlayed === 2 && finalState.played.length >= 2) {
+		const [card1, card2] = finalState.played;
+		if (card1 && card2) {
+			const computedConcern = computeConcern(card1, card2);
+			concern.set(computedConcern);
+
+			// Task 502: Set suspicion text for UI display
+			// Don't show suspicion for no_concern - there's nothing to flag
+			// The Final Audit will show "Concern: ✅ Balanced" instead
+			if (computedConcern.key !== 'no_concern') {
+				suspicionText.set(getSuspicionText(computedConcern.key));
+				suspicionShown.set(false); // Ready for animation
+			} else {
+				suspicionText.set(null);
+				suspicionShown.set(true); // Nothing to show
+			}
+		}
+	}
+
+	// Task 501: Compute all results after T3
+	if (finalState.turnsPlayed === 3 && finalState.played.length >= 3) {
+		const currentConcern = get(concern);
+		const playedCards = [...finalState.played];
+
+		if (currentConcern) {
+			// 1. Compute concernResult
+			const { concernHit: isHit } = evaluateConcernResult(playedCards, currentConcern);
+			const resultValue: 'hit' | 'avoided' = isHit ? 'hit' : 'avoided';
+			concernResult.set(resultValue);
+
+			// 2. Compute axisResults
+			const coverageValue = computeCoverage(playedCards);
+			const independenceValue = computeIndependence(playedCards);
+			const axisResultsValue: AxisResults = {
+				coverage: coverageValue,
+				independence: independenceValue,
+				concernHit: isHit,
+				noConcern: currentConcern.key === 'no_concern'
+			};
+			axisResults.set(axisResultsValue);
+
+			// 3. Compute outcome via getMiniLiteTier
+			const tierInput: MiniLiteTierInput = {
+				cards: playedCards,
+				coverage: coverageValue,
+				independence: independenceValue,
+				concern: currentConcern,
+				concernHit: isHit
+			};
+			const outcomeValue = getMiniLiteTier(tierInput);
+			outcome.set(outcomeValue);
+
+			// 4. Compute ceilingBlocker
+			const truthCount = playedCards.filter((c) => !c.isLie).length;
+			const blockerValue = computeCeilingBlockerValue(
+				outcomeValue,
+				axisResultsValue,
+				currentConcern,
+				truthCount
+			);
+			ceilingBlocker.set(blockerValue);
+		}
+	}
+
 	// Check for game over
 	if (isGameOver(finalState, DEFAULT_CONFIG)) {
 		phase.set('RESULT');
@@ -394,4 +571,15 @@ export function resetStores(): void {
 	chatLogs.set([]);
 	phase.set('READING');
 	mode.set('mini');
+
+	// Reset concern state stores
+	concern.set(null);
+	concernResult.set(null);
+	axisResults.set(null);
+	ceilingBlocker.set(null);
+	outcome.set(null);
+
+	// Reset suspicion state stores (Task 502)
+	suspicionText.set(null);
+	suspicionShown.set(false);
 }

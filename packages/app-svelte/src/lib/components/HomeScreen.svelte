@@ -83,7 +83,7 @@
 
 		<!-- Puzzle List -->
 		<div
-			class="space-y-2 mb-6"
+			class="space-y-2 mb-6 max-h-[50vh] overflow-y-auto pr-1"
 			data-tutorial-highlight={showTutorial ? 'true' : undefined}
 			class:tutorial-highlight={showTutorial}
 		>

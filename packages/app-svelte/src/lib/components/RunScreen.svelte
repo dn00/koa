@@ -2,9 +2,11 @@
 	/**
 	 * Task 006: Run Screen Component
 	 * Task 022: Card Play Juice & Timing
+	 * Task 901: Wire Complete v1 Lite Game Flow
 	 *
-	 * Orchestrates V5 gameplay: 3 turns of card play followed by objection prompt.
+	 * Orchestrates V5 gameplay: 3 turns of card play followed by Final Audit.
 	 * Uses panel-based layout with KOA avatar + bark side-by-side.
+	 * After T3, shows FinalAuditPanel before navigating to result.
 	 */
 
 	import { goto } from '$app/navigation';
@@ -14,6 +16,7 @@
 		phase,
 		mode,
 		playCardAction,
+		axisResults,
 		type UICard
 	} from '$lib/stores/game';
 	import { tick } from 'svelte';
@@ -25,6 +28,7 @@
 	import Zone2Display from './Zone2Display.svelte';
 	import ActionBar from './ActionBar.svelte';
 	import EvidenceCard from './EvidenceCard.svelte';
+	import FinalAuditPanel from './FinalAuditPanel.svelte';
 
 	interface Props {
 		/** The puzzle being played */
@@ -56,6 +60,9 @@
 
 	// Task 022: KOA mood override during processing
 	let moodOverride = $state<KoaMood | null>(null);
+
+	// Task 901: Final Audit Panel state (component-local animation phase)
+	let showFinalAudit = $state(false);
 
 	// Initialize bark from puzzle opening line
 	$effect(() => {
@@ -223,10 +230,12 @@
 
 				selectedCardId = null;
 
-				// Check if game is over - navigate to result
+				// Task 901: Check if game is over - show Final Audit panel
 				if ($phase === 'RESULT') {
+					// Show Final Audit panel instead of immediate navigation
+					// Navigation happens after FinalAuditPanel animation completes
 					setTimeout(() => {
-						goto('/result');
+						showFinalAudit = true;
 					}, TIMING.verdictTransition);
 				}
 			} else {
@@ -274,6 +283,20 @@
 	function isCardPlayed(cardId: string): boolean {
 		return playedCards.some((pc) => pc.id === cardId);
 	}
+
+	// Task 901: Handle Final Audit panel completion
+	function handleFinalAuditComplete() {
+		console.log('[RunScreen] Final Audit complete, navigating to result');
+		goto('/result');
+	}
+
+	// Task 901: Derived props for FinalAuditPanel
+	let finalAuditProps = $derived({
+		coverageComplete: $axisResults?.coverage.status === 'complete',
+		independenceOk: $axisResults?.independence === 'diverse',
+		concernHit: $axisResults?.concernHit ?? false,
+		noConcern: $axisResults?.noConcern ?? false
+	});
 </script>
 
 <div class="flex flex-col h-full w-full bg-background relative overflow-hidden font-sans">
@@ -327,6 +350,7 @@
 				{currentBark}
 				{scenario}
 				{msgMode}
+				turnsPlayed={$gameState?.turnsPlayed ?? 0}
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
 				onModeChange={(m) => (msgMode = m)}
@@ -407,5 +431,16 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Task 901: Final Audit Panel (shown after T3 before navigating to Result) -->
+	{#if showFinalAudit}
+		<FinalAuditPanel
+			coverageComplete={finalAuditProps.coverageComplete}
+			independenceOk={finalAuditProps.independenceOk}
+			concernHit={finalAuditProps.concernHit}
+			noConcern={finalAuditProps.noConcern}
+			onComplete={handleFinalAuditComplete}
+		/>
+	{/if}
 </div>
 

@@ -1,13 +1,16 @@
 <script lang="ts">
 	/**
 	 * Task 016: BarkPanel Component
+	 * Task 701: T2 Suspicion Display
 	 *
 	 * Tabbed panel showing KOA's current bark (SYS_MSG tab) or
 	 * scenario facts (LOGS tab). Bark text uses typewriter effect.
+	 * Shows T2 suspicion line + subtitle after sequence bark completes.
 	 */
 
 	import { untrack } from 'svelte';
 	import Typewriter from './Typewriter.svelte';
+	import { suspicionText, suspicionShown, markSuspicionShown } from '$lib/stores/game';
 
 	interface Scenario {
 		header: string;
@@ -21,6 +24,8 @@
 		scenario: Scenario;
 		/** Current view mode (BARK vs LOGS) */
 		msgMode: 'BARK' | 'LOGS';
+		/** Current turn number (1, 2, or 3) */
+		turnsPlayed?: number;
 		/** Called when typewriter starts */
 		onSpeechStart?: () => void;
 		/** Called when typewriter completes */
@@ -33,10 +38,14 @@
 		currentBark,
 		scenario,
 		msgMode,
+		turnsPlayed = 0,
 		onSpeechStart,
 		onSpeechComplete,
 		onModeChange
 	}: Props = $props();
+
+	// Task 701: Track suspicion animation state
+	let suspicionLineVisible = $state(false);
 
 	// Track previous bark to detect changes
 	let previousBark = $state<string | undefined>(undefined);
@@ -46,9 +55,25 @@
 		const prev = untrack(() => previousBark);
 		if (prev !== undefined && currentBark !== prev) {
 			onModeChange('BARK');
+			// Reset suspicion animation state when bark changes
+			suspicionLineVisible = false;
 		}
 		previousBark = currentBark;
 	});
+
+	// Task 701: Handle bark completion and trigger suspicion animation
+	function handleBarkComplete() {
+		onSpeechComplete?.();
+
+		// If T2 and suspicion text exists, show suspicion line after bark
+		if (turnsPlayed === 2 && $suspicionText && !$suspicionShown) {
+			// Delay before showing suspicion line (400ms after bark)
+			setTimeout(() => {
+				suspicionLineVisible = true;
+				markSuspicionShown();
+			}, 400);
+		}
+	}
 
 	function setMode(mode: 'BARK' | 'LOGS') {
 		onModeChange(mode);
@@ -58,6 +83,14 @@
 	function formatFactNumber(index: number): string {
 		return String(index + 1).padStart(2, '0');
 	}
+
+	// Task 701: Determine if suspicion should be shown
+	$effect(() => {
+		// Clear suspicion display when moving past T2
+		if (turnsPlayed !== 2) {
+			suspicionLineVisible = false;
+		}
+	});
 </script>
 
 <div
@@ -128,15 +161,26 @@
 		data-panel-content
 	>
 		{#if msgMode === 'BARK'}
-			<div class="min-h-full flex items-center">
+			<div class="min-h-full flex flex-col justify-center">
 				<div class="w-full text-left">
 					<Typewriter
 						text={currentBark}
 						speed={30}
 						onStart={onSpeechStart}
-						onComplete={onSpeechComplete}
+						onComplete={handleBarkComplete}
 					/>
 				</div>
+
+				<!-- Task 701: T2 Suspicion Display -->
+				{#if turnsPlayed === 2 && $suspicionText && suspicionLineVisible}
+					<div class="mt-4 pt-3 border-t border-foreground/10">
+						<div
+							class="suspicion-line text-foreground/90 animate-in fade-in slide-in-from-bottom-2 duration-300"
+						>
+							{$suspicionText.line}
+						</div>
+					</div>
+				{/if}
 			</div>
 		{:else}
 			<div class="animate-in fade-in slide-in-from-right-2 duration-200">
