@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/svelte';
 import RunScreen from '$lib/components/RunScreen.svelte';
-import VerdictScreen from '$lib/components/VerdictScreen.svelte';
+import ResultScreen from '$lib/components/ResultScreen.svelte';
 import type { V5Puzzle, Card, VerdictData, Tier } from '@hsh/engine-core';
 import { resetStores, gameState, startGame, phase } from '$lib/stores/game';
 import { get } from 'svelte/store';
@@ -352,7 +352,7 @@ describe('Task 023-partial: Verdict Transition', () => {
 		it('calls animateVerdictReveal on verdict screen mount', () => {
 			const verdict = createTestVerdict('CLEARED');
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -366,7 +366,7 @@ describe('Task 023-partial: Verdict Transition', () => {
 		it('verdict screen has data-verdict-container for transition targeting', () => {
 			const verdict = createTestVerdict('CLEARED');
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37
@@ -381,7 +381,7 @@ describe('Task 023-partial: Verdict Transition', () => {
 		it('tier badge element is bound for animation', () => {
 			const verdict = createTestVerdict('CLEARED');
 
-			render(VerdictScreen, {
+			render(ResultScreen, {
 				props: {
 					verdict,
 					dayNumber: 37

@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/svelte';
 import { getVerdict, DEFAULT_CONFIG } from '@hsh/engine-core';
 import type { GameState, Card, V5Puzzle, Tier } from '@hsh/engine-core';
-import VerdictScreen from '$lib/components/VerdictScreen.svelte';
+import ResultScreen from '$lib/components/ResultScreen.svelte';
 import { resetStores } from '$lib/stores/game';
 
 // Mock navigation
@@ -242,7 +242,7 @@ describe('Task 017: Lies Revealed Bark on Verdict Screen', () => {
 				]
 			};
 
-			const { container } = render(VerdictScreen, {
+			const { container } = render(ResultScreen, {
 				props: { verdict: verdictData, dayNumber: 1 }
 			});
 
@@ -269,7 +269,7 @@ describe('Task 017: Lies Revealed Bark on Verdict Screen', () => {
 				]
 			};
 
-			const { container } = render(VerdictScreen, {
+			const { container } = render(ResultScreen, {
 				props: { verdict: verdictData, dayNumber: 1 }
 			});
 
@@ -293,7 +293,7 @@ describe('Task 017: Lies Revealed Bark on Verdict Screen', () => {
 				]
 			};
 
-			const { container } = render(VerdictScreen, {
+			const { container } = render(ResultScreen, {
 				props: { verdict: verdictData, dayNumber: 1 }
 			});
 
@@ -317,7 +317,7 @@ describe('Task 017: Lies Revealed Bark on Verdict Screen', () => {
 				]
 			};
 
-			const { container } = render(VerdictScreen, {
+			const { container } = render(ResultScreen, {
 				props: { verdict: verdictData, dayNumber: 1 }
 			});
 

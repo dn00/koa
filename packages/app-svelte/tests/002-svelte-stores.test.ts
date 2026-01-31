@@ -312,9 +312,9 @@ describe('AC-5: Game Phase Store', () => {
 		expect(get(phase)).toBe('PICKING');
 	});
 
-	it('phase.set("VERDICT") updates $phase to VERDICT', () => {
-		phase.set('VERDICT');
-		expect(get(phase)).toBe('VERDICT');
+	it('phase.set("RESULT") updates $phase to RESULT', () => {
+		phase.set('RESULT');
+		expect(get(phase)).toBe('RESULT');
 	});
 
 	it('phase.set("SHARE") updates $phase to SHARE', () => {

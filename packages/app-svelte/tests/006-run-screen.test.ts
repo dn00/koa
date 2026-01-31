@@ -395,10 +395,10 @@ describe('Task 006: Run Screen', () => {
 				await new Promise(r => setTimeout(r, 350));
 			}
 
-			// Should navigate to verdict or phase should change
+			// Should navigate to result or phase should change
 			await waitFor(() => {
 				const currentPhase = get(phase);
-				expect(currentPhase).toBe('VERDICT');
+				expect(currentPhase).toBe('RESULT');
 			}, { timeout: 3000 });
 		});
 	});
@@ -475,7 +475,7 @@ describe('Task 006: Run Screen', () => {
 			// After 3 turns, game should end gracefully
 			await waitFor(() => {
 				const currentPhase = get(phase);
-				expect(currentPhase).toBe('VERDICT');
+				expect(currentPhase).toBe('RESULT');
 			}, { timeout: 3000 });
 		});
 	});
