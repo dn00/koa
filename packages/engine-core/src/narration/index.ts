@@ -5,3 +5,5 @@
  */
 
 export * from './system-barks.js';
+export * from './suspicion-barks.js';
+export * from './audit-barks.js';
