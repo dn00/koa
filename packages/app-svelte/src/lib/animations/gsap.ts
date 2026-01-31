@@ -149,31 +149,110 @@ export function animateCardSelect(
 
 /**
  * Animate card playing from grid to override slot.
+ * Card stays in grid (greyed out via CSS), slot gets energizing transmit effect.
  *
- * @param card - Card element in grid (will fade out)
- * @param slot - Override slot element (will zoom in)
+ * @param card - Card element in grid (pulse effect)
+ * @param slot - Override slot element (energy fill from bottom effect)
+ * @param color - Hex color for the energy effect (default: blue)
  */
 export function animateCardPlay(
 	card: HTMLElement,
-	slot: HTMLElement
-): { cardTween: gsap.core.Tween; slotTween: gsap.core.Tween } {
-	const duration = getEffectiveDuration(250) / 1000;
+	slot: HTMLElement,
+	color: string = '#3b82f6'
+): { cardTween: gsap.core.Timeline; slotTween: gsap.core.Timeline } {
+	const duration = getEffectiveDuration(800) / 1000;
 
-	// Fade out card from grid
-	const cardTween = gsap.to(card, {
-		opacity: 0,
-		scale: 0.9,
-		duration,
-		ease: EASE.SNAP
+	// Card: quick pulse before greying out (CSS handles the grey)
+	const cardTween = gsap.timeline();
+	cardTween
+		.to(card, {
+			scale: 1.05,
+			duration: duration * 0.3,
+			ease: 'power2.out'
+		})
+		.to(card, {
+			scale: 1,
+			duration: duration * 0.4,
+			ease: 'power2.inOut'
+		});
+
+	// Convert hex to rgb for opacity handling
+	const hex = color.replace('#', '');
+	const r = parseInt(hex.substring(0, 2), 16);
+	const g = parseInt(hex.substring(2, 4), 16);
+	const b = parseInt(hex.substring(4, 6), 16);
+	const rgb = `${r}, ${g}, ${b}`;
+
+	// Create energy fill overlay element
+	const energyFill = document.createElement('div');
+	// Task: Modern Brutalist Update - Hatched Pattern, Hard Edges, No Blur
+	energyFill.style.cssText = `
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 0%;
+		background-color: transparent;
+		background-image: repeating-linear-gradient(
+			45deg,
+			rgba(${rgb}, 0.15) 0px,
+			rgba(${rgb}, 0.15) 2px,
+			transparent 2px,
+			transparent 8px
+		);
+		pointer-events: none;
+		z-index: 10;
+		border-top: 2px solid ${color};
+	`;
+
+	// Make slot position relative if not already
+	const originalPosition = slot.style.position;
+	slot.style.position = 'relative';
+	slot.appendChild(energyFill);
+
+	// Slot: energy fill from bottom effect
+	const slotTween = gsap.timeline({
+		onComplete: () => {
+			// Clean up energy fill element
+			energyFill.remove();
+			slot.style.position = originalPosition;
+		}
 	});
 
-	// Zoom in slot content
-	const slotTween = gsap.from(slot, {
-		scale: 0.9,
-		opacity: 0,
-		duration,
-		ease: 'power3.out'
-	});
+	slotTween
+		// Start with slot slightly transparent
+		.set(slot, { opacity: 0.3 })
+		// Energy fills from bottom
+		.to(energyFill, {
+			height: '100%',
+			duration: duration * 0.5,
+			ease: 'power2.inOut'
+		})
+		// Flash bright at peak - Hard edge flash, no blur
+		.to(energyFill, {
+			backgroundColor: `rgba(${rgb}, 0.1)`, // Slight base tint
+			borderTopColor: '#FFFFFF', // White hot top edge
+			duration: duration * 0.15,
+			ease: 'steps(2)' // Stutter flash for brutalist feel
+		}, '-=0.1')
+		// Slot content fades in as energy peaks
+		.to(slot, {
+			opacity: 1,
+			duration: duration * 0.2,
+			ease: 'power2.out'
+		}, '-=0.15')
+		// Energy dissipates upward
+		.to(energyFill, {
+			opacity: 0,
+			duration: duration * 0.3,
+			ease: 'power2.out'
+		})
+		// Subtle scale pulse on completion
+		.fromTo(slot,
+			{ scale: 1.02 },
+			{ scale: 1, duration: duration * 0.2, ease: 'back.out(2)' }, // Snappier landing
+			'-=0.2'
+		);
 
 	return { cardTween, slotTween };
 }

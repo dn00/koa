@@ -37,6 +37,13 @@ vi.mock('$app/navigation', () => ({
 	goto: (...args: unknown[]) => mockGoto(...args)
 }));
 
+// Mock matchMedia for GSAP reduced motion (Task 023 added animations)
+const mockMatchMedia = vi.fn();
+Object.defineProperty(window, 'matchMedia', {
+	writable: true,
+	value: mockMatchMedia
+});
+
 // Test card factory
 function createTestCard(id: string, isLie: boolean = false): Card {
 	return {
@@ -77,6 +84,14 @@ describe('Task 007: Verdict + Share Screen', () => {
 	beforeEach(() => {
 		localStorageMock.clear();
 		mockGoto.mockClear();
+		vi.clearAllMocks();
+		mockMatchMedia.mockReturnValue({
+			matches: false,
+			addListener: vi.fn(),
+			removeListener: vi.fn(),
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn()
+		});
 		resetStores();
 	});
 

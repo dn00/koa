@@ -29,6 +29,17 @@ export const EVIDENCE_TYPE_COLORS: Record<EvidenceType, string> = {
 };
 
 /**
+ * Hex colors for evidence types.
+ * Used for canvas/JS animations.
+ */
+export const EVIDENCE_TYPE_HEX: Record<EvidenceType, string> = {
+	DIGITAL: '#3b82f6', // blue-500
+	SENSOR: '#a855f7', // purple-500
+	TESTIMONY: '#22c55e', // green-500
+	PHYSICAL: '#f97316' // orange-500
+};
+
+/**
  * Get display label for evidence type.
  */
 export function getEvidenceTypeLabel(type: EvidenceType): string {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
 	 * Task 006: Run Screen Component
+	 * Task 022: Card Play Juice & Timing
 	 *
 	 * Orchestrates V5 gameplay: 3 turns of card play followed by objection prompt.
 	 * Uses panel-based layout with KOA avatar + bark side-by-side.
@@ -11,11 +12,14 @@
 	import {
 		gameState,
 		phase,
-		playCardAction,
 		mode,
+		playCardAction,
 		type UICard
 	} from '$lib/stores/game';
+	import { tick } from 'svelte';
+	import { getEvidenceTypeLabel, EVIDENCE_TYPE_HEX } from '$lib/utils/evidenceTypes';
 	import { deriveKoaMood, type KoaMood } from '$lib/utils/koaMood';
+	import { animateCardPlay } from '$lib/animations/gsap';
 	import KoaAvatar from './KoaAvatar.svelte';
 	import BarkPanel from './BarkPanel.svelte';
 	import Zone2Display from './Zone2Display.svelte';
@@ -34,12 +38,24 @@
 	// Default opening bark
 	const defaultBark = 'System locked. Justify your actions.';
 
+	// Task 022: Timing constants (synced with GSAP animation)
+	const TIMING = {
+		energyFill: 800, // Energy fill animation duration (matches gsap.ts)
+		koaThinking: 400, // KOA processing after receiving data
+		koaThinkingFinal: 800, // Longer thinking on final turn (dramatic)
+		verdictTransition: 1200 // Pause before navigating to verdict
+	};
+
 	// Local UI state
 	let selectedCardId = $state<string | null>(null);
 	let focusedCard = $state<UICard | null>(null);
 	let isSpeaking = $state(false);
 	let currentBark = $state(defaultBark);
 	let isProcessing = $state(false);
+	let msgMode = $state<'BARK' | 'LOGS'>('BARK');
+
+	// Task 022: KOA mood override during processing
+	let moodOverride = $state<KoaMood | null>(null);
 
 	// Initialize bark from puzzle opening line
 	$effect(() => {
@@ -57,27 +73,32 @@
 		facts: [...puzzle.knownFacts]
 	});
 
-	// Derive available cards (hand) with UI extensions
-	let availableCards = $derived<UICard[]>(
-		$gameState?.hand.map((card) => ({
-			...card,
-			icon: getCardIcon(card.evidenceType),
-			title: card.claim.split(' ').slice(0, 5).join(' ')
-		})) || []
-	);
+	// Track all original cards (stays constant throughout game)
+	let allCards = $state<UICard[]>([]);
+
+	// Initialize all cards once when puzzle loads
+	$effect(() => {
+		if (puzzle && allCards.length === 0) {
+			allCards = puzzle.cards.map((card) => ({
+				...card,
+				icon: getCardIcon(card.evidenceType),
+				title: card.source || card.claim.split(' ').slice(0, 5).join(' ')
+			}));
+		}
+	});
 
 	// Derive played cards with UI extensions
 	let playedCards = $derived<UICard[]>(
 		$gameState?.played.map((card) => ({
 			...card,
 			icon: getCardIcon(card.evidenceType),
-			title: card.claim.split(' ').slice(0, 5).join(' ')
+			title: card.source || card.claim.split(' ').slice(0, 5).join(' ')
 		})) || []
 	);
 
-	// Derive KOA mood from game state
+	// Derive KOA mood from game state, with override during processing (Task 022)
 	let koaMood = $derived<KoaMood>(
-		$gameState ? deriveKoaMood($gameState) : 'NEUTRAL'
+		moodOverride ? moodOverride : ($gameState ? deriveKoaMood($gameState) : 'NEUTRAL')
 	);
 
 	// Zone 2 mode (preview vs slots)
@@ -97,6 +118,12 @@
 	// Handle card selection
 	function handleCardClick(cardId: string) {
 		if (isProcessing) return;
+
+		// Clear any lingering mood override (e.g., DISAPPOINTED from type tax)
+		if (moodOverride) {
+			moodOverride = null;
+		}
+
 		if (selectedCardId === cardId) {
 			selectedCardId = null;
 		} else {
@@ -124,11 +151,13 @@
 		}, 100);
 	}
 
-	// Handle TRANSMIT button click
-	function handleTransmit() {
+	// Handle TRANSMIT button click (Task 022: Card Play Juice)
+	async function handleTransmit() {
 		if (!selectedCardId || isProcessing) return;
 
-		const card = availableCards.find((c) => c.id === selectedCardId);
+		console.log('[RunScreen] Transmitting card:', selectedCardId);
+
+		const card = allCards.find((c) => c.id === selectedCardId);
 		if (!card) return;
 
 		isProcessing = true;
@@ -138,29 +167,75 @@
 			clearTimeout(focusTimeoutId);
 			focusTimeoutId = null;
 		}
+		
+		// Ensure slots are visible before animating
+		const wasFocused = focusedCard !== null;
 		focusedCard = null;
-
-		// Play the card
-		const result = playCardAction(selectedCardId, card);
-
-		if (result.ok) {
-			// Update bark with KOA response
-			currentBark = result.value.koaResponse || getDefaultResponse($gameState?.turnsPlayed || 0);
-			selectedCardId = null;
-
-			// Check if game is over
-			if ($phase === 'VERDICT') {
-				// Navigate to verdict after a delay
-				setTimeout(() => {
-					goto(`/verdict/${puzzle.slug}`);
-				}, 1500);
-			}
+		
+		if (wasFocused) {
+			await tick();
 		}
 
-		// Re-enable after brief delay
+		// Task 022: Set KOA mood to PROCESSING (receiving data)
+		moodOverride = 'PROCESSING';
+
+		// Task 022: Get card element and slot for animation
+		const cardElement = document.querySelector(`[data-card-id="${selectedCardId}"]`) as HTMLElement;
+		const slotElement = document.querySelector('[data-slot-filled="false"]') as HTMLElement;
+
+		console.log('[RunScreen] Animation elements:', { cardElement, slotElement });
+
+		// Task 022: Animate card play if elements exist
+		if (cardElement && slotElement) {
+			const color = EVIDENCE_TYPE_HEX[card.evidenceType] || '#3b82f6';
+			console.log('[RunScreen] Animating with color:', color);
+			animateCardPlay(cardElement, slotElement, color);
+		} else {
+			console.warn('[RunScreen] Missing animation elements, skipping animation');
+		}
+
+
+		// Determine if final turn (for longer dramatic pause)
+		const currentTurns = $gameState?.turnsPlayed || 0;
+		const isFinalTurn = currentTurns === 2;
+
+		// Calculate total delay: energy fill + KOA thinking time
+		const thinkingTime = isFinalTurn ? TIMING.koaThinkingFinal : TIMING.koaThinking;
+		const totalDelay = TIMING.energyFill + thinkingTime;
+
+		// Task 022: After animation + thinking, KOA responds
 		setTimeout(() => {
+			// Play the card (updates game state)
+			const result = playCardAction(selectedCardId!, card);
+
+			if (result.ok) {
+				// Update bark with KOA response
+				currentBark = result.value.koaResponse || getDefaultResponse($gameState?.turnsPlayed || 0);
+
+				// If type tax triggered, stay DISAPPOINTED until next card selection
+				// Otherwise clear the processing mood
+				if (result.value.typeTaxApplied) {
+					moodOverride = 'DISAPPOINTED';
+					// Mood clears when player selects next card (see handleCardClick)
+				} else {
+					moodOverride = null;
+				}
+
+				selectedCardId = null;
+
+				// Check if game is over - navigate to verdict
+				if ($phase === 'VERDICT') {
+					setTimeout(() => {
+						goto('/result');
+					}, TIMING.verdictTransition);
+				}
+			} else {
+				moodOverride = null;
+			}
+
+			// Re-enable input
 			isProcessing = false;
-		}, 300);
+		}, totalDelay);
 	}
 
 	// Default KOA response based on turn
@@ -237,7 +312,7 @@
 
 		<!-- Avatar Container -->
 		<div
-			class="w-[170px] xs:w-[210px] md:w-[300px] aspect-[2/1] relative shrink-0 z-10 -ml-6 flex items-center justify-center"
+			class="w-[220px] xs:w-[260px] md:w-[360px] aspect-[2/1] relative shrink-0 z-10 -ml-6 flex items-center justify-center"
 			data-zone="avatar"
 		>
 			<KoaAvatar mood={koaMood} {isSpeaking} />
@@ -251,34 +326,37 @@
 			<BarkPanel
 				{currentBark}
 				{scenario}
+				{msgMode}
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
+				onModeChange={(m) => (msgMode = m)}
 			/>
 		</div>
 	</div>
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 py-3 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all min-h-[8rem]"
+		class="shrink-0 py-3 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all min-h-[7rem]"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 	>
 		<!-- Zone 2 Header -->
 		<div class="flex items-center justify-between mb-2 h-5">
 			{#if focusedCard}
-				<div class="text-sm font-mono font-bold uppercase text-primary flex items-center gap-2 tracking-wider">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<!-- Existing preview code... -->
+				<div class="text-xs font-mono font-bold uppercase text-primary flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 					</svg>
 					DATA_ANALYSIS_PREVIEW
 				</div>
 			{:else}
-				<div class="text-sm font-mono font-bold uppercase text-foreground/60 flex items-center gap-2 tracking-wider">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<div class="text-xs font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
 						<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 					</svg>
-					OVERRIDE_SEQUENCE
+					SECURITY_OVERRIDE_SEQUENCE
 				</div>
 			{/if}
 		</div>
@@ -296,24 +374,32 @@
 		<div data-zone="action-bar">
 			<ActionBar
 				selectedCardId={isProcessing ? null : selectedCardId}
+				{msgMode}
 				onTransmit={handleTransmit}
+				onToggleMode={() => (msgMode = msgMode === 'LOGS' ? 'BARK' : 'LOGS')}
 			/>
 		</div>
 
 		<!-- Card Grid -->
 		<div class="p-4 bg-surface/50" data-zone="card-grid">
 			<div class="grid grid-cols-3 md:grid-cols-6 gap-3">
-				{#each availableCards as card (card.id)}
+				{#each allCards as card (card.id)}
 					{@const isPlayed = isCardPlayed(card.id)}
-					<div class="relative" data-card-id={card.id}>
+					<div
+						class="relative transition-all duration-300 {isPlayed ? 'opacity-40 grayscale' : ''}"
+						data-card-id={card.id}
+						data-selected={selectedCardId === card.id}
+						data-played={isPlayed}
+						data-disabled={isPlayed || isProcessing}
+					>
 						<EvidenceCard
 							{card}
 							variant="icon"
 							mode={$mode}
-							isSelected={selectedCardId === card.id}
+							isSelected={selectedCardId === card.id && !isPlayed}
 							disabled={isPlayed || isProcessing}
-							onClick={() => handleCardClick(card.id)}
-							onFocus={() => handleCardFocus(card)}
+							onClick={() => !isPlayed && handleCardClick(card.id)}
+							onFocus={() => !isPlayed && handleCardFocus(card)}
 							onBlur={handleCardBlur}
 						/>
 					</div>

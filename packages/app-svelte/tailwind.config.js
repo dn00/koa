@@ -26,10 +26,10 @@ export default {
 				}
 			},
 			boxShadow: {
-				brutal: '3px 3px 0px 0px #2D3142',
-				'brutal-lg': '5px 5px 0px 0px #2D3142',
-				'brutal-hover': '4px 4px 0px 0px #2D3142',
-				'brutal-active': '0px 0px 0px 0px #2D3142'
+				brutal: '3px 3px 0px 0px rgba(0,0,0,0.15)',
+				'brutal-lg': '5px 5px 0px 0px rgba(0,0,0,0.15)',
+				'brutal-hover': '4px 4px 0px 0px rgba(0,0,0,0.20)',
+				'brutal-active': '0px 0px 0px 0px rgba(0,0,0,0.15)'
 			},
 			borderRadius: {
 				DEFAULT: '2px',

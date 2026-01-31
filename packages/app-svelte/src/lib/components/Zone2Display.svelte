@@ -22,7 +22,7 @@
 	let { focusedCard, playedCards, maxSlots = 3 }: Props = $props();
 </script>
 
-<div class="h-28 relative" data-zone2-content>
+<div class="h-24 relative" data-zone2-content>
 	{#if focusedCard}
 		<!-- Card Preview Mode -->
 		<div class="absolute inset-0">

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { spring } from 'svelte/motion';
+
 	/**
 	 * KOA Avatar - Ported from mockup-brutalist/KoaAvatarPortable.tsx
 	 * SVG-based mechanical eye with 15 mood states
@@ -93,6 +95,14 @@
 	let innerRingRotation = $state(0);
 	let idleSpinDuration = $state(40 + Math.random() * 20);
 	let idleSpinDirection = $state(Math.random() > 0.5 ? 'normal' : 'reverse');
+	
+	// Boing scale spring
+	const scaleSpring = spring(1, { stiffness: 0.1, damping: 0.4 });
+
+	function handleBoing() {
+		scaleSpring.set(0.9);
+		setTimeout(() => scaleSpring.set(1), 150);
+	}
 
 	// Unique ID for SVG defs
 	let uid = $state(Math.random().toString(36).substring(2, 9));
@@ -198,24 +208,38 @@
 	const screenPath = `M 100 17 C 127 17 135 25 135 52 C 135 79 127 87 100 87 C 73 87 65 79 65 52 C 65 25 73 17 100 17 Z`;
 </script>
 
-<div class="relative flex items-center justify-center" style="width: {width}; height: {height};">
-	<svg viewBox="0 0 200 100" class="w-full h-full overflow-visible">
-		<defs>
-			<clipPath id="koa-lens-clip-{uid}"><circle cx="0" cy="0" r={LENS_RADIUS} /></clipPath>
-			<clipPath id="koa-lid-clip-{uid}"><circle cx="0" cy="0" r={LID_RADIUS} /></clipPath>
-			<pattern id="koa-pattern-technical-{uid}" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-				<path d="M 2 0 L 0 0 L 0 2" fill="none" stroke="currentColor" stroke-width="1" />
-				<path d="M 18 0 L 20 0 L 20 2" fill="none" stroke="currentColor" stroke-width="1" />
-				<path d="M 0 18 L 0 20 L 2 20" fill="none" stroke="currentColor" stroke-width="1" />
-				<path d="M 18 20 L 20 20 L 20 18" fill="none" stroke="currentColor" stroke-width="1" />
-				<rect x="9.5" y="9.5" width="1" height="1" fill="currentColor" />
-			</pattern>
-		</defs>
 
-		<!-- Ground Shadow -->
-		<ellipse cx="103" cy="120" rx="43" ry="4" fill="#2D3142" opacity="1" />
 
-		<g class={isLaughing ? 'animate-chuckle' : ''}>
+<!-- Outer Container -->
+<button 
+	class="relative flex items-center justify-center outline-none cursor-pointer group"
+	style="width: {width}; height: {height};"
+	onclick={handleBoing}
+	aria-label="Koa Avatar"
+>
+	<!-- Ground Shadow (Detached) -->
+	<div class="absolute bottom-[10%] w-[40%] h-[4%] bg-[#2D3142] rounded-[100%] opacity-20 blur-[2px] animate-shadow-breathe transition-all duration-300 group-hover:opacity-30"></div>
+
+	<!-- Floating Wrapper -->
+	<div class="w-full h-full animate-float will-change-transform" style="transform: scale({$scaleSpring})">
+		<!-- Main Container -->
+		<div 
+			class="w-full h-full flex items-center justify-center" 
+		>
+			<svg viewBox="0 0 200 100" class="w-full h-full overflow-visible" style="filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));">
+				<defs>
+					<clipPath id="koa-lens-clip-{uid}"><circle cx="0" cy="0" r={LENS_RADIUS} /></clipPath>
+					<clipPath id="koa-lid-clip-{uid}"><circle cx="0" cy="0" r={LID_RADIUS} /></clipPath>
+					<pattern id="koa-pattern-technical-{uid}" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+						<path d="M 2 0 L 0 0 L 0 2" fill="none" stroke="currentColor" stroke-width="1" />
+						<path d="M 18 0 L 20 0 L 20 2" fill="none" stroke="currentColor" stroke-width="1" />
+						<path d="M 0 18 L 0 20 L 2 20" fill="none" stroke="currentColor" stroke-width="1" />
+						<path d="M 18 20 L 20 20 L 20 18" fill="none" stroke="currentColor" stroke-width="1" />
+						<rect x="9.5" y="9.5" width="1" height="1" fill="currentColor" />
+					</pattern>
+				</defs>
+
+				<g class={isLaughing ? 'animate-chuckle' : ''}>
 			<!-- Body -->
 			<path d={bodyPath} fill={SKIN.bodyFill} stroke={SKIN.bodyStroke} stroke-width="2" class="transition-all duration-300" />
 
@@ -229,6 +253,9 @@
 			<g transform="translate({LENS_CENTER_X}, {LENS_CENTER_Y})">
 				<g clip-path="url(#koa-lens-clip-{uid})">
 					<rect x={-LENS_RADIUS} y={-LENS_RADIUS} width={LENS_RADIUS * 2} height={LENS_RADIUS * 2} fill={SKIN.faceplateFill} />
+
+					<!-- Eyes Container (Fixed relative to body) -->
+					<g>
 
 					<!-- Iris tint -->
 					<circle cx="0" cy="0" r={LENS_RADIUS} fill={activeColor} opacity="0.1" class="transition-all duration-300" />
@@ -260,6 +287,7 @@
 							</g>
 						</g>
 					{/if}
+					</g><!-- End Eyes Container -->
 
 					{#if isScanning}
 						<rect x={-LENS_RADIUS} y="-2" width={LENS_RADIUS * 2} height="4" fill={activeColor} opacity="0.6" class="animate-scan transition-all duration-300" />
@@ -291,8 +319,10 @@
 				{/if}
 			</g>
 		</g>
-	</svg>
-</div>
+			</svg>
+		</div>
+	</div>
+</button>
 
 <style>
 	@keyframes chuckle {
@@ -300,6 +330,18 @@
 		50% { transform: translateY(-3px); }
 	}
 	.animate-chuckle { animation: chuckle 0.4s ease-in-out infinite; }
+
+	@keyframes float {
+		0%, 100% { transform: translateY(0px); }
+		50% { transform: translateY(-10px); }
+	}
+	.animate-float { animation: float 6s ease-in-out infinite; }
+
+	@keyframes shadow-breathe {
+		0%, 100% { transform: scale(1); opacity: 0.2; }
+		50% { transform: scale(0.8); opacity: 0.1; }
+	}
+	.animate-shadow-breathe { animation: shadow-breathe 6s ease-in-out infinite; }
 
 	@keyframes idle-spin {
 		0% { transform: rotate(0deg); }

@@ -174,10 +174,104 @@ export function addLog(speaker: 'KOA' | 'PLAYER', text?: string, card?: UICard):
 }
 
 /**
- * Generate a KOA response based on game state.
- * Placeholder implementation - will be replaced with bark system.
+ * Determine the story completion pattern based on evidence types played.
+ * Used for Turn 3 barks in storyCompletions.
+ *
+ * Returns patterns that match puzzle generator expectations:
+ * - all_digital, all_testimony, all_sensor, all_physical (all same type)
+ * - digital_heavy, testimony_heavy, etc. (2 of same type)
+ * - mixed_strong (good variety with complementary types)
+ * - mixed_varied (all different but no clear strength)
  */
-function getKoaResponse(turnsPlayed: number, _wasLie: boolean): string {
+function getStoryPattern(playedCards: readonly Card[]): string {
+	if (playedCards.length < 3) return 'mixed_varied';
+
+	const types = playedCards.map((c) => c.evidenceType);
+	const typeCounts = types.reduce(
+		(acc, t) => {
+			acc[t] = (acc[t] || 0) + 1;
+			return acc;
+		},
+		{} as Record<string, number>
+	);
+
+	const uniqueTypes = Object.keys(typeCounts);
+
+	// All same type (all_digital, all_testimony, all_sensor, all_physical)
+	if (uniqueTypes.length === 1) {
+		const type = uniqueTypes[0].toLowerCase();
+		return `all_${type}`;
+	}
+
+	// Two of one type, one of another (digital_heavy, testimony_heavy, etc.)
+	if (uniqueTypes.length === 2) {
+		const dominant = Object.entries(typeCounts).find(([_, count]) => count === 2)?.[0];
+		if (dominant) {
+			return `${dominant.toLowerCase()}_heavy`;
+		}
+	}
+
+	// All different types = mixed
+	// Determine strength based on whether types complement each other
+	// Digital + Sensor = strong technical story (machine-corroborated)
+	// Testimony + Physical = strong human story (witness + tangible proof)
+	const hasDigital = types.includes('DIGITAL');
+	const hasSensor = types.includes('SENSOR');
+	const hasTestimony = types.includes('TESTIMONY');
+	const hasPhysical = types.includes('PHYSICAL');
+
+	if ((hasDigital && hasSensor) || (hasTestimony && hasPhysical)) {
+		return 'mixed_strong';
+	}
+
+	return 'mixed_varied';
+}
+
+/**
+ * Generate a KOA response based on game state and puzzle barks.
+ * Uses sequence-aware barks for Turn 2+ (THE WOW FACTOR).
+ *
+ * Turn 1: Uses cardPlayed barks (individual card reactions)
+ * Turn 2: Uses sequences barks (reacts to card ORDER: "cardA→cardB")
+ * Turn 3: Uses storyCompletions barks (reacts to overall story pattern)
+ */
+function getKoaResponse(
+	puzzle: V5Puzzle | null,
+	cardId: string,
+	turnsPlayed: number,
+	_wasLie: boolean,
+	playedCards?: readonly Card[]
+): string {
+	const koaBarks = puzzle?.koaBarks;
+
+	// Turn 3: Try storyCompletions bark
+	if (turnsPlayed === 3 && koaBarks?.storyCompletions && playedCards && playedCards.length >= 3) {
+		const pattern = getStoryPattern(playedCards);
+		const barks = koaBarks.storyCompletions[pattern];
+		if (barks && barks.length > 0) {
+			return barks[Math.floor(Math.random() * barks.length)];
+		}
+	}
+
+	// Turn 2+: Try sequences bark (based on previous card → current card)
+	if (turnsPlayed >= 2 && koaBarks?.sequences && playedCards && playedCards.length >= 2) {
+		const prevCard = playedCards[playedCards.length - 2];
+		const sequenceKey = `${prevCard.id}→${cardId}`;
+		const barks = koaBarks.sequences[sequenceKey];
+		if (barks && barks.length > 0) {
+			return barks[Math.floor(Math.random() * barks.length)];
+		}
+	}
+
+	// Turn 1 or fallback: Try cardPlayed bark
+	if (koaBarks?.cardPlayed) {
+		const barks = koaBarks.cardPlayed[cardId];
+		if (barks && barks.length > 0) {
+			return barks[Math.floor(Math.random() * barks.length)];
+		}
+	}
+
+	// Final fallback responses
 	if (turnsPlayed === 3) return 'Calculating override probability...';
 	if (turnsPlayed === 2) return 'System check in progress. One more variable required.';
 	return 'Noted. Continue.';
@@ -233,8 +327,9 @@ export function playCardAction(cardId: string, uiCard: UICard): PlayCardActionRe
 	// Add player card to chat log
 	addLog('PLAYER', undefined, uiCard);
 
-	// Generate KOA response
-	const koaResponse = getKoaResponse(newState.turnsPlayed, wasLie);
+	// Generate KOA response from puzzle barks (with sequence awareness)
+	const puzzle = get(currentPuzzle);
+	const koaResponse = getKoaResponse(puzzle, cardId, newState.turnsPlayed, wasLie, newState.played);
 
 	// Check for objection after turn 2
 	let objectionResult: ObjectionResult | undefined;

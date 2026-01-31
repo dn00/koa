@@ -51,16 +51,22 @@ Object.defineProperty(globalThis, 'localStorage', {
 });
 
 // Test fixtures
-function createMockCard(id: string, isLie: boolean = false, strength: number = 3): Card {
+function createMockCard(
+	id: string,
+	isLie: boolean = false,
+	strength: number = 3,
+	evidenceType: Card['evidenceType'] = 'DIGITAL'
+): Card {
 	return {
 		id: id as Card['id'],
 		strength,
-		evidenceType: 'DIGITAL',
+		evidenceType,
 		location: 'Server Room',
 		time: '14:00',
 		claim: `Test claim for ${id}`,
 		presentLine: `Presenting ${id}`,
-		isLie
+		isLie,
+		source: `Source for ${id}`
 	};
 }
 
@@ -72,7 +78,7 @@ function createMockUICard(card: Card): UICard {
 	};
 }
 
-function createMockPuzzle(cards: Card[]): V5Puzzle {
+function createMockPuzzle(cards: Card[], koaBarks: V5Puzzle['koaBarks'] = {}): V5Puzzle {
 	return {
 		slug: 'test-puzzle',
 		name: 'Test Puzzle',
@@ -88,7 +94,7 @@ function createMockPuzzle(cards: Card[]): V5Puzzle {
 			close: 'Almost there.',
 			busted: 'Access denied.'
 		},
-		koaBarks: {}
+		koaBarks
 	};
 }
 
@@ -469,6 +475,282 @@ describe('ERR-1: Invalid Card Play', () => {
 		if (!result.ok) {
 			expect(result.error.code).toBe('CARD_NOT_IN_HAND');
 			expect(result.error.message).toBeDefined();
+		}
+	});
+});
+
+// =============================================================================
+// Sequence-Aware Bark System Tests
+// =============================================================================
+
+describe('Sequence-Aware Barks: Turn 1 (cardPlayed)', () => {
+	beforeEach(() => {
+		resetStores();
+		localStorageMock.clear();
+	});
+
+	it('uses cardPlayed bark for Turn 1', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			cardPlayed: {
+				'card-01': ['Turn 1 bark for card-01']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		const result = playCardAction('card-01', createMockUICard(cards[0]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('Turn 1 bark for card-01');
+		}
+	});
+
+	it('falls back to default response when no cardPlayed bark exists', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const puzzle = createMockPuzzle(cards, {});
+		startGame(puzzle, 12345);
+
+		const result = playCardAction('card-01', createMockUICard(cards[0]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('Noted. Continue.');
+		}
+	});
+});
+
+describe('Sequence-Aware Barks: Turn 2 (sequences)', () => {
+	beforeEach(() => {
+		resetStores();
+		localStorageMock.clear();
+	});
+
+	it('uses sequences bark for Turn 2 based on card order', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			cardPlayed: {
+				'card-01': ['Turn 1 bark']
+			},
+			sequences: {
+				'card-01→card-02': ['Sequence bark: card-01 then card-02']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Turn 1
+		playCardAction('card-01', createMockUICard(cards[0]!));
+		// Turn 2
+		const result = playCardAction('card-02', createMockUICard(cards[1]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('Sequence bark: card-01 then card-02');
+		}
+	});
+
+	it('uses different bark for reversed card order', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			sequences: {
+				'card-01→card-02': ['A then B'],
+				'card-02→card-01': ['B then A - different reaction!']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Play card-02 first, then card-01
+		playCardAction('card-02', createMockUICard(cards[1]!));
+		const result = playCardAction('card-01', createMockUICard(cards[0]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('B then A - different reaction!');
+		}
+	});
+
+	it('falls back to cardPlayed when no sequence bark exists', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			cardPlayed: {
+				'card-02': ['Fallback cardPlayed bark for card-02']
+			},
+			sequences: {
+				'card-03→card-04': ['Different sequence']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Turn 1
+		playCardAction('card-01', createMockUICard(cards[0]!));
+		// Turn 2 - no sequence for card-01→card-02, should fall back to cardPlayed
+		const result = playCardAction('card-02', createMockUICard(cards[1]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('Fallback cardPlayed bark for card-02');
+		}
+	});
+});
+
+describe('Sequence-Aware Barks: Turn 3 (storyCompletions)', () => {
+	beforeEach(() => {
+		resetStores();
+		localStorageMock.clear();
+	});
+
+	it('uses storyCompletions bark for all_digital pattern', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'DIGITAL'),
+			createMockCard('card-03', false, 2, 'DIGITAL'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'SENSOR'),
+			createMockCard('card-06', false, 4, 'TESTIMONY')
+		];
+		const koaBarks = {
+			storyCompletions: {
+				all_digital: ['All digital sources. Your alibi exists on servers.']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Play 3 digital cards
+		playCardAction('card-01', createMockUICard(cards[0]!));
+		playCardAction('card-02', createMockUICard(cards[1]!));
+		const result = playCardAction('card-03', createMockUICard(cards[2]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('All digital sources. Your alibi exists on servers.');
+		}
+	});
+
+	it('uses storyCompletions bark for mixed_strong pattern (digital + sensor)', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			storyCompletions: {
+				mixed_strong: ['Varied sources. Hard to dismiss.']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Play DIGITAL, SENSOR, TESTIMONY (digital + sensor = mixed_strong)
+		playCardAction('card-01', createMockUICard(cards[0]!));
+		playCardAction('card-02', createMockUICard(cards[1]!));
+		const result = playCardAction('card-03', createMockUICard(cards[2]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('Varied sources. Hard to dismiss.');
+		}
+	});
+
+	it('uses digital_heavy pattern for 2 digital + 1 other', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'DIGITAL'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'SENSOR'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			storyCompletions: {
+				digital_heavy: ['Leaning heavily on digital data.']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Play 2 DIGITAL + 1 TESTIMONY
+		playCardAction('card-01', createMockUICard(cards[0]!));
+		playCardAction('card-02', createMockUICard(cards[1]!));
+		const result = playCardAction('card-03', createMockUICard(cards[2]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.koaResponse).toBe('Leaning heavily on digital data.');
+		}
+	});
+
+	it('falls back to sequences when storyCompletions pattern not found', () => {
+		const cards = [
+			createMockCard('card-01', false, 3, 'DIGITAL'),
+			createMockCard('card-02', false, 4, 'SENSOR'),
+			createMockCard('card-03', false, 2, 'TESTIMONY'),
+			createMockCard('card-04', false, 5, 'PHYSICAL'),
+			createMockCard('card-05', false, 3, 'DIGITAL'),
+			createMockCard('card-06', false, 4, 'SENSOR')
+		];
+		const koaBarks = {
+			sequences: {
+				'card-02→card-03': ['Sequence bark for turn 3']
+			},
+			storyCompletions: {
+				all_digital: ['Only matches all digital']
+			}
+		};
+		const puzzle = createMockPuzzle(cards, koaBarks);
+		startGame(puzzle, 12345);
+
+		// Play DIGITAL, SENSOR, TESTIMONY - no storyCompletions match
+		playCardAction('card-01', createMockUICard(cards[0]!));
+		playCardAction('card-02', createMockUICard(cards[1]!));
+		const result = playCardAction('card-03', createMockUICard(cards[2]!));
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			// Should fall back to sequences
+			expect(result.value.koaResponse).toBe('Sequence bark for turn 3');
 		}
 	});
 });

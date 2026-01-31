@@ -89,16 +89,18 @@
 			></div>
 		{/if}
 
-		<!-- Header: Type + Time -->
+		<!-- Header: Type + Time (time only in Advanced mode) -->
 		<div class="w-full flex items-center justify-between gap-1">
 			<span
 				class="text-sm font-mono font-bold px-1.5 py-0.5 rounded-[2px] uppercase {typeColor}"
 			>
 				{displayType}
 			</span>
-			<span class="text-sm font-mono font-bold text-foreground/80 bg-muted/10 px-1.5 py-0.5">
-				{displayTime}
-			</span>
+			{#if mode === 'advanced' && card.time}
+				<span class="text-sm font-mono font-bold text-foreground/80 bg-muted/10 px-1.5 py-0.5">
+					{displayTime}
+				</span>
+			{/if}
 		</div>
 
 		<!-- Icon -->
@@ -114,7 +116,7 @@
 			class="font-sans font-bold text-sm text-center leading-tight line-clamp-2 w-full
 				{isSelected ? 'text-primary' : 'text-foreground'}"
 		>
-			{card.title}
+			{card.source}
 		</h3>
 
 		<!-- Strength (Expert only) -->
@@ -135,12 +137,14 @@
 		class="bg-white border-2 border-foreground shadow-brutal p-4 rounded-[2px]
 			{disabled ? 'opacity-50 grayscale' : ''}"
 	>
-		<!-- Header: Type + Time -->
+		<!-- Header: Type + Time (time only in Advanced mode) -->
 		<div class="flex justify-between mb-2">
 			<span class="text-sm font-mono font-bold uppercase px-2 py-1 rounded-[2px] {typeColor}">
 				{displayType}
 			</span>
-			<span class="text-sm font-mono text-muted-foreground">{displayTime}</span>
+			{#if mode === 'advanced' && card.time}
+				<span class="text-sm font-mono text-muted-foreground">{displayTime}</span>
+			{/if}
 		</div>
 
 		<!-- Icon + Title -->

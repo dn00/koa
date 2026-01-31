@@ -34,3 +34,6 @@ export { default as BarkPanel } from './BarkPanel.svelte';
 
 // Task 008: Objection Flow
 export { default as ObjectionPrompt } from './ObjectionPrompt.svelte';
+
+// Task 021: Game Intro Screen
+export { default as IntroScreen } from './IntroScreen.svelte';

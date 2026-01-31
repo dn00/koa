@@ -28,15 +28,15 @@
 	<div
 		class="h-full aspect-square bg-surface border-2 border-primary flex flex-col items-center justify-center shadow-sm shrink-0"
 	>
-		<div class="text-3xl mb-1">{card.icon}</div>
-		<span class="text-xs font-mono font-bold uppercase bg-primary text-white px-1.5 py-0.5 rounded-[1px]">
+		<div class="text-2xl mb-1">{card.icon}</div>
+		<span class="text-[9px] font-mono font-bold uppercase bg-primary text-white px-1.5 py-0.5 rounded-[1px]">
 			{displayType}
 		</span>
 	</div>
 
 	<!-- Text Details -->
 	<div
-		class="flex-1 bg-surface border border-foreground/20 p-3 shadow-sm flex flex-col overflow-hidden relative"
+		class="flex-1 bg-surface border border-foreground/20 p-2 shadow-sm flex flex-col overflow-hidden relative"
 	>
 		<!-- Decorative Corner -->
 		<div
@@ -47,23 +47,23 @@
 		<!-- Header -->
 		<div class="shrink-0 mb-1">
 			<div class="flex justify-between items-start">
-				<h3 class="text-base font-bold font-sans uppercase leading-tight truncate pr-2">
+				<h3 class="text-sm font-bold font-sans uppercase leading-tight truncate pr-1">
 					{card.title}
 				</h3>
-				<span class="text-xs font-mono text-muted-foreground whitespace-nowrap">
+				<span class="text-[9px] font-mono text-muted-foreground whitespace-nowrap">
 					{displayTime}
 				</span>
 			</div>
-			<div class="text-sm font-mono text-foreground/60 truncate">
+			<div class="text-[9px] font-mono text-foreground/60 truncate">
 				{displayLocation}
 			</div>
 		</div>
 
 		<!-- Description (Claim) -->
 		<div
-			class="flex-1 overflow-y-auto scrollbar-hide border-t border-foreground/10 pt-2 min-h-0"
+			class="flex-1 overflow-y-auto scrollbar-hide border-t border-foreground/10 pt-1 min-h-0"
 		>
-			<p class="text-base leading-snug text-foreground/90 font-sans">
+			<p class="text-[10px] leading-snug text-foreground/90 font-sans">
 				{card.claim}
 			</p>
 		</div>
