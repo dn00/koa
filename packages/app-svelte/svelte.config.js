@@ -9,6 +9,9 @@ const config = {
 		adapter: adapter({
 			fallback: 'index.html'
 		}),
+		paths: {
+			base: ''
+		},
 		alias: {
 			$lib: './src/lib',
 			$stores: './src/lib/stores',
