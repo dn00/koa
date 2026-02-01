@@ -296,7 +296,7 @@
 					use:fitText={{
 						text: [scenario.header, ...scenario.facts],
 						minSize: 9,
-						maxSize: 15,
+						maxSize: 13,
 						multiLine: true
 					}}
 				>
@@ -347,7 +347,7 @@
 
 	<!-- Hidden LOGS measure (for fixed portal sizing) -->
 	<div class="absolute left-0 top-0 w-full pointer-events-none opacity-0 -z-10" aria-hidden="true">
-		<div class="pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground" bind:this={logsMeasureEl}>
+		<div class="pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground" bind:this={logsMeasureEl} style="font-size: 13px; line-height: 1.4;">
 			<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
 				<svg
 					width="12"

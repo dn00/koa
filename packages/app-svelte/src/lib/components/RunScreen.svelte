@@ -79,10 +79,13 @@
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
 	let portalHeight = $state<number>(320);
 	let viewportHeight = $state<number>(0);
-	const MIN_BOTTOM_SPACE = 220;
+	let minBottomSpace = $state<number>(260);
+	let logsMeasuredHeight = $state<number>(0);
 	const GRID_TWO_ROW_MIN = 230;
 	let cardGridEl: HTMLDivElement | null = null;
 	let cardScrollerEl: HTMLDivElement | null = null;
+	let overrideEl: HTMLDivElement | null = null;
+	let actionBarEl: HTMLDivElement | null = null;
 	let compactGrid = $state(false);
 	let hasHorizontalOverflow = $state(false);
 	let atScrollEnd = $state(false);
@@ -96,11 +99,29 @@
 		return () => clearTimeout(timer);
 	});
 
+	function recomputePortalHeight() {
+		const maxPortal = Math.max(240, viewportHeight - minBottomSpace);
+		if (logsMeasuredHeight > 0) {
+			portalHeight = Math.min(Math.ceil(logsMeasuredHeight), maxPortal);
+		} else {
+			portalHeight = Math.min(portalHeight, maxPortal);
+		}
+	}
+
+	function updateMinBottomSpace() {
+		const overrideH = overrideEl?.getBoundingClientRect().height ?? 0;
+		const actionH = actionBarEl?.getBoundingClientRect().height ?? 0;
+		const cardEl = cardGridEl?.querySelector('[data-card-id]') as HTMLElement | null;
+		const cardH = cardEl?.getBoundingClientRect().height ?? 120;
+		const padding = compactGrid ? 24 : 32;
+		minBottomSpace = Math.ceil(overrideH + actionH + cardH + padding);
+		recomputePortalHeight();
+	}
+
 	$effect(() => {
 		const updateViewport = () => {
 			viewportHeight = window.innerHeight;
-			const maxPortal = Math.max(240, viewportHeight - MIN_BOTTOM_SPACE);
-			portalHeight = Math.min(portalHeight, maxPortal);
+			recomputePortalHeight();
 		};
 		updateViewport();
 		window.addEventListener('resize', updateViewport);
@@ -110,6 +131,7 @@
 	function updateGridMode() {
 		if (!cardGridEl) return;
 		compactGrid = cardGridEl.clientHeight < GRID_TWO_ROW_MIN;
+		updateMinBottomSpace();
 		requestAnimationFrame(updateOverflowState);
 	}
 
@@ -127,6 +149,15 @@
 			requestAnimationFrame(updateGridMode);
 		});
 		observer.observe(cardGridEl);
+		return () => observer.disconnect();
+	});
+
+	$effect(() => {
+		const observer = new ResizeObserver(() => {
+			requestAnimationFrame(updateMinBottomSpace);
+		});
+		if (overrideEl) observer.observe(overrideEl);
+		if (actionBarEl) observer.observe(actionBarEl);
 		return () => observer.disconnect();
 	});
 
@@ -418,9 +449,8 @@
 	}
 
 	function handleLogsMeasure(height: number) {
-		const maxPortal = Math.max(240, viewportHeight - MIN_BOTTOM_SPACE);
-		const desired = Math.ceil(height);
-		portalHeight = Math.min(desired, maxPortal);
+		logsMeasuredHeight = Math.ceil(height);
+		recomputePortalHeight();
 	}
 
 </script>
@@ -506,6 +536,7 @@
 		class="shrink-0 py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all min-h-[5.5rem]"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
+		bind:this={overrideEl}
 	>
 		<!-- Zone 2 Header -->
 		<div class="flex items-center justify-between mb-2 h-5">
@@ -545,7 +576,7 @@
 		data-zone="card-tray"
 	>
 		<!-- Action Bar -->
-		<div data-zone="action-bar">
+		<div data-zone="action-bar" bind:this={actionBarEl}>
 			<ActionBar
 				selectedCardId={isProcessing || isInitializing || showAuditButton ? null : selectedCardId}
 				{msgMode}
