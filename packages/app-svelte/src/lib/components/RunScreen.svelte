@@ -86,6 +86,7 @@
 	const CARD_TRAY_PADDING = 16;
 	const COMPACT_SCROLLER_PADDING = 20;
 	const ROW_GAP = 12;
+	const PORTAL_MAX_REDUCTION = 24;
 	let cardGridEl: HTMLDivElement | null = null;
 	let cardScrollerEl: HTMLDivElement | null = null;
 	let portalEl: HTMLDivElement | null = null;
@@ -113,7 +114,7 @@
 		const cardEl = cardGridEl?.querySelector('[data-card-id]') as HTMLElement | null;
 		const cardH = cardEl?.getBoundingClientRect().height ?? 120;
 		const oneRowMin = actionH + cardH + COMPACT_SCROLLER_PADDING + CARD_TRAY_PADDING;
-		const maxPortal = Math.max(basePortal, vh - middleH - oneRowMin);
+		const maxPortal = Math.max(basePortal, vh - middleH - oneRowMin - PORTAL_MAX_REDUCTION);
 		const chrome = getPortalChrome();
 		portalChrome = chrome;
 		if (logsMaxHeight > 0) {
@@ -570,7 +571,7 @@ function handleLogsMeasure(payload: { minHeight: number; maxHeight: number }) {
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 min-h-[10rem] max-h-[15rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
+		class="shrink-0 min-h-[9.5rem] max-h-[14.5rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 		bind:this={overrideEl}
