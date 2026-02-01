@@ -34,6 +34,16 @@ body {
 	font-family: 'Inter', sans-serif;
 }
 
+@media (pointer: coarse) and (min-width: 900px) {
+	html {
+		font-size: 14px;
+	}
+
+	.app-shell {
+		max-width: 460px;
+	}
+}
+
 /* ============================================
  * Selection
  * ============================================ */

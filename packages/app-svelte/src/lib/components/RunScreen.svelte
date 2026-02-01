@@ -107,8 +107,7 @@
 		}
 	});
 
-	// Timeouts for focus handling
-	let focusTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	// Preview-only selection state (tap to view)
 
 	// Derive scenario data from puzzle
 	let scenario = $derived({
@@ -158,49 +157,32 @@
 		return icons[type] || '📄';
 	}
 
-	// Handle background click to dismiss inspected card
+	// Handle background click to dismiss preview
 	function handleBackgroundClick(e: MouseEvent) {
 		// Only dismiss if not processing
 		if (!isProcessing) {
 			inspectedCard = null;
+			focusedCard = null;
 		}
 	}
 
-	// Handle card selection
-	function handleCardClick(cardId: string) {
+	// Handle card selection + preview
+	function handleCardClick(e: MouseEvent | KeyboardEvent, card: UICard) {
 		if (isProcessing) return;
+		e.stopPropagation();
 
 		// Clear any lingering mood override (e.g., DISAPPOINTED from type tax)
 		if (moodOverride) {
 			moodOverride = null;
 		}
 
-		if (selectedCardId === cardId) {
-			selectedCardId = null;
-		} else {
-			selectedCardId = cardId;
-		}
-	}
-
-	// Handle card focus (hover/focus)
-	function handleCardFocus(card: UICard) {
-		if (focusTimeoutId) {
-			clearTimeout(focusTimeoutId);
-			focusTimeoutId = null;
+		// Tap opens preview; selection is independent
+		if (selectedCardId !== card.id) {
+			selectedCardId = card.id;
 		}
 		focusedCard = card;
-	}
-
-	// Handle card blur
-	function handleCardBlur(opts?: { delayMs?: number }) {
-		if (focusTimeoutId) {
-			clearTimeout(focusTimeoutId);
-		}
-		const delayMs = opts?.delayMs ?? 100;
-		focusTimeoutId = setTimeout(() => {
-			focusedCard = null;
-			focusTimeoutId = null;
-		}, delayMs);
+		// Close slot inspection when tapping grid cards
+		inspectedCard = null;
 	}
 
 	// Handle TRANSMIT button click (Task 022: Card Play Juice)
@@ -213,12 +195,6 @@
 		if (!card) return;
 
 		isProcessing = true;
-
-		// Clear focused state
-		if (focusTimeoutId) {
-			clearTimeout(focusTimeoutId);
-			focusTimeoutId = null;
-		}
 
 		// Ensure slots are visible before animating
 		const wasFocused = focusedCard !== null;
@@ -537,9 +513,7 @@
 							mode={$mode}
 							isSelected={selectedCardId === card.id && !isPlayed}
 							disabled={isPlayed || isProcessing || showAuditButton}
-							onClick={() => !isPlayed && !showAuditButton && handleCardClick(card.id)}
-							onFocus={() => !isPlayed && !showAuditButton && handleCardFocus(card)}
-							onBlur={handleCardBlur}
+							onClick={(e) => !isPlayed && !showAuditButton && handleCardClick(e, card)}
 						/>
 					</div>
 				{/each}

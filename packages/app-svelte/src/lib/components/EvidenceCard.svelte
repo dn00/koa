@@ -22,11 +22,7 @@
 		/** Whether this card is disabled (already played) */
 		disabled?: boolean;
 		/** Click handler */
-		onClick?: () => void;
-		/** Focus handler for preview swap */
-		onFocus?: (card: UICard) => void;
-		/** Blur handler for preview swap */
-		onBlur?: (opts?: { delayMs?: number }) => void;
+		onClick?: (e: MouseEvent | KeyboardEvent) => void;
 	}
 
 	let {
@@ -35,9 +31,7 @@
 		mode = 'mini',
 		isSelected = false,
 		disabled = false,
-		onClick,
-		onFocus,
-		onBlur
+		onClick
 	}: Props = $props();
 
 	// Derived display values
@@ -46,106 +40,9 @@
 	let displayTime = $derived(card.time || '--:--');
 	let displayLocation = $derived(card.location || 'Unknown');
 
-	let holdTimeoutId: ReturnType<typeof setTimeout> | null = null;
-	let touchPreviewActive = false;
-	let suppressNextClick = false;
-
-	function handleClick() {
+	function handleClick(e: MouseEvent | KeyboardEvent) {
 		if (!disabled && onClick) {
-			if (suppressNextClick) {
-				suppressNextClick = false;
-				return;
-			}
-			onClick();
-		}
-	}
-
-	function handleFocus() {
-		if (onFocus) {
-			onFocus(card);
-		}
-	}
-
-	function handleBlur() {
-		if (onBlur) {
-			onBlur();
-		}
-	}
-
-	function handlePointerDown(e: PointerEvent) {
-		if (disabled || e.pointerType !== 'touch' || touchHandling) return;
-		// Long-press to preview on touch
-		if (holdTimeoutId) clearTimeout(holdTimeoutId);
-		holdTimeoutId = setTimeout(() => {
-			touchPreviewActive = true;
-			suppressNextClick = true;
-			onFocus?.(card);
-		}, 250);
-	}
-
-	function handlePointerUp(e: PointerEvent) {
-		if (e.pointerType !== 'touch' || touchHandling) return;
-		if (holdTimeoutId) {
-			clearTimeout(holdTimeoutId);
-			holdTimeoutId = null;
-		}
-		if (touchPreviewActive) {
-			touchPreviewActive = false;
-			onBlur?.({ delayMs: 350 });
-		}
-	}
-
-	function handlePointerCancel(e: PointerEvent) {
-		if (e.pointerType !== 'touch' || touchHandling) return;
-		if (holdTimeoutId) {
-			clearTimeout(holdTimeoutId);
-			holdTimeoutId = null;
-		}
-		if (touchPreviewActive) {
-			touchPreviewActive = false;
-			onBlur?.({ delayMs: 0 });
-		}
-	}
-
-	let touchHandling = false;
-
-	function handleTouchStart(e: TouchEvent) {
-		if (disabled) return;
-		touchHandling = true;
-		e.preventDefault();
-		if (holdTimeoutId) clearTimeout(holdTimeoutId);
-		holdTimeoutId = setTimeout(() => {
-			touchPreviewActive = true;
-			suppressNextClick = true;
-			onFocus?.(card);
-		}, 250);
-	}
-
-	function handleTouchEnd(e: TouchEvent) {
-		if (!touchHandling) return;
-		e.preventDefault();
-		touchHandling = false;
-		if (holdTimeoutId) {
-			clearTimeout(holdTimeoutId);
-			holdTimeoutId = null;
-		}
-		if (touchPreviewActive) {
-			touchPreviewActive = false;
-			onBlur?.({ delayMs: 350 });
-		}
-	}
-
-	function handleTouchCancel(e: TouchEvent) {
-		if (!touchHandling) return;
-		e.preventDefault();
-		touchHandling = false;
-		if (holdTimeoutId) {
-			clearTimeout(holdTimeoutId);
-			holdTimeoutId = null;
-		}
-		if (touchPreviewActive) {
-			touchPreviewActive = false;
-			onBlur?.({ delayMs: 0 });
+			onClick(e);
 		}
 	}
 
@@ -169,18 +66,10 @@
 			{disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer shadow-brutal'}"
 		role="button"
 		tabindex={disabled ? -1 : 0}
-		onclick={handleClick}
-		onmouseenter={handleFocus}
-		onmouseleave={handleBlur}
-		onpointerdown={handlePointerDown}
-		onpointerup={handlePointerUp}
-		onpointercancel={handlePointerCancel}
-		ontouchstart={handleTouchStart}
-		ontouchend={handleTouchEnd}
-		ontouchcancel={handleTouchCancel}
+		onclick={(e) => handleClick(e)}
 		oncontextmenu={handleContextMenu}
 		ondragstart={handleDragStart}
-		onkeydown={(e) => e.key === 'Enter' && handleClick()}
+		onkeydown={(e) => e.key === 'Enter' && handleClick(e)}
 	>
 		{#if isSelected}
 			<div
