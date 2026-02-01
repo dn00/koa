@@ -49,6 +49,8 @@
 		onSpeechComplete?: () => void;
 		/** Called when audit bark completes (to advance phase) */
 		onAuditBarkComplete?: () => void;
+		/** Called with full LOGS height (for fixed portal sizing) */
+		onLogsMeasure?: (height: number) => void;
 		/** Called when mode changes */
 		onModeChange: (mode: 'BARK' | 'LOGS') => void;
 	}
@@ -64,11 +66,38 @@
 		onSpeechStart,
 		onSpeechComplete,
 		onAuditBarkComplete,
+		onLogsMeasure,
 		onModeChange
 	}: Props = $props();
 
 	// Task 701: Track suspicion animation state
 	let suspicionLineVisible = $state(false);
+
+	let headerEl: HTMLDivElement | null = null;
+	let logsMeasureEl: HTMLDivElement | null = null;
+
+	function measureLogsHeight() {
+		if (!logsMeasureEl) return;
+		const headerHeight = headerEl?.getBoundingClientRect().height ?? 0;
+		const logsHeight = logsMeasureEl.getBoundingClientRect().height;
+		const total = Math.ceil(headerHeight + logsHeight);
+		onLogsMeasure?.(total);
+	}
+
+	$effect(() => {
+		// Re-measure when scenario changes
+		measureLogsHeight();
+	});
+
+	$effect(() => {
+		if (!logsMeasureEl) return;
+		const observer = new ResizeObserver(() => {
+			requestAnimationFrame(measureLogsHeight);
+		});
+		observer.observe(logsMeasureEl);
+		if (headerEl) observer.observe(headerEl);
+		return () => observer.disconnect();
+	});
 
 	// Track previous bark to detect changes
 	let previousBark = $state<string | undefined>(undefined);
@@ -136,7 +165,7 @@
 	></div>
 
 	<!-- Header: Tabs -->
-	<div class="shrink-0 px-1 py-0 border-b bg-muted/5 border-foreground/20 flex items-stretch h-7">
+	<div class="shrink-0 px-1 py-0 border-b bg-muted/5 border-foreground/20 flex items-stretch h-7" bind:this={headerEl}>
 		<button
 			onclick={() => setMode('BARK')}
 			class="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider transition-colors rounded-tl-[2px]
@@ -312,5 +341,43 @@
 				</div>
 			</div>
 		{/if}
+	</div>
+
+	<!-- Hidden LOGS measure (for fixed portal sizing) -->
+	<div class="absolute left-0 top-0 w-full pointer-events-none opacity-0 -z-10" aria-hidden="true">
+		<div class="pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground" bind:this={logsMeasureEl}>
+			<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
+				<svg
+					width="12"
+					height="12"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					class="shrink-0"
+				>
+					<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+					<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+				</svg>
+				<span class="font-bold font-mono uppercase leading-tight">
+					{scenario.header}
+				</span>
+			</div>
+			<div class="mb-2">
+				<div class="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+					Known Facts
+				</div>
+			</div>
+			<ul class="flex flex-col gap-1.5">
+				{#each scenario.facts as fact, i}
+					<li class="flex gap-2 text-foreground/90 leading-snug items-start font-sans bg-slate-50/50 p-1.5 rounded-[2px] border-l-2 border-slate-200">
+						<span class="font-mono font-bold text-primary/70 shrink-0 text-[10px]">
+							{formatFactNumber(i)}
+						</span>
+						<span>{fact}</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
 	</div>
 </div>

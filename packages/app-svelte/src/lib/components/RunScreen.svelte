@@ -77,6 +77,16 @@
 	let openingBarkComplete = $state(false); // Track when first bark finishes for LOG flash
 	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
+	let portalHeight = $state<number>(320);
+	let viewportHeight = $state<number>(0);
+	const MIN_BOTTOM_SPACE = 220;
+	const GRID_TWO_ROW_MIN = 230;
+	let cardGridEl: HTMLDivElement | null = null;
+	let cardScrollerEl: HTMLDivElement | null = null;
+	let compactGrid = $state(false);
+	let hasHorizontalOverflow = $state(false);
+	let atScrollEnd = $state(false);
+	let atScrollStart = $state(true);
 
 	// Start initial delay timer on mount
 	$effect(() => {
@@ -84,6 +94,48 @@
 			isInitializing = false;
 		}, TIMING.initialDelay);
 		return () => clearTimeout(timer);
+	});
+
+	$effect(() => {
+		const updateViewport = () => {
+			viewportHeight = window.innerHeight;
+			const maxPortal = Math.max(240, viewportHeight - MIN_BOTTOM_SPACE);
+			portalHeight = Math.min(portalHeight, maxPortal);
+		};
+		updateViewport();
+		window.addEventListener('resize', updateViewport);
+		return () => window.removeEventListener('resize', updateViewport);
+	});
+
+	function updateGridMode() {
+		if (!cardGridEl) return;
+		compactGrid = cardGridEl.clientHeight < GRID_TWO_ROW_MIN;
+		requestAnimationFrame(updateOverflowState);
+	}
+
+	function updateOverflowState() {
+		if (!cardScrollerEl) return;
+		const overflow = cardScrollerEl.scrollWidth > cardScrollerEl.clientWidth + 1;
+		hasHorizontalOverflow = overflow;
+		atScrollStart = cardScrollerEl.scrollLeft <= 1;
+		atScrollEnd = cardScrollerEl.scrollLeft + cardScrollerEl.clientWidth >= cardScrollerEl.scrollWidth - 2;
+	}
+
+	$effect(() => {
+		if (!cardGridEl) return;
+		const observer = new ResizeObserver(() => {
+			requestAnimationFrame(updateGridMode);
+		});
+		observer.observe(cardGridEl);
+		return () => observer.disconnect();
+	});
+
+	$effect(() => {
+		if (!cardScrollerEl) return;
+		const onScroll = () => requestAnimationFrame(updateOverflowState);
+		cardScrollerEl.addEventListener('scroll', onScroll, { passive: true });
+		updateOverflowState();
+		return () => cardScrollerEl.removeEventListener('scroll', onScroll);
 	});
 
 	// Task 022: KOA mood override during processing
@@ -365,6 +417,12 @@
 		setTimeout(() => completeAudit(), 1600);
 	}
 
+	function handleLogsMeasure(height: number) {
+		const maxPortal = Math.max(240, viewportHeight - MIN_BOTTOM_SPACE);
+		const desired = Math.ceil(height);
+		portalHeight = Math.min(desired, maxPortal);
+	}
+
 </script>
 
 <div
@@ -394,7 +452,8 @@
 
 	<!-- Zone 1: Bark Panel with floating avatar -->
 	<div
-		class="flex-1 min-h-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
+		class="shrink-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
+		style={`height: ${portalHeight}px;`}
 		data-zone="hero"
 	>
 		<!-- Background Effects -->
@@ -428,6 +487,7 @@
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
 				onAuditBarkComplete={handleAuditBarkComplete}
+				onLogsMeasure={handleLogsMeasure}
 				onModeChange={(m) => (msgMode = m)}
 			/>
 		</div>
@@ -481,7 +541,7 @@
 
 	<!-- Zone 3: Card Tray / Audit Button -->
 	<div
-		class="shrink-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
+		class="flex-1 min-h-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
 		data-zone="card-tray"
 	>
 		<!-- Action Bar -->
@@ -496,28 +556,68 @@
 		</div>
 
 		<!-- Card Grid or Audit Button -->
-		<div class="p-4 bg-surface/50 relative min-h-60" data-zone="card-grid">
-			<div class="grid grid-cols-3 grid-rows-2 gap-3">
-				{#each allCards as card (card.id)}
-					{@const isPlayed = isCardPlayed(card.id)}
-					<div
-						class="relative transition-all duration-300 {isPlayed ? 'opacity-40 grayscale' : ''}"
-						data-card-id={card.id}
-						data-selected={selectedCardId === card.id}
-						data-played={isPlayed}
-						data-disabled={isPlayed || isProcessing}
-					>
-						<EvidenceCard
-							{card}
-							variant="icon"
-							mode={$mode}
-							isSelected={selectedCardId === card.id && !isPlayed}
-							disabled={isPlayed || isProcessing || showAuditButton}
-							onClick={(e) => !isPlayed && !showAuditButton && handleCardClick(e, card)}
-						/>
-					</div>
-				{/each}
-			</div>
+		<div class="p-4 bg-surface/50 relative flex-1 min-h-0 overflow-hidden" data-zone="card-grid" bind:this={cardGridEl}>
+			{#if compactGrid}
+				<div
+					class="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide pr-6 pb-1 pt-4"
+					bind:this={cardScrollerEl}
+				>
+					{#each allCards as card (card.id)}
+						{@const isPlayed = isCardPlayed(card.id)}
+						<div
+							class="relative transition-all duration-300 flex-none min-w-[120px] max-w-[140px] {isPlayed ? 'opacity-40 grayscale' : ''}"
+							data-card-id={card.id}
+							data-selected={selectedCardId === card.id ? 'true' : 'false'}
+							data-played={isPlayed}
+							data-disabled={isPlayed || isProcessing}
+						>
+							<EvidenceCard
+								{card}
+								variant="icon"
+								mode={$mode}
+								isSelected={selectedCardId === card.id && !isPlayed}
+								disabled={isPlayed || isProcessing || showAuditButton}
+								onClick={(e) => !isPlayed && !showAuditButton && handleCardClick(e, card)}
+							/>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="grid grid-cols-3 grid-rows-2 gap-3" bind:this={cardScrollerEl}>
+					{#each allCards as card (card.id)}
+						{@const isPlayed = isCardPlayed(card.id)}
+						<div
+							class="relative transition-all duration-300 {isPlayed ? 'opacity-40 grayscale' : ''}"
+							data-card-id={card.id}
+							data-selected={selectedCardId === card.id ? 'true' : 'false'}
+							data-played={isPlayed}
+							data-disabled={isPlayed || isProcessing}
+						>
+							<EvidenceCard
+								{card}
+								variant="icon"
+								mode={$mode}
+								isSelected={selectedCardId === card.id && !isPlayed}
+								disabled={isPlayed || isProcessing || showAuditButton}
+								onClick={(e) => !isPlayed && !showAuditButton && handleCardClick(e, card)}
+							/>
+						</div>
+					{/each}
+				</div>
+			{/if}
+
+			{#if compactGrid && hasHorizontalOverflow && !atScrollEnd}
+				<div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-surface/95 to-transparent"></div>
+				<div class="pointer-events-none absolute top-2 right-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground bg-surface/90 border border-foreground/20 px-1.5 py-0.5 rounded-[2px]">
+					Swipe →
+				</div>
+			{/if}
+			{#if compactGrid && hasHorizontalOverflow && !atScrollStart}
+				<div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-surface/95 to-transparent"></div>
+				<div class="pointer-events-none absolute top-2 left-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground bg-surface/90 border border-foreground/20 px-1.5 py-0.5 rounded-[2px]">
+					← Swipe
+				</div>
+			{/if}
 
 			<!-- Audit Button Overlay -->
 			{#if showAuditButton}
