@@ -568,7 +568,7 @@ function handleLogsMeasure(height: number) {
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 min-h-[8.5rem] max-h-[10rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
+		class="shrink-0 min-h-[8.5rem] max-h-[12rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 		bind:this={overrideEl}
@@ -619,6 +619,7 @@ function handleLogsMeasure(height: number) {
 		<div data-zone="action-bar" bind:this={actionBarEl}>
 			<ActionBar
 				selectedCardId={isProcessing || isInitializing || showAuditButton ? null : selectedCardId}
+				disableTransmit={isSpeaking || isProcessing || isInitializing}
 				{msgMode}
 				shouldFlashLogs={openingBarkComplete}
 				onTransmit={handleTransmit}

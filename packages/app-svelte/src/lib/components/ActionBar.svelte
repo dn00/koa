@@ -9,6 +9,8 @@
 	interface Props {
 		/** ID of selected card, or null if none selected */
 		selectedCardId: string | null;
+		/** Disable transmit while KOA is speaking */
+		disableTransmit?: boolean;
 		/** Current view mode (BARK vs LOGS) */
 		msgMode: 'BARK' | 'LOGS';
 		/** Whether to flash the VIEW LOG button */
@@ -19,7 +21,7 @@
 		onToggleMode: () => void;
 	}
 
-	let { selectedCardId, msgMode, shouldFlashLogs = false, onTransmit, onToggleMode }: Props = $props();
+	let { selectedCardId, disableTransmit = false, msgMode, shouldFlashLogs = false, onTransmit, onToggleMode }: Props = $props();
 
 	// Flash VIEW LOG button - controlled by parent, stops on tap or after timer
 	let isFlashing = $state(false);
@@ -49,13 +51,13 @@
 	}
 
 	function handleClick() {
-		if (selectedCardId) {
+		if (selectedCardId && !disableTransmit) {
 			onTransmit();
 		}
 	}
 </script>
 
-<div class="h-12 border-b border-foreground/10 flex items-center justify-between px-4 bg-muted/5">
+<div class="min-h-12 max-h-14 border-b border-foreground/10 flex items-center justify-between px-4 bg-muted/5">
 	<span class="text-[10px] font-mono font-bold uppercase text-muted-foreground tracking-wider">
 		EVIDENCE
 	</span>
@@ -99,9 +101,9 @@
 
 		<button
 			onclick={handleClick}
-			disabled={!selectedCardId}
+			disabled={!selectedCardId || disableTransmit}
 			class="h-8 px-4 text-xs font-mono font-bold uppercase rounded-[2px] border transition-all flex items-center gap-2
-				{selectedCardId
+				{selectedCardId && !disableTransmit
 				? 'bg-primary text-white border-primary shadow-brutal hover:-translate-y-0.5 active:translate-y-0'
 				: 'bg-transparent text-muted-foreground border-foreground/20 cursor-not-allowed'}"
 		>
