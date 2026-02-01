@@ -63,7 +63,7 @@
 		<div
 			class="flex-1 overflow-y-auto scrollbar-hide border-t border-foreground/10 pt-1 min-h-0"
 		>
-			<p class="text-[10px] leading-snug text-foreground/90 font-sans">
+			<p class="type-body-xs text-foreground/90 leading-snug">
 				{card.claim}
 			</p>
 		</div>

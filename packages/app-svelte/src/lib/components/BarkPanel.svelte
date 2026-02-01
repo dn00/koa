@@ -11,6 +11,7 @@
 	import { untrack } from 'svelte';
 	import Typewriter from './Typewriter.svelte';
 	import { suspicionText, suspicionShown, markSuspicionShown } from '$lib/stores/game';
+	import { fitText } from '$lib/actions/fitText';
 
 	interface Scenario {
 		header: string;
@@ -50,6 +51,9 @@
 	// Track previous bark to detect changes
 	let previousBark = $state<string | undefined>(undefined);
 
+	// Track barks that have already been typed out
+	let typedBarks = $state(new Set<string>());
+
 	// Auto-switch to BARK when bark changes
 	$effect(() => {
 		const prev = untrack(() => previousBark);
@@ -63,6 +67,8 @@
 
 	// Task 701: Handle bark completion and trigger suspicion animation
 	function handleBarkComplete() {
+		// Mark this bark as typed
+		typedBarks = new Set([...typedBarks, currentBark]);
 		onSpeechComplete?.();
 
 		// If T2 and suspicion text exists, show suspicion line after bark
@@ -94,7 +100,7 @@
 </script>
 
 <div
-	class="bg-white border border-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] rounded-[2px] rounded-bl-none relative flex flex-col max-h-full transition-all duration-300"
+	class="bg-white border border-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] rounded-[2px] rounded-bl-none relative flex flex-col h-full transition-all duration-300"
 >
 	<!-- Decorative Corner -->
 	<div
@@ -103,18 +109,18 @@
 	></div>
 
 	<!-- Header: Tabs -->
-	<div class="shrink-0 px-1 py-0 border-b bg-muted/5 border-foreground/20 flex items-stretch h-10">
+	<div class="shrink-0 px-1 py-0 border-b bg-muted/5 border-foreground/20 flex items-stretch h-7">
 		<button
 			onclick={() => setMode('BARK')}
-			class="flex-1 flex items-center justify-center gap-2 text-sm font-mono font-bold uppercase transition-colors rounded-tl-[2px]
+			class="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider transition-colors rounded-tl-[2px]
 				{msgMode === 'BARK'
 				? 'bg-white text-primary relative top-[1px] border-b border-white'
 				: 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}"
 			aria-label="SYS_MSG"
 		>
 			<svg
-				width="14"
-				height="14"
+				width="10"
+				height="10"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -131,15 +137,15 @@
 
 		<button
 			onclick={() => setMode('LOGS')}
-			class="flex-1 flex items-center justify-center gap-2 text-sm font-mono font-bold uppercase transition-colors rounded-tr-[2px]
+			class="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider transition-colors rounded-tr-[2px]
 				{msgMode === 'LOGS'
 				? 'bg-white text-primary relative top-[1px] border-b border-white'
 				: 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}"
 			aria-label="LOGS"
 		>
 			<svg
-				width="14"
-				height="14"
+				width="10"
+				height="10"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -157,15 +163,19 @@
 
 	<!-- Content Body -->
 	<div
-		class="flex-1 px-4 py-3 text-base leading-relaxed text-foreground font-sans overflow-y-auto scrollbar-hide min-h-[4rem]"
+		class="flex-1 flex flex-col px-4 py-3 leading-relaxed text-foreground scrollbar-hide min-h-0 overflow-hidden"
 		data-panel-content
 	>
 		{#if msgMode === 'BARK'}
-			<div class="min-h-full flex flex-col justify-center">
+			<div
+				class="flex-1 min-h-0 flex flex-col justify-center overflow-hidden"
+				use:fitText={{ text: currentBark, minSize: 11, maxSize: 18, multiLine: true }}
+			>
 				<div class="w-full text-left">
 					<Typewriter
 						text={currentBark}
 						speed={30}
+						skipAnimation={typedBarks.has(currentBark)}
 						onStart={onSpeechStart}
 						onComplete={handleBarkComplete}
 					/>
@@ -183,12 +193,15 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="animate-in fade-in slide-in-from-right-2 duration-200">
+			<div
+				class="animate-in fade-in slide-in-from-right-2 duration-200 flex-1 min-h-0 flex flex-col overflow-hidden"
+				style="font-size: clamp(11px, 2.5vw, 16px);"
+			>
 				<!-- Scenario Header -->
-				<div class="flex items-center gap-2 mb-3 text-red-500 border-b border-red-100 pb-2">
+				<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
 					<svg
-						width="16"
-						height="16"
+						width="12"
+						height="12"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -198,16 +211,16 @@
 						<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
 						<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 					</svg>
-					<span class="text-sm font-bold leading-tight font-mono uppercase">
+					<span class="font-bold font-mono uppercase leading-tight">
 						{scenario.header}
 					</span>
 				</div>
 
 				<!-- Facts List -->
-				<ul class="space-y-3">
+				<ul class="flex flex-col gap-1">
 					{#each scenario.facts as fact, i}
-						<li class="flex gap-3 text-base text-foreground/90 leading-snug items-start">
-							<span class="font-mono font-bold text-foreground/50 shrink-0 mt-0.5">
+						<li class="flex gap-2 text-foreground/90 leading-snug items-start font-sans">
+							<span class="font-mono font-bold text-foreground/50 shrink-0">
 								{formatFactNumber(i)}
 							</span>
 							<span>{fact}</span>

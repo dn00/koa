@@ -335,7 +335,7 @@
 
 		<!-- Avatar Container -->
 		<div
-			class="w-[220px] xs:w-[260px] md:w-[360px] aspect-[2/1] relative shrink-0 z-10 -ml-6 flex items-center justify-center"
+			class="w-[160px] xs:w-[180px] md:w-[240px] aspect-[1/1] relative shrink-0 z-10 -ml-2 flex items-center justify-center"
 			data-zone="avatar"
 		>
 			<KoaAvatar mood={koaMood} {isSpeaking} />
@@ -368,14 +368,14 @@
 		<div class="flex items-center justify-between mb-2 h-5">
 			{#if focusedCard}
 				<!-- Existing preview code... -->
-				<div class="text-xs font-mono font-bold uppercase text-primary flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
+				<div class="text-[10px] font-mono font-bold uppercase text-primary flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 					</svg>
 					DATA_ANALYSIS_PREVIEW
 				</div>
 			{:else}
-				<div class="text-xs font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
+				<div class="text-[10px] font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
 						<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>

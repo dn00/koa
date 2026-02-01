@@ -8,6 +8,7 @@
 
 	import type { UICard, Mode } from '$lib/stores/game';
 	import { getEvidenceTypeLabel, getEvidenceTypeColor } from '$lib/utils/evidenceTypes';
+	import { fitText } from '$lib/actions/fitText';
 
 	interface Props {
 		/** The card data to display */
@@ -67,7 +68,7 @@
 {#if variant === 'icon'}
 	<!-- Compact icon variant -->
 	<div
-		class="relative w-full flex flex-col p-3 min-h-[100px] items-center justify-between
+		class="relative w-full flex flex-col p-2 min-h-[100px] items-center justify-between
 			border-2 rounded-[2px] transition-all select-none
 			{isSelected
 			? 'bg-white border-primary shadow-brutal translate-y-[-2px]'
@@ -90,14 +91,14 @@
 		{/if}
 
 		<!-- Header: Type + Time (time only in Advanced mode) -->
-		<div class="w-full flex items-center justify-between gap-1">
+		<div class="w-full flex items-center justify-between gap-1 overflow-hidden">
 			<span
-				class="text-sm font-mono font-bold px-1.5 py-0.5 rounded-[2px] uppercase {typeColor}"
+				class="text-[10px] font-mono font-bold px-1.5 py-[3px] rounded-[2px] uppercase {typeColor} truncate max-w-full leading-none"
 			>
 				{displayType}
 			</span>
 			{#if mode === 'advanced' && card.time}
-				<span class="text-sm font-mono font-bold text-foreground/80 bg-muted/10 px-1.5 py-0.5">
+				<span class="text-[10px] font-mono font-bold text-foreground/80 bg-muted/10 px-1.5 py-0.5 shrink-0">
 					{displayTime}
 				</span>
 			{/if}
@@ -105,7 +106,7 @@
 
 		<!-- Icon -->
 		<div
-			class="w-10 h-10 rounded-[2px] flex items-center justify-center text-2xl border border-foreground
+			class="w-8 h-8 rounded-[2px] flex items-center justify-center text-xl border border-foreground
 				{isSelected ? 'bg-primary text-white' : 'bg-background text-foreground'}"
 		>
 			{card.icon}
@@ -113,8 +114,9 @@
 
 		<!-- Title -->
 		<h3
-			class="font-sans font-bold text-sm text-center leading-tight line-clamp-2 w-full
+			class="font-sans font-bold text-center leading-tight w-full whitespace-nowrap
 				{isSelected ? 'text-primary' : 'text-foreground'}"
+			use:fitText={{ text: card.source, minSize: 8, maxSize: 12, multiLine: false }}
 		>
 			{card.source}
 		</h3>
@@ -159,7 +161,7 @@
 		</div>
 
 		<!-- Description (Claim) -->
-		<p class="text-base leading-relaxed border-t border-foreground/10 pt-2">
+		<p class="type-body leading-relaxed border-t border-foreground/10 pt-2">
 			{card.claim}
 		</p>
 

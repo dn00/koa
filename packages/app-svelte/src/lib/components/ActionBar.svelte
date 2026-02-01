@@ -6,6 +6,8 @@
 	 * Button disabled when no card is selected.
 	 */
 
+	import { onMount } from 'svelte';
+
 	interface Props {
 		/** ID of selected card, or null if none selected */
 		selectedCardId: string | null;
@@ -18,6 +20,24 @@
 	}
 
 	let { selectedCardId, msgMode, onTransmit, onToggleMode }: Props = $props();
+
+	// Feature discovery: Glow until clicked
+	let hasViewedLogs = $state(true); // Default true to avoid flash
+
+	onMount(() => {
+		const viewed = localStorage.getItem('aura_has_viewed_logs');
+		if (!viewed) {
+			hasViewedLogs = false;
+		}
+	});
+
+	function handleToggle() {
+		if (!hasViewedLogs) {
+			hasViewedLogs = true;
+			localStorage.setItem('aura_has_viewed_logs', 'true');
+		}
+		onToggleMode();
+	}
 
 	function handleClick() {
 		if (selectedCardId) {
@@ -33,8 +53,9 @@
 
 	<div class="flex items-center gap-2">
 		<button
-			onclick={onToggleMode}
-			class="h-8 px-3 text-xs font-mono font-bold uppercase rounded-[2px] border border-foreground/20 bg-surface text-foreground hover:bg-white hover:shadow-sm transition-all flex items-center gap-2"
+			onclick={handleToggle}
+			class="h-8 px-3 text-xs font-mono font-bold uppercase rounded-[2px] border bg-surface text-foreground hover:bg-white hover:shadow-sm transition-all flex items-center gap-2
+				{hasViewedLogs ? 'border-foreground/20' : 'border-primary shadow-[0_0_15px_rgba(224,122,95,0.6)] animate-pulse'}"
 		>
 			{#if msgMode === 'LOGS'}
 				<svg

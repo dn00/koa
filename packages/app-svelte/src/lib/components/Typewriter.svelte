@@ -13,13 +13,15 @@
 		text: string;
 		/** Milliseconds per character (default: 20) */
 		speed?: number;
+		/** Skip animation and show full text immediately */
+		skipAnimation?: boolean;
 		/** Called when typing starts */
 		onStart?: () => void;
 		/** Called when typing finishes */
 		onComplete?: () => void;
 	}
 
-	let { text, speed = 20, onStart, onComplete }: Props = $props();
+	let { text, speed = 20, skipAnimation = false, onStart, onComplete }: Props = $props();
 
 	let displayedText = $state('');
 	let interval: ReturnType<typeof setInterval> | null = null;
@@ -59,7 +61,12 @@
 
 	onMount(() => {
 		previousText = text;
-		startTyping(text);
+		if (skipAnimation) {
+			displayedText = text;
+			onComplete?.();
+		} else {
+			startTyping(text);
+		}
 	});
 
 	onDestroy(() => {

@@ -64,7 +64,7 @@
 	}
 </script>
 
-<div class="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
+<div class="h-[100dvh] w-full bg-background flex flex-col items-center justify-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] relative overflow-hidden">
 	<!-- Background pattern -->
 	<div class="absolute inset-0 pointer-events-none opacity-5">
 		<div
@@ -74,16 +74,16 @@
 	</div>
 
 	<!-- Main content -->
-	<div class="w-full max-w-md z-10">
+	<div class="w-full max-w-md z-10 flex flex-col h-full">
 		<!-- Header -->
-		<div class="text-center mb-8">
+		<div class="text-center mb-6 md:mb-8 shrink-0">
 			<h1 class="text-3xl font-bold font-mono uppercase tracking-wider text-foreground">KOA</h1>
 			<p class="text-sm text-muted-foreground mt-2">Select Your Puzzle</p>
 		</div>
 
 		<!-- Puzzle List -->
 		<div
-			class="space-y-2 mb-6 max-h-[50vh] overflow-y-auto pr-1"
+			class="space-y-2 mb-6 overflow-y-auto pr-1 flex-1 min-h-0 scrollbar-hide"
 			data-tutorial-highlight={showTutorial ? 'true' : undefined}
 			class:tutorial-highlight={showTutorial}
 		>
@@ -108,29 +108,32 @@
 			{/if}
 		</div>
 
-		<!-- Mode Toggle -->
-		<div class="flex items-center justify-center gap-4 mb-6">
-			<span class="text-sm font-mono text-foreground/60">Mode:</span>
+		<!-- Bottom Actions Container -->
+		<div class="shrink-0 space-y-6">
+			<!-- Mode Toggle -->
+			<div class="flex items-center justify-center gap-4">
+				<span class="text-sm font-mono text-foreground/60">Mode:</span>
+				<button
+					class="px-5 py-3 border-2 rounded-[2px] font-mono text-sm uppercase transition-all min-h-[44px]
+						{$modeStore === 'mini' ? 'bg-primary text-white border-primary shadow-brutal' : 'bg-surface border-foreground/20'}"
+					onclick={toggleMode}
+				>
+					{$modeStore === 'mini' ? 'Mini' : 'Advanced'}
+				</button>
+			</div>
+
+			<!-- Start Button -->
 			<button
-				class="px-5 py-3 border-2 rounded-[2px] font-mono text-sm uppercase transition-all min-h-[44px]
-					{$modeStore === 'mini' ? 'bg-primary text-white border-primary shadow-brutal' : 'bg-surface border-foreground/20'}"
-				onclick={toggleMode}
+				class="w-full py-4 text-lg font-mono font-bold uppercase rounded-[2px] transition-all
+					{canStart
+					? 'bg-primary text-white border-2 border-primary shadow-brutal hover:-translate-y-0.5'
+					: 'bg-muted/50 text-muted-foreground border-2 border-muted cursor-not-allowed'}"
+				disabled={!canStart}
+				onclick={handleStartGame}
 			>
-				{$modeStore === 'mini' ? 'Mini' : 'Advanced'}
+				Start Game
 			</button>
 		</div>
-
-		<!-- Start Button -->
-		<button
-			class="w-full py-4 text-lg font-mono font-bold uppercase rounded-[2px] transition-all
-				{canStart
-				? 'bg-primary text-white border-2 border-primary shadow-brutal hover:-translate-y-0.5'
-				: 'bg-muted/50 text-muted-foreground border-2 border-muted cursor-not-allowed'}"
-			disabled={!canStart}
-			onclick={handleStartGame}
-		>
-			Start Game
-		</button>
 	</div>
 
 	<!-- Tutorial Overlay -->

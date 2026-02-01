@@ -35,9 +35,20 @@ body {
  * Brutalist Button Press
  * ============================================ */
 @keyframes click-press {
-	0% { transform: translate(0, 0); box-shadow: 3px 3px 0px 0px #2D3142; }
-	50% { transform: translate(3px, 3px); box-shadow: 0px 0px 0px 0px #2D3142; }
-	100% { transform: translate(0, 0); box-shadow: 3px 3px 0px 0px #2D3142; }
+	0% {
+		transform: translate(0, 0);
+		box-shadow: 3px 3px 0px 0px #2D3142;
+	}
+
+	50% {
+		transform: translate(3px, 3px);
+		box-shadow: 0px 0px 0px 0px #2D3142;
+	}
+
+	100% {
+		transform: translate(0, 0);
+		box-shadow: 3px 3px 0px 0px #2D3142;
+	}
 }
 
 .active-press:active {
@@ -51,9 +62,17 @@ body {
 
 /* Cursor blink for typewriter */
 @keyframes cursor-blink {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0; }
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0;
+	}
 }
+
 .animate-cursor {
 	animation: cursor-blink 0.8s step-end infinite;
 }
@@ -64,6 +83,7 @@ body {
 		transform: scale(0.95);
 		opacity: 0;
 	}
+
 	to {
 		transform: scale(1);
 		opacity: 1;
@@ -76,6 +96,7 @@ body {
 		transform: scale(0.9);
 		opacity: 0;
 	}
+
 	to {
 		transform: scale(1);
 		opacity: 1;
@@ -88,6 +109,7 @@ body {
 		opacity: 0;
 		transform: translateX(8px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
@@ -100,6 +122,7 @@ body {
 		opacity: 0;
 		transform: scale(0.95);
 	}
+
 	to {
 		opacity: 1;
 		transform: scale(1);
@@ -108,23 +131,51 @@ body {
 
 /* Glitch effect */
 @keyframes glitch {
-	0%, 100% { transform: translate(0); }
-	20% { transform: translate(-1px, 1px); }
-	40% { transform: translate(1px, -1px); }
-	60% { transform: translate(-1px, -1px); }
-	80% { transform: translate(1px, 1px); }
+
+	0%,
+	100% {
+		transform: translate(0);
+	}
+
+	20% {
+		transform: translate(-1px, 1px);
+	}
+
+	40% {
+		transform: translate(1px, -1px);
+	}
+
+	60% {
+		transform: translate(-1px, -1px);
+	}
+
+	80% {
+		transform: translate(1px, 1px);
+	}
 }
 
 /* Pulse border */
 @keyframes pulse-border {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.5; }
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.5;
+	}
 }
 
 /* Scanline movement */
 @keyframes scanlineMove {
-	0% { background-position: 0 0; }
-	100% { background-position: 0 100%; }
+	0% {
+		background-position: 0 0;
+	}
+
+	100% {
+		background-position: 0 100%;
+	}
 }
 
 /* Animation utility classes */
@@ -152,7 +203,7 @@ body {
 .bg-grid-technical {
 	background-size: 20px 20px;
 	background-image: linear-gradient(to right, rgba(45, 49, 66, 0.05) 1px, transparent 1px),
-	                  linear-gradient(to bottom, rgba(45, 49, 66, 0.05) 1px, transparent 1px);
+		linear-gradient(to bottom, rgba(45, 49, 66, 0.05) 1px, transparent 1px);
 }
 
 /* Dotted Pattern */
@@ -163,13 +214,11 @@ body {
 
 /* Scanlines Effect */
 .scanlines {
-	background: linear-gradient(
-		to bottom,
-		rgba(255,255,255,0),
-		rgba(255,255,255,0) 50%,
-		rgba(0,0,0,0.03) 50%,
-		rgba(0,0,0,0.03)
-	);
+	background: linear-gradient(to bottom,
+			rgba(255, 255, 255, 0),
+			rgba(255, 255, 255, 0) 50%,
+			rgba(0, 0, 0, 0.03) 50%,
+			rgba(0, 0, 0, 0.03));
 	background-size: 100% 4px;
 	animation: scanlineMove 60s linear infinite;
 	pointer-events: none;
@@ -177,13 +226,11 @@ body {
 
 /* Alternative scanlines (denser, for avatar) */
 .bg-scanlines {
-	background: repeating-linear-gradient(
-		0deg,
-		transparent,
-		transparent 2px,
-		rgba(0, 0, 0, 0.1) 2px,
-		rgba(0, 0, 0, 0.1) 4px
-	);
+	background: repeating-linear-gradient(0deg,
+			transparent,
+			transparent 2px,
+			rgba(0, 0, 0, 0.1) 2px,
+			rgba(0, 0, 0, 0.1) 4px);
 }
 
 /* ============================================
@@ -194,6 +241,7 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
 	display: none;
 }
+
 .scrollbar-hide {
 	-ms-overflow-style: none;
 	scrollbar-width: none;
@@ -207,10 +255,66 @@ body {
 	overflow: hidden;
 }
 
+/* ============================================
+ * Typography
+ * ============================================ */
+
+.type-heading-lg {
+	font-size: 1.5rem;
+	/* 24px */
+	line-height: 2rem;
+	/* 32px */
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.type-heading-md {
+	font-size: 1.125rem;
+	/* 18px */
+	line-height: 1.75rem;
+	/* 28px */
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.type-heading-sm {
+	font-size: 0.875rem;
+	/* 14px */
+	line-height: 1.25rem;
+	/* 20px */
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.type-body {
+	font-size: 1rem;
+	/* 16px */
+	line-height: 1.625;
+	font-family: 'Inter', sans-serif;
+}
+
+.type-body-sm {
+	font-size: 0.875rem;
+	/* 14px */
+	line-height: 1.375;
+	font-family: 'Inter', sans-serif;
+}
+
+.type-body-xs {
+	font-size: 0.75rem;
+	/* 12px */
+	line-height: 1.25;
+	font-family: 'Inter', sans-serif;
+}
+
 /* Tutorial highlight effect */
 .tutorial-highlight {
 	position: relative;
 }
+
 .tutorial-highlight::before {
 	content: '';
 	position: absolute;
@@ -219,4 +323,8 @@ body {
 	border-radius: 2px;
 	animation: pulse-border 1.5s infinite;
 	pointer-events: none;
+}
+
+.pb-safe-bottom {
+	padding-bottom: env(safe-area-inset-bottom, 20px);
 }
