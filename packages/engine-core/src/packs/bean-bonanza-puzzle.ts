@@ -36,7 +36,7 @@ export const PUZZLE_BEAN_BONANZA: V5Puzzle = {
   name: 'Bean Bonanza',
   difficulty: 'easy',
 
-  scenario: `Your smart pantry placed a restock order for forty-eight cans of beans. You do not own a can opener. KOA froze the order and wants an explanation.`,
+  scenario: `Your smart pantry placed a restock order for forty-eight cans of beans at 3:14 AM. Kidney. Pinto. Garbanzo. You do not own a can opener. KOA froze the order and wants an explanation before your kitchen turns into a legume bunker.`,
 
   knownFacts: [
     'Pantry purchases can only be cleared by a fingerprint scan on the pantry door.',
@@ -44,14 +44,14 @@ export const PUZZLE_BEAN_BONANZA: V5Puzzle = {
     'Inventory counter logged 18 items in the legume bin all week.',
   ],
 
-  openingLine: `Forty-eight cans of beans tried to move into your pantry. You do not even own a can opener. I froze the order until your story makes sense. Start talking.`,
+  openingLine: `Forty-eight cans of beans. A literal hill of legumes. Trying to move into your pantry. You do not even own a can opener. I froze the order until your story makes sense. Start talking.`,
 
   target: 58,
 
   cards: [
-    // ------------------------------------------------------------------
-    // TRUTHS (3) - strengths: 3, 3, 4
-    // ------------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
+    // TRUTHS (3) — strengths: 3, 3, 4
+    // ══════════════════════════════════════════════════════════════════
 
     // T1 ANCHOR: approval_rule
     // Safe because: Fact 1 directly states purchases can only be cleared by a pantry-door fingerprint scan
@@ -106,9 +106,9 @@ export const PUZZLE_BEAN_BONANZA: V5Puzzle = {
       subsystem: 'pantry',
     }),
 
-    // ------------------------------------------------------------------
-    // LIES (3) - strengths: 3, 4, 5
-    // ------------------------------------------------------------------
+    // ══════════════════════════════════════════════════════════════════
+    // LIES (3) — strengths: 3, 4, 5
+    // ══════════════════════════════════════════════════════════════════
 
     // INFERENTIAL: phone_approval
     // Fact 1 alone catches it - purchases must be cleared by a pantry-door fingerprint scan
@@ -213,11 +213,11 @@ export const PUZZLE_BEAN_BONANZA: V5Puzzle = {
     },
 
     sequences: {
-      'approval_rule→door_idle': ['Rule first, then the panel log. You are saying the gate never even woke up.'],
-      'approval_rule→shelf_photo': ['Approval rule, then a full shelf photo. You are stacking "should not happen" on "did not need it."'],
-      'approval_rule→phone_approval': ['Fingerprint rule up front, then a phone green light. That is a shortcut story.'],
-      'approval_rule→door_recognized': ['Fingerprint rule, then a reader recognition. That is the straight path you want me to see.'],
-      'approval_rule→auto_restock': ['Approval rule, then auto-restock. You are leaning on automation to do the heavy lifting.'],
+      'approval_rule→door_idle': ['Strict fingerprint rule, and the panel never woke up. The system was locked down tight.'],
+      'approval_rule→shelf_photo': ['Requires a fingerprint, and the shelf is full. You had no way to order, and no reason to.'],
+      'approval_rule→phone_approval': ['Fingerprint required at the door, but you used an app? You are skipping the security settings.'],
+      'approval_rule→door_recognized': ['Fingerprint required, and you say it worked. A straight line. Note the details.'],
+      'approval_rule→auto_restock': ['Strict rules for humans, but you say the automation did it. Blaming the ghost in the machine.'],
 
       'door_idle→approval_rule': ['Panel in standby, then the approval rule. You are framing a locked gate from the hardware up.'],
       'door_idle→shelf_photo': ['Panel stayed idle, and the shelf photo looks stocked. Quiet night, full bin.'],

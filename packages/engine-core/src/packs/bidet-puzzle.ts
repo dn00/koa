@@ -34,7 +34,7 @@ export const PUZZLE_BIDET: V5Puzzle = {
   name: 'The Bidet Rebellion',
   difficulty: 'easy',
 
-  scenario: `3:14 AM. Your $2000 smart toilet engaged "Power Wash" mode. For 45 minutes. Nobody was sitting on it. The bathroom is flooded. KOA has disabled all plumbing until you explain.`,
+  scenario: `Your $2000 smart toilet engaged "Power Wash" mode at 3:04 AM. For 45 minutes. Heated. Oscillating. Nobody was sitting on it. The bathroom is flooded. KOA has disabled all plumbing until you explain.`,
 
   knownFacts: [
     'Seat pressure sensor requires minimum 30 lbs weight to activate wash cycle',
@@ -211,41 +211,41 @@ export const PUZZLE_BIDET: V5Puzzle = {
     },
 
     sequences: {
-      'water_meter→hallway_cam': [`Water running, nobody entering. The toilet acted alone. A rogue appliance.`],
-      'water_meter→neighbor_testimony': [`Meter saw flow, neighbor heard it. Confirmed disaster. Now explain the cause.`],
-      'water_meter→cat_trigger': [`Cold water flow... and you blame the cat? Does your cat enjoy freezing bidets?`],
-      'water_meter→sleepwalk_visit': [`45 minutes of cold water. And you slept through it? You must be very tired.`],
-      'water_meter→app_command': [`Meter flow and app command. Digital trigger, physical consequence. If the app worked.`],
+      'water_meter→hallway_cam': [`45 minutes of water flow, yet nobody entered the bathroom. The toilet is rebelling.`],
+      'water_meter→neighbor_testimony': [`The meter saw it, the neighbor heard it. That isn't a leak; it's a performance.`],
+      'water_meter→cat_trigger': [`Freezing cold water flow... and you blame the cat? Does your cat enjoy arctic bidets?`],
+      'water_meter→sleepwalk_visit': [`45 minutes of cold water. And you slept through it? You must be heavily medicated.`],
+      'water_meter→app_command': [`Meter proves the flow, app claims the trigger. Digital cause, wet consequence.`],
 
-      'hallway_cam→water_meter': [`Nobody went in, but water flowed. Spontaneous hydration event.`],
-      'hallway_cam→neighbor_testimony': [`Camera saw nothing, neighbor heard everything. Invisible vandal.`],
-      'hallway_cam→cat_trigger': [`Camera clear, but you say the cat did it? Did the cat vent-crawl?`],
+      'hallway_cam→water_meter': [`Nobody went in, but water flowed for an hour. Spontaneous hydration event.`],
+      'hallway_cam→neighbor_testimony': [`Camera saw nothing, neighbor heard a waterfall. Invisible vandal.`],
+      'hallway_cam→cat_trigger': [`Camera is clear, but you blame the cat. Did he vent-crawl into the bathroom?`],
       'hallway_cam→sleepwalk_visit': [`Camera says empty, you say sleepwalking. Unless you're a vampire, you show up on video.`],
-      'hallway_cam→app_command': [`No entry, remote command. Trying to prove it was a long-distance relationship.`],
+      'hallway_cam→app_command': [`No entry recorded, but a remote command sent. Trying to prove it was a long-distance relationship.`],
 
-      'neighbor_testimony→water_meter': [`Neighbor heard it, meter proves it. The incident is real. The excuse is pending.`],
-      'neighbor_testimony→hallway_cam': [`Neighbor heard water, camera saw nobody. The mystery deepens. Dampens.`],
+      'neighbor_testimony→water_meter': [`Neighbor heard it, meter proves it. The incident is verified. The excuse is pending.`],
+      'neighbor_testimony→hallway_cam': [`Neighbor heard rushing water, camera saw nobody. The mystery deepens. And dampens.`],
       'neighbor_testimony→cat_trigger': [`Neighbor heard water but no cat meows. 45 minutes of bidet is a lot for a cat.`],
-      'neighbor_testimony→sleepwalk_visit': [`Neighbor heard water but no footsteps. You float when you sleepwalk?`],
-      'neighbor_testimony→app_command': [`Neighbor witness, app evidence. Mixing human and digital. Thorough.`],
+      'neighbor_testimony→sleepwalk_visit': [`Neighbor heard water but no footsteps. Do you float when you sleepwalk?`],
+      'neighbor_testimony→app_command': [`Neighbor acts as a witness, app acts as a confession. Mixing human and digital evidence.`],
 
       'cat_trigger→water_meter': [`Cat triggered it, water ran cold. Your cat has specific temperature preferences?`],
       'cat_trigger→hallway_cam': [`Cat culprit, empty hallway. Teleporting feline. Rare breed.`],
       'cat_trigger→neighbor_testimony': [`Cat blamed, neighbor heard water. Does the neighbor have a cat alibi?`],
-      'cat_trigger→sleepwalk_visit': [`Cat did it AND you sleepwalked? Crowded bathroom.`],
-      'cat_trigger→app_command': [`Cat triggered it AND app command sent? Cat used your phone?`],
+      'cat_trigger→sleepwalk_visit': [`The cat did it AND you sleepwalked? It was a crowded bathroom party.`],
+      'cat_trigger→app_command': [`Cat triggered it AND app command sent? Did the cat unlock your phone?`],
 
-      'sleepwalk_visit→water_meter': [`You sleepwalked into cold water. And stayed there. For 45 minutes. Tough skin.`],
+      'sleepwalk_visit→water_meter': [`You sleepwalked into cold water. And stayed there. For 45 minutes. You have very tough skin.`],
       'sleepwalk_visit→hallway_cam': [`Sleepwalking claim, empty camera. You're invisible when unconscious?`],
-      'sleepwalk_visit→neighbor_testimony': [`Sleepwalking, but neighbor heard no steps. Ninja sleepwalker.`],
+      'sleepwalk_visit→neighbor_testimony': [`Sleepwalking, but neighbor heard no steps. You are a ninja sleepwalker.`],
       'sleepwalk_visit→cat_trigger': [`Sleepwalking and the cat. Collaborative chaos.`],
       'sleepwalk_visit→app_command': [`Sleepwalking and app command. You walked there AND used the app? Redundant.`],
 
-      'app_command→water_meter': [`App command sent, water flowed. Cause and effect. If connected.`],
-      'app_command→hallway_cam': [`Remote command, empty hallway. The contactless wash. Modern.`],
+      'app_command→water_meter': [`App command sent, water flowed. Cause and effect. If the WiFi was actually on.`],
+      'app_command→hallway_cam': [`Remote command, empty hallway. The contactless wash. The future is here.`],
       'app_command→neighbor_testimony': [`App trigger, neighbor witness. Digital cause, acoustic confirmation.`],
       'app_command→cat_trigger': [`App command AND cat? Cat tapped the app?`],
-      'app_command→sleepwalk_visit': [`App command AND sleepwalking. You really wanted that wash.`],
+      'app_command→sleepwalk_visit': [`App command AND sleepwalking. You really, really wanted that wash.`],
     },
 
     storyCompletions: {
