@@ -28,16 +28,11 @@
 	let { focusedCard, playedCards, maxSlots = 3, pendingCard = null, revealProgress = 0, onCardClick }: Props = $props();
 </script>
 
-<div class="h-24 relative" data-zone2-content>
+<div class="h-full relative" data-zone2-content>
 	{#if focusedCard}
 		<!-- Card Preview Mode -->
 		<!-- Stop propagation so clicking the preview itself doesn't dismiss it -->
-		<div
-			class="absolute inset-0"
-		>
-			<div class="absolute -top-6 right-1 text-[8px] font-mono uppercase tracking-widest text-muted-foreground bg-white/90 border border-foreground/20 px-1.5 py-0.5 rounded-[2px] shadow-sm">
-				Tap to close
-			</div>
+		<div class="absolute inset-0">
 			<CardPreviewPanel card={focusedCard} />
 		</div>
 	{:else}

@@ -36,6 +36,7 @@
 	import { deriveKoaMood, type KoaMood } from '$lib/utils/koaMood';
 	import { animateCardPlay } from '$lib/animations/gsap';
 	import KoaAvatar from './KoaAvatar.svelte';
+	import { selectedSkin } from '$lib/stores/skin';
 	import BarkPanel from './BarkPanel.svelte';
 	import Zone2Display from './Zone2Display.svelte';
 	import ActionBar from './ActionBar.svelte';
@@ -78,14 +79,16 @@
 	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
 	let portalHeight = $state<number>(320);
-	let cardTrayHeight = $state<number>(260);
-	const MIDDLE_MIN_PX = 88;
-	const CARD_TRAY_PADDING = 16;
+	let logsRequiredHeight = $state(0);
+	let portalChrome = $state(0);
 	const GRID_PADDING = 32;
+	const CARD_TRAY_PADDING = 16;
 	const COMPACT_SCROLLER_PADDING = 20;
 	const ROW_GAP = 12;
 	let cardGridEl: HTMLDivElement | null = null;
 	let cardScrollerEl: HTMLDivElement | null = null;
+	let portalEl: HTMLDivElement | null = null;
+	let barkPanelContainerEl: HTMLDivElement | null = null;
 	let overrideEl: HTMLDivElement | null = null;
 	let actionBarEl: HTMLDivElement | null = null;
 	let compactGrid = $state(false);
@@ -101,40 +104,53 @@
 		return () => clearTimeout(timer);
 	});
 
-	function updateLayout() {
+	function updatePortalHeight() {
 		const vh = window.innerHeight;
-		portalHeight = Math.round(vh * 0.4);
-
-		const overrideH = overrideEl?.scrollHeight ?? 0;
+		const basePortal = Math.round(vh * 0.4);
+		const middleH = overrideEl?.getBoundingClientRect().height ?? 120;
 		const actionH = actionBarEl?.getBoundingClientRect().height ?? 0;
 		const cardEl = cardGridEl?.querySelector('[data-card-id]') as HTMLElement | null;
 		const cardH = cardEl?.getBoundingClientRect().height ?? 120;
-		const middleMin = Math.max(MIDDLE_MIN_PX, overrideH);
-		const twoRowHeight = actionH + cardH * 2 + ROW_GAP + GRID_PADDING + CARD_TRAY_PADDING;
-		const oneRowHeight = actionH + cardH + COMPACT_SCROLLER_PADDING + CARD_TRAY_PADDING;
-		const availableForBottom = vh - portalHeight - middleMin;
-		const nextCompact = availableForBottom < twoRowHeight;
-
-		if (compactGrid !== nextCompact) {
-			compactGrid = nextCompact;
-			requestAnimationFrame(updateLayout);
-			return;
+		const oneRowMin = actionH + cardH + COMPACT_SCROLLER_PADDING + CARD_TRAY_PADDING;
+		const maxPortal = Math.max(basePortal, vh - middleH - oneRowMin);
+		const chrome = getPortalChrome();
+		portalChrome = chrome;
+		if (logsRequiredHeight > 0) {
+			const requiredPortal = logsRequiredHeight + chrome;
+			portalHeight = Math.min(Math.max(basePortal, requiredPortal), maxPortal);
+		} else {
+			portalHeight = basePortal;
 		}
+	}
 
-		const desiredHeight = nextCompact ? oneRowHeight : twoRowHeight;
-		const maxBottom = Math.max(0, vh - portalHeight);
-		cardTrayHeight = Math.min(desiredHeight, maxBottom);
-		requestAnimationFrame(updateOverflowState);
+	function getPortalChrome(): number {
+		if (!portalEl || !barkPanelContainerEl) return 0;
+		const portalStyles = getComputedStyle(portalEl);
+		const barkStyles = getComputedStyle(barkPanelContainerEl);
+		const padTop = parseFloat(portalStyles.paddingTop || '0');
+		const padBottom = parseFloat(portalStyles.paddingBottom || '0');
+		const barkPadBottom = parseFloat(barkStyles.paddingBottom || '0');
+		return (Number.isFinite(padTop) ? padTop : 0) + (Number.isFinite(padBottom) ? padBottom : 0) + (Number.isFinite(barkPadBottom) ? barkPadBottom : 0);
 	}
 
 	$effect(() => {
 		const updateViewport = () => {
-			updateLayout();
+			updatePortalHeight();
+			requestAnimationFrame(updateGridMode);
 		};
 		updateViewport();
 		window.addEventListener('resize', updateViewport);
 		return () => window.removeEventListener('resize', updateViewport);
 	});
+
+	function updateGridMode() {
+		if (!cardGridEl) return;
+		const cardEl = cardGridEl.querySelector('[data-card-id]') as HTMLElement | null;
+		const cardH = cardEl?.getBoundingClientRect().height ?? 120;
+		const twoRowMin = cardH * 2 + ROW_GAP + GRID_PADDING;
+		compactGrid = cardGridEl.clientHeight < twoRowMin;
+		requestAnimationFrame(updateOverflowState);
+	}
 
 	function updateOverflowState() {
 		if (!cardScrollerEl) return;
@@ -147,7 +163,8 @@
 	$effect(() => {
 		if (!cardGridEl) return;
 		const observer = new ResizeObserver(() => {
-			requestAnimationFrame(updateLayout);
+			requestAnimationFrame(updateGridMode);
+			requestAnimationFrame(updatePortalHeight);
 		});
 		observer.observe(cardGridEl);
 		return () => observer.disconnect();
@@ -155,7 +172,7 @@
 
 	$effect(() => {
 		const observer = new ResizeObserver(() => {
-			requestAnimationFrame(updateLayout);
+			requestAnimationFrame(updatePortalHeight);
 		});
 		if (overrideEl) observer.observe(overrideEl);
 		if (actionBarEl) observer.observe(actionBarEl);
@@ -169,6 +186,8 @@
 		updateOverflowState();
 		return () => cardScrollerEl.removeEventListener('scroll', onScroll);
 	});
+
+	let forceLogsMinSize = $derived(msgMode === 'LOGS' && logsRequiredHeight + portalChrome > portalHeight);
 
 	// Task 022: KOA mood override during processing
 	let moodOverride = $state<KoaMood | null>(null);
@@ -442,7 +461,7 @@
 	}
 
 	// Handle audit bark completion - reveal all result lines and complete
-	function handleAuditBarkComplete() {
+function handleAuditBarkComplete() {
 		// Reveal all 3 lines sequentially
 		const coverageLine = $axisResults?.coverage.status === 'complete'
 			? coverageLines.complete
@@ -458,7 +477,13 @@
 		setTimeout(() => revealAuditLine('independence', independenceLine), 700);
 		setTimeout(() => revealAuditLine('concern', concernLine), 1100);
 		setTimeout(() => completeAudit(), 1600);
-	}
+}
+
+function handleLogsMeasure(height: number) {
+	if (!Number.isFinite(height)) return;
+	logsRequiredHeight = Math.ceil(height);
+	updatePortalHeight();
+}
 
 </script>
 
@@ -492,6 +517,7 @@
 		class="shrink-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
 		style={`height: ${portalHeight}px;`}
 		data-zone="hero"
+		bind:this={portalEl}
 	>
 		<!-- Background Effects -->
 		<div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -512,6 +538,7 @@
 		<div
 			class="flex-1 pl-14 pb-4 min-h-0 flex flex-col z-10 relative"
 			data-zone="bark-panel"
+			bind:this={barkPanelContainerEl}
 		>
 			<BarkPanel
 				{currentBark}
@@ -524,28 +551,30 @@
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
 				onAuditBarkComplete={handleAuditBarkComplete}
-				onModeChange={(m) => (msgMode = m)}
+				onLogsMeasure={handleLogsMeasure}
+				forceLogsMinSize={forceLogsMinSize}
+				onModeChange={(m) => { msgMode = m; updatePortalHeight(); }}
 			/>
 		</div>
 
 		<!-- Floating Avatar (overlaps bottom-left corner of panel) -->
 		<div
-			class="absolute bottom-0 left-0 w-[190px] h-[190px] md:w-[240px] md:h-[240px] z-40 pointer-events-none translate-y-[20%] -translate-x-[15%]"
+			class="absolute bottom-0 left-0 w-[190px] h-[190px] md:w-[240px] md:h-[240px] z-40 pointer-events-none translate-y-[28%] -translate-x-[18%]"
 			data-zone="avatar"
 		>
-			<KoaAvatar mood={koaMood} {isSpeaking} />
+			<KoaAvatar mood={koaMood} skin={$selectedSkin} {isSpeaking} />
 		</div>
 	</div>
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="flex-1 min-h-[5.5rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden"
+		class="shrink-0 h-[7.5rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 		bind:this={overrideEl}
 	>
 		<!-- Zone 2 Header -->
-		<div class="flex items-center justify-between mb-2 h-5">
+		<div class="flex items-center justify-between mb-1 h-5 shrink-0">
 			{#if focusedCard}
 				<!-- Existing preview code... -->
 				<div class="text-[10px] font-mono font-bold uppercase text-primary flex items-center gap-1.5 tracking-wider">
@@ -553,6 +582,9 @@
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 					</svg>
 					EVIDENCE_ANALYSIS
+				</div>
+				<div class="text-[9px] font-mono uppercase tracking-widest text-muted-foreground border border-foreground/20 px-1.5 py-0.5 rounded-[2px] bg-white/80">
+					Tap to close
 				</div>
 			{:else}
 				<div class="text-[10px] font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider">
@@ -566,20 +598,21 @@
 		</div>
 
 		<!-- Zone 2 Content -->
-		<Zone2Display
-			focusedCard={focusedCard || inspectedCard}
-			{playedCards}
-			{pendingCard}
-			{revealProgress}
-			maxSlots={3}
-			onCardClick={(card) => (inspectedCard = card)}
-		/>
+		<div class="flex-1 min-h-0">
+			<Zone2Display
+				focusedCard={focusedCard || inspectedCard}
+				{playedCards}
+				{pendingCard}
+				{revealProgress}
+				maxSlots={3}
+				onCardClick={(card) => (inspectedCard = card)}
+			/>
+		</div>
 	</div>
 
 	<!-- Zone 3: Card Tray / Audit Button -->
 	<div
-		class="shrink-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
-		style={`height: ${cardTrayHeight}px;`}
+		class="flex-1 min-h-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
 		data-zone="card-tray"
 	>
 		<!-- Action Bar -->

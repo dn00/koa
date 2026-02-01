@@ -15,6 +15,7 @@
 	import { animateVerdictReveal } from '$lib/animations/gsap';
 	import KoaAvatar from './KoaAvatar.svelte';
 	import type { KoaMood } from './KoaAvatar.svelte';
+	import { selectedSkin } from '$lib/stores/skin';
 
 	interface Props {
 		verdict: VerdictData;
@@ -171,7 +172,7 @@
 			<!-- Floating Avatar (Top Left - Left of Badge) -->
 			<!-- User requested location left of the badge and "make it larger" -->
 			<div class="absolute top-12 left-[-20px] w-[150px] h-[150px] z-30 pointer-events-none transform -rotate-6">
-				<KoaAvatar mood={koaMood} width="100%" height="100%" />
+				<KoaAvatar mood={koaMood} skin={$selectedSkin} width="100%" height="100%" />
 			</div>
 		</div>
 	</div>

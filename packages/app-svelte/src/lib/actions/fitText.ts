@@ -4,9 +4,9 @@
  */
 export function fitText(
     node: HTMLElement,
-    options: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean; refitToken?: number }
+    options: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean; refitToken?: number; onFit?: (fontSize: number) => void }
 ) {
-    let { minSize = 12, maxSize = 18, multiLine = true, refitToken = 0 } = options;
+    let { minSize = 12, maxSize = 18, multiLine = true, refitToken = 0, onFit } = options;
 
     function fit() {
         // Reset to max size first
@@ -43,6 +43,7 @@ export function fitText(
 
         // Use the largest size that fits
         node.style.fontSize = `${lo}px`;
+        onFit?.(lo);
     }
 
     // Observe size changes
@@ -55,11 +56,12 @@ export function fitText(
     requestAnimationFrame(fit);
 
     return {
-        update(newOptions: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean; refitToken?: number }) {
+        update(newOptions: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean; refitToken?: number; onFit?: (fontSize: number) => void }) {
             if (newOptions.minSize !== undefined) minSize = newOptions.minSize;
             if (newOptions.maxSize !== undefined) maxSize = newOptions.maxSize;
             if (newOptions.multiLine !== undefined) multiLine = newOptions.multiLine;
             if (newOptions.refitToken !== undefined) refitToken = newOptions.refitToken;
+            if (newOptions.onFit !== undefined) onFit = newOptions.onFit;
             requestAnimationFrame(fit);
         },
         destroy() {

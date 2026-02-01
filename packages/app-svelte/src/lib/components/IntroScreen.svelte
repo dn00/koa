@@ -13,6 +13,7 @@
 
 	import type { V5Puzzle } from '@hsh/engine-core';
 	import KoaAvatar from './KoaAvatar.svelte';
+	import { selectedSkin } from '$lib/stores/skin';
 
 	interface Props {
 		/** The puzzle being played */
@@ -67,7 +68,7 @@
 			<!-- KOA Avatar Section -->
 			<div class="flex items-center justify-center py-2 md:py-4 shrink-0">
 				<div class="w-32 h-16 md:w-48 md:h-24">
-					<KoaAvatar mood="NEUTRAL" isSpeaking={false} />
+					<KoaAvatar mood="NEUTRAL" skin={$selectedSkin} isSpeaking={false} />
 				</div>
 			</div>
 

@@ -10,6 +10,7 @@
 	import { base } from '$app/paths';
 	import type { V5Puzzle } from '@hsh/engine-core';
 	import { startGame } from '$lib/stores/game';
+	import SkinGallery from './SkinGallery.svelte';
 
 	interface Props {
 		/** Available puzzles to select from */
@@ -22,6 +23,7 @@
 	let selectedPuzzleSlug = $state<string | null>(null);
 	let showTutorial = $state(false);
 	let showHowToPlay = $state(false);
+	let showSkinGallery = $state(false);
 
 	// Check for first-time user on mount
 	$effect(() => {
@@ -143,13 +145,21 @@
 				</span>
 			</button>
 
-			<!-- How to Play Button -->
-			<button
-				class="w-full py-2.5 text-xs font-mono font-bold uppercase rounded-[2px] transition-all border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-				onclick={() => showHowToPlay = true}
-			>
-				How to Play
-			</button>
+			<!-- Secondary Buttons Row -->
+			<div class="flex gap-2">
+				<button
+					class="flex-1 py-2.5 text-xs font-mono font-bold uppercase rounded-[2px] transition-all border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+					onclick={() => showHowToPlay = true}
+				>
+					How to Play
+				</button>
+				<button
+					class="flex-1 py-2.5 text-xs font-mono font-bold uppercase rounded-[2px] transition-all border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+					onclick={() => showSkinGallery = true}
+				>
+					KOA Skins
+				</button>
+			</div>
 		</div>
 	</div>
 
@@ -220,5 +230,10 @@
 				</button>
 			</div>
 		</div>
+	{/if}
+
+	<!-- Skin Gallery Modal -->
+	{#if showSkinGallery}
+		<SkinGallery onClose={() => showSkinGallery = false} />
 	{/if}
 </div>

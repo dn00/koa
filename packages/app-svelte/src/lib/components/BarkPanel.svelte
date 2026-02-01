@@ -49,6 +49,10 @@
 		onSpeechComplete?: () => void;
 		/** Called when audit bark completes (to advance phase) */
 		onAuditBarkComplete?: () => void;
+		/** Called with LOGS min-height (at min font size) */
+		onLogsMeasure?: (height: number) => void;
+		/** Force LOGS to use min font size */
+		forceLogsMinSize?: boolean;
 		/** Called when mode changes */
 		onModeChange: (mode: 'BARK' | 'LOGS') => void;
 	}
@@ -64,12 +68,22 @@
 		onSpeechStart,
 		onSpeechComplete,
 		onAuditBarkComplete,
+		onLogsMeasure,
+		forceLogsMinSize = false,
 		onModeChange
 	}: Props = $props();
 
 	// Task 701: Track suspicion animation state
 	let suspicionLineVisible = $state(false);
 	let fitToken = $state(0);
+	let logsScrollEl: HTMLDivElement | null = null;
+	let logsMeasureEl: HTMLDivElement | null = null;
+	let headerEl: HTMLDivElement | null = null;
+	let logsScrollable = $state(false);
+	let logsAtTop = $state(true);
+	let logsAtBottom = $state(false);
+	let logsForceMin = $state(false);
+	let lastMeasuredHeight = $state<number | null>(null);
 
 	// Track previous bark to detect changes
 	let previousBark = $state<string | undefined>(undefined);
@@ -110,6 +124,76 @@
 		}
 	}
 
+	function updateLogsScrollState() {
+		if (!logsScrollEl) return;
+		const { scrollTop, scrollHeight, clientHeight } = logsScrollEl;
+		logsScrollable = scrollHeight > clientHeight + 1;
+		logsAtTop = scrollTop <= 1;
+		logsAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+	}
+
+	$effect(() => {
+		if (!logsScrollEl) return;
+		const onScroll = () => requestAnimationFrame(updateLogsScrollState);
+		logsScrollEl.addEventListener('scroll', onScroll, { passive: true });
+		updateLogsScrollState();
+		return () => logsScrollEl.removeEventListener('scroll', onScroll);
+	});
+
+	$effect(() => {
+		if (!logsScrollEl) return;
+		const observer = new ResizeObserver(() => {
+			requestAnimationFrame(updateLogsScrollState);
+		});
+		observer.observe(logsScrollEl);
+		return () => observer.disconnect();
+	});
+
+	$effect(() => {
+		if (msgMode !== 'LOGS') {
+			lastMeasuredHeight = null;
+		}
+	});
+
+	$effect(() => {
+		if (msgMode === 'LOGS') {
+			requestAnimationFrame(updateLogsScrollState);
+		}
+	});
+
+	$effect(() => {
+		if (forceLogsMinSize) {
+			logsForceMin = true;
+		} else {
+			logsForceMin = false;
+		}
+	});
+
+	function measureLogsMinHeight() {
+		if (!logsMeasureEl) return;
+		const headerHeight = headerEl?.getBoundingClientRect().height ?? 0;
+		const bodyHeight = logsMeasureEl.getBoundingClientRect().height;
+		const total = Math.ceil(headerHeight + bodyHeight);
+		if (lastMeasuredHeight !== total) {
+			lastMeasuredHeight = total;
+			onLogsMeasure?.(total);
+		}
+	}
+
+	$effect(() => {
+		measureLogsMinHeight();
+	});
+
+	$effect(() => {
+		if (!logsMeasureEl) return;
+		const observer = new ResizeObserver(() => {
+			requestAnimationFrame(measureLogsMinHeight);
+		});
+		observer.observe(logsMeasureEl);
+		if (headerEl) observer.observe(headerEl);
+		return () => observer.disconnect();
+	});
+
 	function setMode(mode: 'BARK' | 'LOGS') {
 		onModeChange(mode);
 	}
@@ -138,7 +222,7 @@
 	></div>
 
 	<!-- Header: Tabs -->
-	<div class="shrink-0 px-1 py-0 border-b bg-muted/5 border-foreground/20 flex items-stretch h-7">
+	<div class="shrink-0 px-1 py-0 border-b bg-muted/5 border-foreground/20 flex items-stretch h-7" bind:this={headerEl}>
 		<button
 			onclick={() => setMode('BARK')}
 			class="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider transition-colors rounded-tl-[2px]
@@ -261,14 +345,17 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="flex-1 min-h-0 overflow-hidden">
+			<div class="flex-1 min-h-0 relative">
 				<div
-					class="h-full flex flex-col overflow-hidden"
+					class="h-full overflow-y-auto pr-1 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
+					style="-webkit-overflow-scrolling: touch;"
+					bind:this={logsScrollEl}
 					use:fitText={{
 						text: [scenario.header, ...scenario.facts],
-						minSize: 9,
-						maxSize: 13,
-						multiLine: true
+						minSize: 9.5,
+						maxSize: logsForceMin ? 9.5 : 13,
+						multiLine: true,
+						onFit: () => requestAnimationFrame(updateLogsScrollState)
 					}}
 				>
 					<!-- Scenario Header -->
@@ -312,8 +399,66 @@
 						{/each}
 					</ul>
 				</div>
+
+				{#if logsScrollable && !logsAtTop}
+					<div class="pointer-events-none absolute top-0 left-0 right-0 h-5 bg-gradient-to-b from-background/90 to-transparent">
+						<div class="absolute top-0.5 left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+							▲
+						</div>
+					</div>
+				{/if}
+
+				{#if logsScrollable && !logsAtBottom}
+					<div class="pointer-events-none absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-t from-background/90 to-transparent">
+						<div class="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+							▼
+						</div>
+					</div>
+				{/if}
 			</div>
 		{/if}
+	</div>
+
+	<!-- Hidden LOGS measure (min font size, full content) -->
+	<div class="absolute inset-0 pointer-events-none opacity-0 -z-10" aria-hidden="true">
+		<div
+			class="pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground"
+			bind:this={logsMeasureEl}
+			style="font-size: 9.5px; line-height: 1.4;"
+		>
+			<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
+				<svg
+					width="12"
+					height="12"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					class="shrink-0"
+				>
+					<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+					<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+				</svg>
+				<span class="font-bold font-mono uppercase leading-tight">
+					{scenario.header}
+				</span>
+			</div>
+			<div class="mb-2">
+				<div class="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+					Known Facts
+				</div>
+			</div>
+			<ul class="flex flex-col gap-1.5">
+				{#each scenario.facts as fact, i}
+					<li class="flex gap-2 text-foreground/90 leading-snug items-start font-sans bg-slate-50/50 p-1.5 rounded-[2px] border-l-2 border-slate-200">
+						<span class="font-mono font-bold text-primary/70 shrink-0 text-[10px]">
+							{formatFactNumber(i)}
+						</span>
+						<span>{fact}</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
 	</div>
 
 </div>

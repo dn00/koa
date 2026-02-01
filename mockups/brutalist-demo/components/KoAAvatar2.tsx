@@ -28,7 +28,7 @@ export interface KoaSkin {
     bodyStroke: string;
     faceplateFill: string;
     faceplateStroke: string;
-    texture?: 'none' | 'grid' | 'lines' | 'dots' | 'carbon' | 'spikes' | 'technical';
+    texture?: 'none' | 'grid' | 'lines' | 'dots' | 'carbon' | 'spikes';
     borderStyle?: 'simple' | 'thick' | 'double' | 'dashed' | 'offset' | 'tech' | 'glow' | 'serrated';
 }
 
@@ -64,7 +64,7 @@ export const PRIME_SKIN: KoaSkin = {
     borderStyle: 'tech'
 };
 
-export const MOOD_EXPRESSIONS: Record<string, AvatarExpression> = {
+const MOOD_EXPRESSIONS: Record<string, AvatarExpression> = {
     [KoaMood.NEUTRAL]: { lidTop: -2, lidBottom: -2, lidAngle: 0, pupilScale: 1.0, lidCurveTop: 12, lidCurveBottom: 12 },
     [KoaMood.WATCHING]: { lidTop: -5, lidBottom: -5, lidAngle: 0, pupilScale: 1.3, lidCurveTop: 14, lidCurveBottom: 14 },
     [KoaMood.SUSPICIOUS]: { lidTop: 40, lidBottom: 35, lidAngle: 0, pupilScale: 0.6, lidCurveTop: 2, lidCurveBottom: 2 },
@@ -238,7 +238,7 @@ export const KoAAvatar: React.FC<KoAAvatarProps> = ({
     const screenPath = `M 100 15 C 127 15 135 23 135 50 C 135 77 127 85 100 85 C 73 85 65 77 65 50 C 65 23 73 15 100 15 Z`;
     const techPath = `M 70 4 L 54 4 L 54 24 M 130 4 L 146 4 L 146 24 M 146 76 L 146 96 L 130 96 M 70 96 L 54 96 L 54 76`;
 
-    const textureOpacity = skin.id === 'melon' ? 0.5 : (skin.texture === 'grid' || skin.texture === 'spikes' || skin.texture === 'technical' ? 0.3 : 0.15);
+    const textureOpacity = skin.id === 'melon' ? 0.5 : (skin.texture === 'grid' || skin.texture === 'spikes' ? 0.3 : 0.15);
     const textureFill = skin.id === 'blueprint' || skin.id === 'neon' ? '#ffffff' : '#000000';
     const hasTexture = skin.texture && skin.texture !== 'none';
 
@@ -264,13 +264,13 @@ export const KoAAvatar: React.FC<KoAAvatarProps> = ({
         @keyframes koa-pulse-talk { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         @keyframes koa-scan { 0% { opacity: 0; transform: translateY(-10px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translateY(10px); } }
         /* Removed drift, now static */
-        @keyframes koa-autofocus {
-            0% { transform: scale(1); opacity: 0.8; }
-            1% { transform: scale(0.85); opacity: 1; }
-            2% { transform: scale(1.08); opacity: 0.8; }
-            3% { transform: scale(0.96); opacity: 1; }
-            4% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 0.8; }
+        @keyframes koa-autofocus { 
+            0% { transform: scale(1); opacity: 0.8; } 
+            1% { transform: scale(0.85); opacity: 1; } 
+            2% { transform: scale(1.08); opacity: 0.8; } 
+            3% { transform: scale(0.96); opacity: 1; } 
+            4% { transform: scale(1); opacity: 0.8; } 
+            100% { transform: scale(1); opacity: 0.8; } 
         }
       `}</style>
 
@@ -316,10 +316,6 @@ export const KoAAvatar: React.FC<KoAAvatarProps> = ({
                     </pattern>
                     <pattern id={`koa-pattern-spikes-${uid}`} x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
                         <path d="M 4 0.5 L 7.5 7.5 L 0.5 7.5 Z" fill="currentColor" />
-                    </pattern>
-                    <pattern id={`koa-pattern-technical-${uid}`} x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
-                        <path d="M 0 6 L 12 6 M 6 0 L 6 12" fill="none" stroke="currentColor" strokeWidth="0.3" />
-                        <circle cx="6" cy="6" r="1" fill="currentColor" />
                     </pattern>
                 </defs>
 
