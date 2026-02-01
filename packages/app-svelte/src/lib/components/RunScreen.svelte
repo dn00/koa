@@ -503,7 +503,7 @@
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 py-3 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all min-h-[7rem]"
+		class="shrink-0 py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all min-h-[5.5rem]"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 	>
