@@ -192,14 +192,15 @@
 	}
 
 	// Handle card blur
-	function handleCardBlur() {
+	function handleCardBlur(opts?: { delayMs?: number }) {
 		if (focusTimeoutId) {
 			clearTimeout(focusTimeoutId);
 		}
+		const delayMs = opts?.delayMs ?? 100;
 		focusTimeoutId = setTimeout(() => {
 			focusedCard = null;
 			focusTimeoutId = null;
-		}, 100);
+		}, delayMs);
 	}
 
 	// Handle TRANSMIT button click (Task 022: Card Play Juice)
@@ -520,7 +521,7 @@
 
 		<!-- Card Grid or Audit Button -->
 		<div class="p-4 bg-surface/50 relative min-h-60" data-zone="card-grid">
-			<div class="grid grid-cols-3 md:grid-cols-6 gap-3">
+			<div class="grid grid-cols-3 grid-rows-2 gap-3">
 				{#each allCards as card (card.id)}
 					{@const isPlayed = isCardPlayed(card.id)}
 					<div

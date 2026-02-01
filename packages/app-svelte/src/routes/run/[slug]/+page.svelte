@@ -55,11 +55,11 @@
 {#if $currentPuzzle}
 	{#key $currentPuzzle.slug}
 		{#if showIntro}
-			<div class="h-full w-full transition-all duration-400 {isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}">
+			<div class="h-[100dvh] w-full transition-all duration-400 {isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}">
 				<IntroScreen puzzle={$currentPuzzle} dayNumber={1} onStart={handleStart} onBack={handleBack} />
 			</div>
 		{:else}
-			<div class="h-full w-full animate-in fade-in zoom-in-95 duration-500">
+			<div class="h-[100dvh] w-full animate-in fade-in zoom-in-95 duration-500">
 				<RunScreen puzzle={$currentPuzzle} onBack={handleBack} />
 			</div>
 		{/if}

@@ -259,52 +259,58 @@
 				{/if}
 			</div>
 		{:else}
-			<div
-				class="flex-1 min-h-0 flex flex-col overflow-hidden"
-				style="font-size: clamp(11px, 2.5vw, 16px);"
-			>
-				<!-- Scenario Header -->
-				<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
-					<svg
-						width="12"
-						height="12"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						class="shrink-0"
-					>
-						<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-						<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-					</svg>
-					<span class="font-bold font-mono uppercase leading-tight">
-						{scenario.header}
-					</span>
-				</div>
-
-				<!-- Known Facts Section -->
-				<div class="mb-2">
-					<div class="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
-						Known Facts
-					</div>
-				</div>
-
-				<!-- Facts List -->
-				<ul class="flex flex-col gap-1.5">
-					{#each scenario.facts as fact, i}
-						<li
-							class="flex gap-2 text-foreground/90 leading-snug items-start font-sans bg-slate-50/50 p-1.5 rounded-[2px] border-l-2 border-slate-200"
-							in:fly={{ y: 5, duration: 150, delay: i * 50 }}
+			<div class="flex-1 min-h-0 overflow-hidden">
+				<div
+					class="h-full flex flex-col overflow-hidden"
+					use:fitText={{
+						text: [scenario.header, ...scenario.facts],
+						minSize: 9,
+						maxSize: 15,
+						multiLine: true
+					}}
+				>
+					<!-- Scenario Header -->
+					<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
+						<svg
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="shrink-0"
 						>
-							<span class="font-mono font-bold text-primary/70 shrink-0 text-[10px]">
-								{formatFactNumber(i)}
-							</span>
-							<span>{fact}</span>
-						</li>
-					{/each}
-				</ul>
+							<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+							<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+						</svg>
+						<span class="font-bold font-mono uppercase leading-tight">
+							{scenario.header}
+						</span>
+					</div>
+
+					<!-- Known Facts Section -->
+					<div class="mb-2">
+						<div class="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+							Known Facts
+						</div>
+					</div>
+
+					<!-- Facts List -->
+					<ul class="flex flex-col gap-1.5">
+						{#each scenario.facts as fact, i}
+							<li
+								class="flex gap-2 text-foreground/90 leading-snug items-start font-sans bg-slate-50/50 p-1.5 rounded-[2px] border-l-2 border-slate-200"
+								in:fly={{ y: 5, duration: 150, delay: i * 50 }}
+							>
+								<span class="font-mono font-bold text-primary/70 shrink-0 text-[10px]">
+									{formatFactNumber(i)}
+								</span>
+								<span>{fact}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			</div>
 		{/if}
 	</div>
 </div>
-

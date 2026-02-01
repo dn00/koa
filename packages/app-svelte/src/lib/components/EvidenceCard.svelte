@@ -26,7 +26,7 @@
 		/** Focus handler for preview swap */
 		onFocus?: (card: UICard) => void;
 		/** Blur handler for preview swap */
-		onBlur?: () => void;
+		onBlur?: (opts?: { delayMs?: number }) => void;
 	}
 
 	let {
@@ -46,8 +46,16 @@
 	let displayTime = $derived(card.time || '--:--');
 	let displayLocation = $derived(card.location || 'Unknown');
 
+	let holdTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	let touchPreviewActive = false;
+	let suppressNextClick = false;
+
 	function handleClick() {
 		if (!disabled && onClick) {
+			if (suppressNextClick) {
+				suppressNextClick = false;
+				return;
+			}
 			onClick();
 		}
 	}
@@ -63,13 +71,48 @@
 			onBlur();
 		}
 	}
+
+	function handlePointerDown(e: PointerEvent) {
+		if (disabled || e.pointerType !== 'touch') return;
+		// Long-press to preview on touch
+		if (holdTimeoutId) clearTimeout(holdTimeoutId);
+		holdTimeoutId = setTimeout(() => {
+			touchPreviewActive = true;
+			suppressNextClick = true;
+			onFocus?.(card);
+		}, 250);
+	}
+
+	function handlePointerUp(e: PointerEvent) {
+		if (e.pointerType !== 'touch') return;
+		if (holdTimeoutId) {
+			clearTimeout(holdTimeoutId);
+			holdTimeoutId = null;
+		}
+		if (touchPreviewActive) {
+			touchPreviewActive = false;
+			onBlur?.({ delayMs: 350 });
+		}
+	}
+
+	function handlePointerCancel(e: PointerEvent) {
+		if (e.pointerType !== 'touch') return;
+		if (holdTimeoutId) {
+			clearTimeout(holdTimeoutId);
+			holdTimeoutId = null;
+		}
+		if (touchPreviewActive) {
+			touchPreviewActive = false;
+			onBlur?.({ delayMs: 0 });
+		}
+	}
 </script>
 
 {#if variant === 'icon'}
 	<!-- Compact icon variant -->
 	<div
 		class="relative w-full flex flex-col p-2 min-h-[100px] items-center justify-between
-			border-2 rounded-[2px] transition-all select-none
+			border-2 rounded-[2px] transition-all select-none touch-manipulation
 			{isSelected
 			? 'bg-white border-primary shadow-brutal translate-y-[-2px]'
 			: 'bg-surface border-foreground hover:bg-white hover:-translate-y-1'}
@@ -79,8 +122,11 @@
 		onclick={handleClick}
 		onmouseenter={handleFocus}
 		onmouseleave={handleBlur}
-		onfocus={handleFocus}
-		onblur={handleBlur}
+		onpointerdown={handlePointerDown}
+		onpointerup={handlePointerUp}
+		onpointercancel={handlePointerCancel}
+		oncontextmenu|preventDefault
+		ondragstart|preventDefault
 		onkeydown={(e) => e.key === 'Enter' && handleClick()}
 	>
 		{#if isSelected}
@@ -179,4 +225,3 @@
 		{/if}
 	</div>
 {/if}
-
