@@ -35,7 +35,7 @@ export type { TurnResult, ObjectionState, GameState } from './state.js';
 // Puzzle Types
 // ============================================================================
 
-export type { LieInfo, V5Puzzle } from './puzzle.js';
+export type { LieInfo, V5Puzzle, PuzzleDifficulty } from './puzzle.js';
 
 // ============================================================================
 // Config Types

@@ -221,6 +221,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 export const PUZZLE_SPRINKLER: V5Puzzle = {
   slug: 'sprinkler-ice',
   name: 'The 3 AM Sprinkler',
+  difficulty: 'medium',
 
   scenario: `3:12 AM. January. Your sprinklers ran for 20 minutes. Your lawn is now an ice rink. KOA has disabled outdoor water until you explain.`,
 

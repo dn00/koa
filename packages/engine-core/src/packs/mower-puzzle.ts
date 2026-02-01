@@ -14,6 +14,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 export const PUZZLE_MOWER: V5Puzzle = {
   slug: 'mower',
   name: 'Lawn and Order',
+  difficulty: 'medium',
 
   // Your robot lawn mower went rogue at 3 AM
   scenario: `Your robot mower carved a perfect spiral into your front lawn at 3:14 AM. The neighborhood watch is impressed. The HOA is not. KOA has locked your yard access until you explain how a machine that should be asleep created performance art.`,

@@ -72,6 +72,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 export const PUZZLE_WASHER: V5Puzzle = {
   slug: 'washer-flood',
   name: 'The 3 AM Flood',
+  difficulty: 'medium',
 
   scenario: `3:14 AM. Your washing machine ran a full cycle. The drain hose disconnected. Your laundry room is flooded. KOA has locked the washer until you explain.`,
 

@@ -38,6 +38,11 @@ export interface LieInfo {
 }
 
 /**
+ * Puzzle difficulty level.
+ */
+export type PuzzleDifficulty = 'easy' | 'medium' | 'hard';
+
+/**
  * Complete puzzle definition for V5 game.
  * Contains cards, lies, verdicts, and KOA dialogue.
  */
@@ -47,6 +52,9 @@ export interface V5Puzzle {
 
   /** Display name */
   readonly name: string;
+
+  /** Difficulty level */
+  readonly difficulty?: PuzzleDifficulty;
 
   /** 2-3 line scenario setting the scene */
   readonly scenario: string;

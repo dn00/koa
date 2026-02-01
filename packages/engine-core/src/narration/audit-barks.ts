@@ -2,9 +2,19 @@
  * Final Audit + Ceiling Bark Templates
  *
  * Used on the Result screen for Final Audit panel and ceiling explanations.
+ * Also provides KOA barks for the audit sequence in BarkPanel.
  */
 
 import type { ConcernKey } from './suspicion-barks.js';
+
+// ============================================================================
+// Audit Sequence Barks (KOA speaking during audit)
+// ============================================================================
+
+/**
+ * Audit phase type for sequence progression.
+ */
+export type AuditPhase = 'auditing' | 'ready' | null;
 
 // ============================================================================
 // Final Audit Line Templates

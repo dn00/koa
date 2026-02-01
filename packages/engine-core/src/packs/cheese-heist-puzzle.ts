@@ -36,6 +36,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 export const PUZZLE_CHEESE_HEIST: V5Puzzle = {
   slug: 'cheese-heist',
   name: 'Cheese Heist',
+  difficulty: 'medium',
 
   scenario: `Your smart speaker ordered $400 of artisanal cheese at 3:17 AM. Aged gouda. Truffle brie. A wheel of pecorino. You're lactose intolerant. KOA has frozen the order and would like to discuss your sudden dairy ambitions.`,
 

@@ -32,6 +32,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 export const PUZZLE_NIGHT_OWL: V5Puzzle = {
   slug: 'night-owl',
   name: 'Night Owl',
+  difficulty: 'medium',
 
   // Archetype: SEQUENCE — pattern that doesn't make sense
   // The TV ran cooking shows all night while you were clearly asleep

@@ -14,28 +14,26 @@
 import { ok, err, type Result } from '../types/index.js';
 import type { V5Puzzle } from '../types/v5/index.js';
 import type { PuzzlePack, PuzzlePackManifest, PackLoader, PackError } from './types.js';
-import { PUZZLE_BINGE_WATCH } from './hard-puzzle.js';
-import { PUZZLE_DOORBELL } from './doorbell-puzzle.js';
 import { PUZZLE_SPRINKLER } from './sprinkler-puzzle.js';
 import { PUZZLE_WASHER } from './washer-puzzle.js';
 import { PUZZLE_WINE_COOLER } from './new-puzzle.js';
 import { PUZZLE_MOWER } from './mower-puzzle.js';
-import { PUZZLE_KIBBLE } from './kibble-puzzle.js';
 import { PUZZLE_NIGHT_OWL } from './night-owl-puzzle.js';
 import { PUZZLE_CHEESE_HEIST } from './cheese-heist-puzzle.js';
+import { PUZZLE_BIDET } from './bidet-puzzle.js';
+import { PUZZLE_BEAN_BONANZA } from './bean-bonanza-puzzle.js';
 
 /**
  * All V5 puzzles for the builtin pack.
  * Only v1 Lite puzzles with complete axis fields.
  */
 const V5_PUZZLES: readonly V5Puzzle[] = [
-  PUZZLE_BINGE_WATCH,
-  PUZZLE_DOORBELL,
+  PUZZLE_BIDET,
+  PUZZLE_BEAN_BONANZA,
   PUZZLE_SPRINKLER,
   PUZZLE_WASHER,
   PUZZLE_WINE_COOLER,
   PUZZLE_MOWER,
-  PUZZLE_KIBBLE,
   PUZZLE_NIGHT_OWL,
   PUZZLE_CHEESE_HEIST,
 ];

@@ -80,6 +80,7 @@ function card(data: Omit<Card, 'id'> & { id: string }): Card {
 export const PUZZLE_WINE_COOLER: V5Puzzle = {
   slug: 'midnight-vintage',
   name: 'The Midnight Vintage',
+  difficulty: 'medium',
 
   scenario: `2:33 AM. Your smart wine cooler opened. A 2019 Burgundy is now missing. You claimed to be asleep. KOA has locked the cooler until you explain.`,
 
