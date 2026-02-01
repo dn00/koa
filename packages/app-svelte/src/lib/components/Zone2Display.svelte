@@ -17,21 +17,30 @@
 		playedCards: UICard[];
 		/** Maximum number of slots */
 		maxSlots?: number;
+		/** Callback when a played card is clicked */
+		onCardClick?: (card: UICard) => void;
 	}
 
-	let { focusedCard, playedCards, maxSlots = 3 }: Props = $props();
+	let { focusedCard, playedCards, maxSlots = 3, onCardClick }: Props = $props();
 </script>
 
 <div class="h-24 relative" data-zone2-content>
 	{#if focusedCard}
 		<!-- Card Preview Mode -->
-		<div class="absolute inset-0">
+		<!-- Stop propagation so clicking the preview itself doesn't dismiss it -->
+		<div
+			class="absolute inset-0"
+			role="button"
+			tabindex="-1"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={() => {}}
+		>
 			<CardPreviewPanel card={focusedCard} />
 		</div>
 	{:else}
 		<!-- Override Sequence Mode -->
 		<div class="absolute inset-0">
-			<OverrideSequence {playedCards} {maxSlots} />
+			<OverrideSequence {playedCards} {maxSlots} {onCardClick} />
 		</div>
 	{/if}
 </div>

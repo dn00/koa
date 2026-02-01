@@ -217,9 +217,6 @@
 	onclick={handleBoing}
 	aria-label="Koa Avatar"
 >
-	<!-- Ground Shadow (Detached) -->
-	<div class="absolute bottom-[2%] w-[40%] h-[4%] bg-[#2D3142] rounded-[100%] opacity-20 blur-[2px] animate-shadow-breathe transition-all duration-300 group-hover:opacity-30"></div>
-
 	<!-- Floating Wrapper -->
 	<div class="w-full h-full animate-float will-change-transform" style="transform: scale({$scaleSpring})">
 		<!-- Main Container -->
@@ -336,12 +333,6 @@
 		50% { transform: translateY(-10px); }
 	}
 	.animate-float { animation: float 6s ease-in-out infinite; }
-
-	@keyframes shadow-breathe {
-		0%, 100% { transform: scale(1); opacity: 0.2; }
-		50% { transform: scale(0.8); opacity: 0.1; }
-	}
-	.animate-shadow-breathe { animation: shadow-breathe 6s ease-in-out infinite; }
 
 	@keyframes idle-spin {
 		0% { transform: rotate(0deg); }

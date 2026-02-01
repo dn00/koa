@@ -7,25 +7,33 @@
 	 */
 
 	import type { UICard } from '$lib/stores/game';
-	import { getEvidenceTypeLabel } from '$lib/utils/evidenceTypes';
+	import { getEvidenceTypeLabel, getEvidenceTypeColor } from '$lib/utils/evidenceTypes';
 
 	interface Props {
 		/** Array of played cards (0-3) */
 		playedCards: UICard[];
 		/** Maximum number of slots (default 3) */
 		maxSlots?: number;
+		/** Callback when a played card is clicked */
+		onCardClick?: (card: UICard) => void;
 	}
 
-	let { playedCards = [], maxSlots = 3 }: Props = $props();
+	let { playedCards = [], maxSlots = 3, onCardClick }: Props = $props();
 </script>
 
 <div class="flex gap-3 h-full">
 	{#each Array(maxSlots) as _, i}
 		{@const card = playedCards[i]}
-		<div
-			class="flex-1 border-2 rounded-[2px] relative transition-all duration-300 flex items-center justify-center h-full
-				{card ? 'bg-surface border-foreground shadow-sm' : 'bg-transparent border-dashed border-foreground/20'}"
+		<button
+			class="flex-1 border-2 rounded-[2px] relative transition-all duration-300 flex items-center justify-center h-full p-0
+				{card ? 'bg-surface border-foreground shadow-sm cursor-pointer hover:bg-white' : 'bg-transparent border-dashed border-foreground/20 cursor-default'}"
 			data-slot-filled={card ? 'true' : 'false'}
+			onclick={(e) => {
+				if (card && onCardClick) {
+					e.stopPropagation();
+					onCardClick(card);
+				}
+			}}
 		>
 			{#if card}
 				<div
@@ -33,7 +41,9 @@
 				>
 					<div class="w-full flex justify-center items-center">
 						<span
-							class="text-[9px] font-mono font-bold bg-foreground text-surface px-1.5 py-0.5 rounded-[1px] tracking-wider uppercase"
+							class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-[1px] tracking-wider uppercase {getEvidenceTypeColor(
+								card.evidenceType
+							)}"
 						>
 							{getEvidenceTypeLabel(card.evidenceType)}
 						</span>
@@ -53,7 +63,7 @@
 					<span class="text-[9px] font-mono font-bold">SLOT_0{i + 1}</span>
 				</div>
 			{/if}
-		</div>
+		</button>
 	{/each}
 </div>
 

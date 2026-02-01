@@ -59,6 +59,10 @@
 	let isProcessing = $state(false);
 	let msgMode = $state<'BARK' | 'LOGS'>('BARK');
 	let isInitializing = $state(true); // Initial delay before bark starts
+	let portalFlash = $state(false); // Flash effect on card play
+	let portalFlashColor = $state('#E07A5F'); // Flash color based on card type
+	let inspectedCard = $state<UICard | null>(null); // Clicked card from played slots
+	let openingBarkComplete = $state(false); // Track when first bark finishes for LOG flash
 
 	// Start initial delay timer on mount
 	$effect(() => {
@@ -119,7 +123,7 @@
 	);
 
 	// Zone 2 mode (preview vs slots)
-	let zone2Mode = $derived<'preview' | 'slots'>(focusedCard ? 'preview' : 'slots');
+	let zone2Mode = $derived<'preview' | 'slots'>(focusedCard || inspectedCard ? 'preview' : 'slots');
 
 	// Get icon for evidence type
 	function getCardIcon(type: string): string {
@@ -130,6 +134,14 @@
 			PHYSICAL: '🔍'
 		};
 		return icons[type] || '📄';
+	}
+
+	// Handle background click to dismiss inspected card
+	function handleBackgroundClick(e: MouseEvent) {
+		// Only dismiss if not processing
+		if (!isProcessing) {
+			inspectedCard = null;
+		}
 	}
 
 	// Handle card selection
@@ -229,6 +241,13 @@
 				// Update bark with KOA response
 				currentBark = result.value.koaResponse || getDefaultResponse($gameState?.turnsPlayed || 0);
 
+				// Trigger portal flash effect after successful transmission
+				portalFlashColor = EVIDENCE_TYPE_HEX[card.evidenceType] || '#E07A5F';
+				portalFlash = true;
+				setTimeout(() => {
+					portalFlash = false;
+				}, 400);
+
 				// If type tax triggered, stay DISAPPOINTED until next card selection
 				// Otherwise clear the processing mood
 				if (result.value.typeTaxApplied) {
@@ -278,15 +297,31 @@
 
 	function handleSpeechComplete() {
 		isSpeaking = false;
+		// Trigger LOG flash after opening bark completes (first turn)
+		if (!openingBarkComplete && ($gameState?.turnsPlayed ?? 0) === 0) {
+			openingBarkComplete = true;
+		}
 	}
+
+	// Confirmation dialog state
+	let showExitConfirm = $state(false);
 
 	// Handle back navigation
 	function handleBack() {
+		showExitConfirm = true;
+	}
+
+	function confirmExit() {
+		showExitConfirm = false;
 		if (onBack) {
 			onBack();
 		} else {
 			goto('/');
 		}
+	}
+
+	function cancelExit() {
+		showExitConfirm = false;
 	}
 
 	// Check if card is played (disabled)
@@ -309,35 +344,49 @@
 	});
 </script>
 
-<div class="flex flex-col h-full w-full bg-background relative overflow-hidden font-sans">
+<div
+	class="flex flex-col h-full w-full bg-background relative overflow-hidden font-sans"
+	onclick={handleBackgroundClick}
+	role="button"
+	tabindex="-1"
+	onkeydown={() => {}}
+>
 	<!-- Background Decoration -->
 	<div class="absolute inset-0 pointer-events-none z-0">
 		<div class="absolute inset-0 bg-dot-pattern opacity-[0.05]"></div>
 	</div>
 
 	<!-- Navigation -->
-	<div class="absolute top-3 left-3 z-30">
+	<div class="absolute top-2 left-2 z-30">
 		<button
 			onclick={handleBack}
-			class="h-11 w-11 flex items-center justify-center bg-surface border-2 border-foreground rounded-[2px] opacity-60 hover:opacity-100 transition-all shadow-brutal"
+			class="h-8 w-8 flex items-center justify-center bg-surface border border-foreground/30 rounded-[2px] opacity-70 hover:opacity-100 hover:border-foreground/50 transition-all"
 			aria-label="Back"
 		>
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<line x1="19" y1="12" x2="5" y2="12"></line>
-				<polyline points="12 19 5 12 12 5"></polyline>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+				<polyline points="15 18 9 12 15 6"></polyline>
 			</svg>
 		</button>
 	</div>
 
 	<!-- Zone 1: Bark Panel with floating avatar -->
 	<div
-		class="flex-1 min-h-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible"
+		class="flex-1 min-h-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
 		data-zone="hero"
 	>
 		<!-- Background Effects -->
 		<div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-			<div class="absolute inset-0 bg-dot-pattern opacity-[0.15]"></div>
-			<div class="absolute inset-0 scanlines opacity-20"></div>
+			<div class="absolute inset-0 bg-dot-pattern opacity-30"></div>
+			<div class="absolute inset-0 scanlines"></div>
+			<div class="absolute inset-0 crt-vignette"></div>
+			<div class="absolute inset-0 noise-overlay"></div>
+			<!-- Portal flash on card play -->
+			{#if portalFlash}
+				<div
+					class="absolute inset-0 portal-flash"
+					style="--flash-color: {portalFlashColor};"
+				></div>
+			{/if}
 		</div>
 
 		<!-- Bark Panel Container -->
@@ -394,7 +443,12 @@
 		</div>
 
 		<!-- Zone 2 Content -->
-		<Zone2Display {focusedCard} {playedCards} maxSlots={3} />
+		<Zone2Display
+			focusedCard={focusedCard || inspectedCard}
+			{playedCards}
+			maxSlots={3}
+			onCardClick={(card) => (inspectedCard = card)}
+		/>
 	</div>
 
 	<!-- Zone 3: Card Tray -->
@@ -407,6 +461,7 @@
 			<ActionBar
 				selectedCardId={isProcessing || isInitializing ? null : selectedCardId}
 				{msgMode}
+				shouldFlashLogs={openingBarkComplete}
 				onTransmit={handleTransmit}
 				onToggleMode={() => (msgMode = msgMode === 'LOGS' ? 'BARK' : 'LOGS')}
 			/>
@@ -449,6 +504,32 @@
 			noConcern={finalAuditProps.noConcern}
 			onComplete={handleFinalAuditComplete}
 		/>
+	{/if}
+
+	<!-- Exit Confirmation Dialog -->
+	{#if showExitConfirm}
+		<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+			<div class="bg-white border-2 border-foreground rounded-[2px] shadow-brutal p-5 max-w-xs w-full">
+				<h2 class="text-lg font-bold font-mono uppercase mb-2">Exit Game?</h2>
+				<p class="text-sm text-muted-foreground mb-5">
+					Your progress will be lost.
+				</p>
+				<div class="flex gap-3">
+					<button
+						onclick={cancelExit}
+						class="flex-1 py-2.5 bg-surface border-2 border-foreground/20 font-mono font-bold uppercase text-sm rounded-[2px] hover:border-foreground/40 transition-all"
+					>
+						Cancel
+					</button>
+					<button
+						onclick={confirmExit}
+						class="flex-1 py-2.5 bg-primary text-white border-2 border-primary font-mono font-bold uppercase text-sm rounded-[2px] shadow-brutal hover:-translate-y-0.5 transition-all"
+					>
+						Exit
+					</button>
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>
 

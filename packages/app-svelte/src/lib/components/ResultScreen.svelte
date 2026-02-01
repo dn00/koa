@@ -1,13 +1,8 @@
 <script lang="ts">
 	/**
-	 * Task 007: Result + Share Screen Component (renamed from VerdictScreen)
-	 * Task 017: Lies Revealed Bark on Result Screen
-	 * Task 023: Result Transition Animation
-	 * Task 703: v1 Lite Outcomes and Ceiling Explanations
-	 *
-	 * Shows tier badge, played cards with lie reveal, contradictions,
-	 * KOA avatar with mood, and ShareCard artifact generation.
-	 * Displays ceiling explanation when CLEARED with ceilingBlocker.
+	 * Result Screen
+	 * Shows game outcome with overlapping avatar, tier badge, and card summary.
+	 * Follows the game's brutalist design language.
 	 */
 
 	import { onMount } from 'svelte';
@@ -21,131 +16,87 @@
 	import type { KoaMood } from './KoaAvatar.svelte';
 
 	interface Props {
-		/** Verdict data from engine */
 		verdict: VerdictData;
-		/** Day number for share card */
 		dayNumber: number;
 	}
 
 	let { verdict, dayNumber }: Props = $props();
 
-	// Task 703: Derive ceiling explanation when applicable
-	// Uses displayTier (computed below) to ensure consistency with badge
 	let ceilingExplanation = $derived.by(() => {
-		// Use v1 Lite tier in Mini mode, V5 tier in Advanced mode
 		const currentOutcome = $mode === 'mini' && $outcome ? $outcome : verdict.tier;
 		const blocker = $ceilingBlocker;
-
-		// Only show ceiling explanation for CLEARED with a blocker
 		if (currentOutcome === 'CLEARED' && blocker) {
-			const concernKey = $concern?.key ?? undefined;
-			return getCeilingExplanation(blocker, concernKey);
+			return getCeilingExplanation(blocker, $concern?.key ?? undefined);
 		}
 		return null;
 	});
 
-	// Share card visibility state
-	let showShareCard = $state(false);
 	let shareFeedback = $state('');
+	let expandedSection = $state<'cards' | 'lies' | 'story' | null>('cards');
 
-	// Collapsible section states
-	let showCards = $state(true);
-	let showContradictions = $state(true);
-	let showEpilogue = $state(false);
+	function toggleSection(section: 'cards' | 'lies' | 'story') {
+		expandedSection = expandedSection === section ? null : section;
+	}
 
-	// Task 023: Reference to tier badge for animation
 	let tierBadgeRef: HTMLElement | null = null;
 
-	// Task 023: Animate result reveal on mount
 	onMount(() => {
-		if (tierBadgeRef) {
-			animateVerdictReveal(tierBadgeRef);
-		}
+		if (tierBadgeRef) animateVerdictReveal(tierBadgeRef);
 	});
 
 	// Task 703: Tier styling configuration (v1 Lite outcomes)
-	// FLAWLESS=gold/yellow (celebratory), CLEARED=green, CLOSE=gray, BUSTED=red
-	const tierStyles: Record<Tier, { color: string; bgColor: string; icon: string }> = {
-		FLAWLESS: {
-			color: 'text-yellow-500',
-			bgColor: 'bg-yellow-50 border-yellow-300',
-			icon: '★'
+	// FLAWLESS=Star, CLEARED=Shield, CLOSE=Warning, BUSTED=Skull/X
+	const tierStyles: Record<Tier, { color: string; bgColor: string; borderColor: string; iconPath: string }> = {
+		FLAWLESS: { 
+			color: 'text-yellow-600', 
+			bgColor: 'bg-yellow-50', 
+			borderColor: 'border-yellow-500', 
+			iconPath: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
 		},
-		CLEARED: {
-			color: 'text-green-500',
-			bgColor: 'bg-green-50 border-green-200',
-			icon: '✓'
+		CLEARED: { 
+			color: 'text-green-600', 
+			bgColor: 'bg-green-50', 
+			borderColor: 'border-green-500', 
+			iconPath: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4'
 		},
-		CLOSE: {
-			color: 'text-gray-500',
-			bgColor: 'bg-gray-50 border-gray-200',
-			icon: '~'
+		CLOSE: { 
+			color: 'text-foreground', 
+			bgColor: 'bg-muted/20', 
+			borderColor: 'border-foreground/40', 
+			iconPath: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01'
 		},
-		BUSTED: {
-			color: 'text-red-500',
-			bgColor: 'bg-red-50 border-red-200',
-			icon: '✗'
+		BUSTED: { 
+			color: 'text-red-600', 
+			bgColor: 'bg-red-50', 
+			borderColor: 'border-red-500', 
+			iconPath: 'M18 6L6 18M6 6l12 12'
 		}
 	};
 
-	/**
-	 * Get KOA's mood based on lies played and tier.
-	 * SMUG when lies are caught, IMPRESSED for flawless, GRUDGING for cleared.
-	 */
 	function getOutcomeMood(liesCount: number, tier: Tier): KoaMood {
-		if (liesCount > 0) return 'SMUG'; // Caught them lying
+		if (liesCount > 0) return 'SMUG';
 		if (tier === 'FLAWLESS') return 'IMPRESSED';
 		if (tier === 'CLEARED') return 'GRUDGING';
 		return 'NEUTRAL';
 	}
 
-	/**
-	 * Get icon for evidence type
-	 */
-	function getEvidenceIcon(evidenceType: string): string {
-		const icons: Record<string, string> = {
-			photo: '📷',
-			video: '🎥',
-			audio: '🎵',
-			document: '📄',
-			witness: '👤',
-			forensic: '🔬',
-			digital: '💾'
-		};
-		return icons[evidenceType] || '📋';
-	}
-
-	// Task 703: Use v1 Lite tier in Mini mode, V5 Belief tier in Advanced mode
-	// Per mini-overhaul.md 5.2: "Mini tiers are determined by Lite mapping, not V5 Belief math"
 	let displayTier = $derived($mode === 'mini' && $outcome ? $outcome : verdict.tier);
-
-	// Derived values
 	let tierStyle = $derived(tierStyles[displayTier]);
 	let hasLies = $derived(verdict.playedCards.some((pc) => pc.wasLie));
 	let liesCount = $derived(verdict.playedCards.filter((pc) => pc.wasLie).length);
 	let koaMood = $derived(getOutcomeMood(liesCount, displayTier));
-	let contradictions = $derived(
-		verdict.playedCards.filter((pc) => pc.wasLie && pc.contradictionReason)
-	);
-
-	// Results array for share card (true = truth, false = lie)
+	let contradictions = $derived(verdict.playedCards.filter((pc) => pc.wasLie && pc.contradictionReason));
 	let results = $derived(verdict.playedCards.map((pc) => !pc.wasLie));
-
-	// Check if penalties were triggered
 	let hasPenalties = $derived(verdict.penalties.typeTaxCount > 0);
 
-	// Penalty hint messages (vague for Mini, explicit for Advanced)
-	// NOTE: Avoid courtroom vocab (defense, evidence, testimony, verdict, trial, guilty)
-	// This is a smart home, not a courtroom. KOA sees "receipts", "logs", "data", "sources"
-	const PENALTY_HINTS_MINI = [
+	const PENALTY_HINTS = [
 		'KOA noticed you leaning on the same type of source.',
 		'Your story was... somewhat one-note.',
 		'Variety in your receipts could help.'
 	];
 
 	function getPenaltyHint(): string {
-		const index = verdict.penalties.typeTaxCount % PENALTY_HINTS_MINI.length;
-		return PENALTY_HINTS_MINI[index] ?? PENALTY_HINTS_MINI[0];
+		return PENALTY_HINTS[verdict.penalties.typeTaxCount % PENALTY_HINTS.length] ?? PENALTY_HINTS[0];
 	}
 
 	function handlePlayAgain() {
@@ -153,320 +104,221 @@
 	}
 
 	async function handleShare() {
-		// Format share text
-		const emojiResults = results.map((isSuccess) => (isSuccess ? '✅' : '❌')).join('');
+		const emojiResults = results.map((r) => (r ? '✅' : '❌')).join('');
 		const shareText = `KOA Mini - Day ${dayNumber}\n${emojiResults}\n${verdict.tier}\n"${verdict.koaLine}"`;
-
-		// Copy to clipboard
 		try {
 			await navigator.clipboard.writeText(shareText);
 			shareFeedback = 'Copied!';
-			setTimeout(() => {
-				shareFeedback = '';
-			}, 2000);
-		} catch (err) {
-			console.error('Failed to copy:', err);
-			shareFeedback = 'Failed to copy';
-			setTimeout(() => {
-				shareFeedback = '';
-			}, 2000);
+			setTimeout(() => { shareFeedback = ''; }, 2000);
+		} catch {
+			shareFeedback = 'Failed';
+			setTimeout(() => { shareFeedback = ''; }, 2000);
 		}
-	}
-
-	function closeShareCard() {
-		showShareCard = false;
 	}
 </script>
 
-<div
-	class="min-h-full bg-background flex flex-col items-center justify-center p-4 relative overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500"
-	data-result-container
->
-	<!-- Background Pattern -->
+<div class="fixed inset-0 bg-background flex flex-col overflow-hidden">
+	<!-- Background -->
 	<div class="absolute inset-0 pointer-events-none z-0">
-		<div class="absolute inset-0 bg-dot-pattern opacity-[0.15]"></div>
-		<div class="absolute inset-0 scanlines opacity-50"></div>
+		<div class="absolute inset-0 bg-dot-pattern opacity-[0.05]"></div>
 	</div>
 
-	<div class="z-10 w-full max-w-md space-y-6">
-		<!-- Tier Badge (Task 023: Animated on mount) -->
-		<div class="text-center">
-			<div
-				bind:this={tierBadgeRef}
-				class="inline-flex flex-col items-center gap-2 p-6 border-2 rounded-[2px] shadow-brutal {tierStyle.bgColor}"
-				data-tier={displayTier}
-			>
-				<span class="text-4xl">{tierStyle.icon}</span>
-				<span class="text-3xl font-mono font-bold uppercase tracking-wider {tierStyle.color}">
-					{displayTier}
-				</span>
+	<!-- Top Section: Result Summary (Fixed Height but flexible content) -->
+	<div class="shrink-0 p-4 pb-2 z-10 relative">
+		<div class="bg-surface border-2 border-foreground rounded-[2px] shadow-brutal p-6 relative overflow-visible">
+			<!-- Header -->
+			<div class="text-center mb-6">
+				<h2 class="font-mono font-bold uppercase text-primary tracking-widest text-sm">
+					FINAL AUDIT RESULT
+				</h2>
+			</div>
+
+			<!-- Center Badge -->
+			<div class="flex justify-center mb-2">
+				<div
+					bind:this={tierBadgeRef}
+					class="flex flex-col items-center justify-center p-3 border-2 rounded-[2px] {tierStyle.bgColor} {tierStyle.borderColor} shadow-sm w-24 h-24 shrink-0 z-20 relative bg-opacity-95"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="40"
+						height="40"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="{tierStyle.color} mb-1"
+					>
+						<path d={tierStyle.iconPath} />
+					</svg>
+					<span class="text-xl font-mono font-bold uppercase tracking-wider {tierStyle.color}">
+						{displayTier}
+					</span>
+				</div>
+			</div>
+
+			<!-- Quick Bark (Centered) -->
+			<!-- Removed extra bottom padding since avatar moved -->
+			<p class="type-body-sm italic text-foreground/90 leading-tight text-center mt-4 mb-2 px-2 relative z-20">
+				"{verdict.koaLine}"
+			</p>
+
+			<!-- Floating Avatar (Top Left - Left of Badge) -->
+			<!-- User requested location left of the badge and "make it larger" -->
+			<div class="absolute top-12 left-[-20px] w-[150px] h-[150px] z-30 pointer-events-none transform -rotate-6">
+				<KoaAvatar mood={koaMood} width="100%" height="100%" />
 			</div>
 		</div>
+	</div>
 
-		<!-- Belief Summary (Advanced Mode Only) -->
-		{#if $mode === 'advanced'}
-			<div
-				class="text-center text-sm font-mono text-muted-foreground"
-				data-belief-display
-			>
-				<span>Belief: {verdict.beliefFinal}</span>
-				<span class="mx-2">|</span>
-				<span>Target: {verdict.beliefTarget}</span>
+	<!-- Middle Section: Accordion (Flex Fill) -->
+	<div class="flex-1 min-h-0 flex flex-col px-4 pb-2 gap-2 z-10">
+		<!-- Ceiling/Penalties Hints (Fixed / Non-expanding) -->
+		{#if ceilingExplanation}
+			<div class="bg-amber-50 border-2 border-amber-400 rounded-[2px] p-2 shrink-0">
+				<p class="text-xs text-amber-700 italic text-center leading-tight">{ceilingExplanation}</p>
 			</div>
 		{/if}
 
-		<!-- KOA Avatar + Outcome Line -->
-		<div class="flex flex-col items-center gap-4 px-4" data-koa-outcome-bark>
-			<!-- KOA Avatar -->
-			<div class="w-24 h-12" data-koa-avatar>
-				<KoaAvatar mood={koaMood} width="100%" height="100%" />
-			</div>
-			<!-- Outcome Bark -->
-			<p class="text-lg italic text-foreground/90 leading-relaxed text-center">
-				"{verdict.koaLine}"
-			</p>
-		</div>
-
-		<!-- Task 703: Ceiling Explanation (only for CLEARED with blocker) -->
-		{#if ceilingExplanation}
-			<div
-				class="bg-amber-50 border-2 border-amber-200 rounded-[2px] p-4 text-center"
-				data-ceiling-explanation
-			>
-				<p class="text-base text-amber-800 italic leading-relaxed">
-					{ceilingExplanation}
+		<!-- Penalties hint -->
+		{#if hasPenalties}
+			<div class="bg-amber-50 border-2 border-amber-300 rounded-[2px] p-2 shrink-0">
+				<p class="text-xs text-amber-700 italic flex items-center gap-2 leading-tight">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"></circle>
+						<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+						<line x1="12" y1="17" x2="12.01" y2="17"></line>
+					</svg>
+					{getPenaltyHint()}
 				</p>
 			</div>
 		{/if}
 
-		<!-- Played Cards Summary (collapsible) -->
-		<div class="bg-surface border-2 border-foreground rounded-[2px] shadow-sm">
-			<button
-				class="w-full p-4 flex items-center justify-between text-left"
-				onclick={() => showCards = !showCards}
-			>
-				<h3 class="text-sm font-mono font-bold uppercase text-foreground/60 tracking-wider">
-					Cards Played
-				</h3>
-				<span class="text-foreground/40 transition-transform {showCards ? 'rotate-180' : ''}">▼</span>
-			</button>
-			{#if showCards}
-				<div class="flex justify-center gap-4 px-4 pb-4">
-					{#each verdict.playedCards as playedCard}
-						<div
-							class="flex flex-col items-center gap-2"
-							data-played-card
-							data-card-truth={!playedCard.wasLie}
-						>
-							<!-- Card Mini Display -->
-							<div
-								class="w-20 h-24 border-2 rounded-[2px] flex flex-col items-center justify-center p-2
-									{playedCard.wasLie ? 'border-red-400 bg-red-50' : 'border-green-400 bg-green-50'}"
-							>
-								<span class="text-2xl mb-1">
-									{getEvidenceIcon(playedCard.card.evidenceType)}
-								</span>
-								<span
-									class="text-xs font-mono uppercase px-1.5 py-0.5 rounded-[1px] {getEvidenceTypeColor(playedCard.card.evidenceType)}"
-								>
-									{getEvidenceTypeLabel(playedCard.card.evidenceType)}
-								</span>
-							</div>
-
-							<!-- Truth/Lie Indicator -->
-							{#if playedCard.wasLie}
-								<div
-									class="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center text-base font-bold"
-									data-lie-indicator
-								>
-									✗
+		<!-- Accordion Items Container (Fill remaining space) -->
+		<div class="flex-1 flex flex-col gap-2 min-h-0">
+			
+			<!-- Cards Played -->
+			<div class="bg-surface border-2 border-foreground rounded-[2px] flex flex-col {expandedSection === 'cards' ? 'flex-1 min-h-0' : 'shrink-0'} transition-all duration-300">
+				<button
+					class="w-full px-4 py-3 flex items-center justify-between text-left bg-muted/5 hover:bg-muted/10 transition-colors shrink-0"
+					onclick={() => toggleSection('cards')}
+				>
+					<span class="type-body-xs font-mono font-bold uppercase text-foreground/60 tracking-wider">
+						Cards Played
+					</span>
+					<span class="text-foreground/40 text-xs transition-transform duration-200 {expandedSection === 'cards' ? 'rotate-180' : ''}">▼</span>
+				</button>
+				{#if expandedSection === 'cards'}
+					<div class="flex-1 overflow-y-auto p-4 scrollbar-hide border-t border-foreground/10">
+						<div class="flex flex-wrap justify-center gap-4">
+							{#each verdict.playedCards as playedCard, i}
+								<div class="flex flex-col items-center gap-2">
+									<!-- Larger Cards: w-20 h-22 (reduced from h-28) -->
+									<div
+										class="w-20 h-22 border-2 rounded-[2px] flex flex-col items-center justify-center p-2 text-center
+											{playedCard.wasLie ? 'border-red-400 bg-red-50' : 'border-green-400 bg-green-50'}"
+									>
+										<span class="text-3xl mb-1">
+											{playedCard.card.evidenceType === 'DIGITAL' ? '💾' :
+											 playedCard.card.evidenceType === 'SENSOR' ? '📡' :
+											 playedCard.card.evidenceType === 'TESTIMONY' ? '👤' : '🔍'}
+										</span>
+										<span
+											class="text-[9px] font-mono uppercase font-bold px-1 rounded-[1px] leading-tight break-all {getEvidenceTypeColor(playedCard.card.evidenceType)}"
+										>
+											{getEvidenceTypeLabel(playedCard.card.evidenceType)}
+										</span>
+									</div>
+									<span class="text-[10px] font-mono font-bold uppercase {playedCard.wasLie ? 'text-red-600' : 'text-green-600'}">
+										{playedCard.wasLie ? 'LIE' : 'TRUTH'}
+									</span>
 								</div>
-							{:else}
-								<div
-									class="w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center text-base font-bold"
-									data-truth-indicator
-								>
-									✓
-								</div>
-							{/if}
-
-							<!-- Label -->
-							<span class="text-sm font-mono font-bold uppercase {playedCard.wasLie ? 'text-red-600' : 'text-green-600'}">
-								{playedCard.wasLie ? 'LIE' : 'TRUTH'}
-							</span>
+							{/each}
 						</div>
-					{/each}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Lies (Conditional) -->
+			{#if hasLies && contradictions.length > 0}
+				<div class="bg-red-50 border-2 border-red-400 rounded-[2px] flex flex-col {expandedSection === 'lies' ? 'flex-1 min-h-0' : 'shrink-0'} transition-all duration-300">
+					<button
+						class="w-full px-4 py-3 flex items-center justify-between text-left bg-red-100/50 hover:bg-red-100 transition-colors shrink-0"
+						onclick={() => toggleSection('lies')}
+					>
+						<span class="type-body-xs font-mono font-bold uppercase text-red-600 tracking-wider flex items-center gap-2">
+							Lies Exposed ({contradictions.length})
+						</span>
+						<span class="text-red-400 text-xs transition-transform duration-200 {expandedSection === 'lies' ? 'rotate-180' : ''}">▼</span>
+					</button>
+					{#if expandedSection === 'lies'}
+						<div class="flex-1 overflow-y-auto p-4 scrollbar-hide border-t border-red-200">
+							<ul class="space-y-3">
+								{#each contradictions as { card, contradictionReason }}
+									<li class="text-xs text-red-700 leading-snug">
+										<span class="font-bold border-b border-red-300 mr-1">{card.id}</span>
+										{contradictionReason}
+									</li>
+								{/each}
+							</ul>
+						</div>
+					{/if}
 				</div>
 			{/if}
+
+			<!-- Epilogue (Conditional) -->
+			{#if $currentPuzzle?.epilogue}
+				<div class="bg-slate-50 border-2 border-slate-300 rounded-[2px] flex flex-col {expandedSection === 'story' ? 'flex-1 min-h-0' : 'shrink-0'} transition-all duration-300">
+					<button
+						class="w-full px-4 py-3 flex items-center justify-between text-left bg-slate-100/50 hover:bg-slate-100 transition-colors shrink-0"
+						onclick={() => toggleSection('story')}
+					>
+						<span class="type-body-xs font-mono font-bold uppercase text-slate-600 tracking-wider">
+							What Actually Happened
+						</span>
+						<span class="text-slate-400 text-xs transition-transform duration-200 {expandedSection === 'story' ? 'rotate-180' : ''}">▼</span>
+					</button>
+					{#if expandedSection === 'story'}
+						<div class="flex-1 overflow-y-auto p-4 scrollbar-hide border-t border-slate-200">
+							<p class="text-sm text-slate-700 leading-relaxed">
+								{$currentPuzzle.epilogue}
+							</p>
+						</div>
+					{/if}
+				</div>
+			{/if}
+			
 		</div>
+	</div>
 
-		<!-- Contradiction Block (collapsible, only if lies were played) -->
-		{#if hasLies && contradictions.length > 0}
-			<div
-				class="bg-red-50 border-2 border-red-200 rounded-[2px]"
-				data-contradiction-block
+	<!-- Fixed Actions Footer -->
+	<div class="p-4 bg-background border-t-2 border-foreground/10 shrink-0 z-20">
+		<div class="flex gap-3 max-w-lg mx-auto">
+			<button
+				onclick={handlePlayAgain}
+				class="flex-1 py-3 bg-surface border-2 border-foreground font-mono font-bold uppercase text-sm rounded-[2px] shadow-sm hover:shadow-brutal hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
 			>
-				<button
-					class="w-full p-4 flex items-center justify-between text-left"
-					onclick={() => showContradictions = !showContradictions}
-				>
-					<h3 class="text-sm font-mono font-bold uppercase text-red-600 tracking-wider flex items-center gap-2">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<circle cx="12" cy="12" r="10"></circle>
-							<line x1="12" y1="8" x2="12" y2="12"></line>
-							<line x1="12" y1="16" x2="12.01" y2="16"></line>
-						</svg>
-						Lies Exposed ({contradictions.length})
-					</h3>
-					<span class="text-red-400 transition-transform {showContradictions ? 'rotate-180' : ''}">▼</span>
-				</button>
-				{#if showContradictions}
-					<ul class="space-y-3 px-4 pb-4">
-						{#each contradictions as { card, contradictionReason }}
-							<li class="text-base text-red-700">
-								<span class="font-bold">{card.id}:</span>
-								{contradictionReason}
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-		{/if}
-
-		<!-- Penalty Hints (only if penalties were triggered) -->
-		{#if hasPenalties}
-			<div
-				class="bg-amber-50 border-2 border-amber-200 rounded-[2px] p-4"
-				data-penalty-hints
-			>
-				{#if $mode === 'advanced'}
-					<!-- Advanced mode: explicit breakdown -->
-					<h3 class="text-sm font-mono font-bold uppercase text-amber-700 mb-3 tracking-wider flex items-center gap-2">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-							<line x1="12" y1="9" x2="12" y2="13"></line>
-							<line x1="12" y1="17" x2="12.01" y2="17"></line>
-						</svg>
-						Penalties Applied
-					</h3>
-					<ul class="space-y-2 text-sm text-amber-800">
-						{#each verdict.penalties.typeTaxTurns as turn}
-							<li class="flex items-center gap-2">
-								<span class="font-mono">Turn {turn}:</span>
-								<span>Same evidence type</span>
-								<span class="font-bold">({verdict.penalties.typeTaxTotal / verdict.penalties.typeTaxCount})</span>
-							</li>
-						{/each}
-						<li class="pt-2 border-t border-amber-200 font-bold">
-							Total: {verdict.penalties.typeTaxTotal}
-						</li>
-					</ul>
-				{:else}
-					<!-- Mini mode: vague hint -->
-					<p class="text-sm text-amber-700 italic flex items-center gap-2">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<circle cx="12" cy="12" r="10"></circle>
-							<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-							<line x1="12" y1="17" x2="12.01" y2="17"></line>
-						</svg>
-						{getPenaltyHint()}
-					</p>
-				{/if}
-			</div>
-		{/if}
-
-		<!-- Epilogue (collapsible, collapsed by default) -->
-		{#if $currentPuzzle?.epilogue}
-			<div
-				class="bg-slate-50 border-2 border-slate-200 rounded-[2px]"
-				data-epilogue
-			>
-				<button
-					class="w-full p-4 flex items-center justify-between text-left"
-					onclick={() => showEpilogue = !showEpilogue}
-				>
-					<h3 class="text-sm font-mono font-bold uppercase text-slate-600 tracking-wider">
-						What Actually Happened
-					</h3>
-					<span class="text-slate-400 transition-transform {showEpilogue ? 'rotate-180' : ''}">▼</span>
-				</button>
-				{#if showEpilogue}
-					<p class="text-base text-slate-700 leading-relaxed px-4 pb-4">
-						{$currentPuzzle.epilogue}
-					</p>
-				{/if}
-			</div>
-		{/if}
-
-		<!-- Action Buttons -->
-		<div class="space-y-3">
+				Play Again
+			</button>
 			<button
 				onclick={handleShare}
-				class="w-full py-3 bg-primary text-white font-mono font-bold uppercase rounded-[2px] border-2 border-primary shadow-brutal hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
-				aria-label="Share"
+				class="flex-1 py-3 bg-primary text-white font-mono font-bold uppercase text-sm rounded-[2px] border-2 border-primary shadow-brutal hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2"
 			>
 				{#if shareFeedback}
-					<span>{shareFeedback}</span>
+					{shareFeedback}
 				{:else}
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<circle cx="18" cy="5" r="3"></circle>
 						<circle cx="6" cy="12" r="3"></circle>
 						<circle cx="18" cy="19" r="3"></circle>
 						<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
 						<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
 					</svg>
-					SHARE
+					Share
 				{/if}
-			</button>
-
-			<button
-				onclick={handlePlayAgain}
-				class="w-full py-3 bg-surface border-2 border-foreground font-mono font-bold uppercase rounded-[2px] shadow-sm hover:shadow-brutal hover:-translate-y-0.5 transition-all"
-				aria-label="Play Again"
-			>
-				BACK TO START
 			</button>
 		</div>
 	</div>
-
-	<!-- Share Card Modal -->
-	{#if showShareCard}
-		<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-			<div
-				class="bg-surface border-2 border-foreground rounded-[2px] shadow-brutal p-6 max-w-sm w-full animate-in"
-				data-share-card
-			>
-				<div class="text-center space-y-4">
-					<!-- Header -->
-					<h2 class="text-lg font-mono font-bold uppercase">KOA Mini - Day {dayNumber}</h2>
-
-					<!-- Results Icons -->
-					<div class="flex justify-center gap-2 text-xl">
-						{#each results as isSuccess}
-							<span>{isSuccess ? '✅' : '❌'}</span>
-						{/each}
-					</div>
-
-					<!-- Tier -->
-					<div class="font-mono font-bold uppercase {tierStyle.color}">
-						{verdict.tier}
-					</div>
-
-					<!-- Quote -->
-					<p class="text-sm italic text-muted-foreground">
-						"{verdict.koaLine}"
-					</p>
-
-					<!-- Close Button -->
-					<button
-						onclick={closeShareCard}
-						class="w-full py-2 bg-muted/20 border border-foreground/20 rounded-[2px] text-sm font-mono uppercase hover:bg-muted/40 transition-colors"
-					>
-						Close
-					</button>
-				</div>
-			</div>
-		</div>
-	{/if}
 </div>
-

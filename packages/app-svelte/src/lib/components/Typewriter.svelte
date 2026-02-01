@@ -86,4 +86,4 @@
 	});
 </script>
 
-<span>{displayedText}<span class="inline-block w-2 h-4 ml-1 align-middle bg-current animate-cursor"></span></span>
+<span class="whitespace-pre-wrap">{displayedText}<span class="inline-block w-2 h-4 ml-1 align-middle bg-primary animate-cursor"></span></span>

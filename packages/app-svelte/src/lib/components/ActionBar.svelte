@@ -6,36 +6,45 @@
 	 * Button disabled when no card is selected.
 	 */
 
-	import { onMount } from 'svelte';
-
 	interface Props {
 		/** ID of selected card, or null if none selected */
 		selectedCardId: string | null;
 		/** Current view mode (BARK vs LOGS) */
 		msgMode: 'BARK' | 'LOGS';
+		/** Whether to flash the VIEW LOG button */
+		shouldFlashLogs?: boolean;
 		/** Callback when TRANSMIT is clicked */
 		onTransmit: () => void;
 		/** Callback when toggle is clicked */
 		onToggleMode: () => void;
 	}
 
-	let { selectedCardId, msgMode, onTransmit, onToggleMode }: Props = $props();
+	let { selectedCardId, msgMode, shouldFlashLogs = false, onTransmit, onToggleMode }: Props = $props();
 
-	// Feature discovery: Glow until clicked
-	let hasViewedLogs = $state(true); // Default true to avoid flash
+	// Flash VIEW LOG button - controlled by parent, stops on tap or after timer
+	let isFlashing = $state(false);
+	let hasBeenTapped = $state(false); // Once tapped, never flash again
+	let flashTimer: ReturnType<typeof setTimeout> | null = null;
 
-	onMount(() => {
-		const viewed = localStorage.getItem('aura_has_viewed_logs');
-		if (!viewed) {
-			hasViewedLogs = false;
+	// Start flashing when shouldFlashLogs becomes true (only if not already tapped)
+	$effect(() => {
+		if (shouldFlashLogs && !isFlashing && !hasBeenTapped) {
+			isFlashing = true;
+			// Stop flashing after 4 seconds
+			flashTimer = setTimeout(() => {
+				isFlashing = false;
+			}, 4000);
 		}
 	});
 
 	function handleToggle() {
-		if (!hasViewedLogs) {
-			hasViewedLogs = true;
-			localStorage.setItem('aura_has_viewed_logs', 'true');
+		// Stop flashing permanently when user taps
+		if (flashTimer) {
+			clearTimeout(flashTimer);
+			flashTimer = null;
 		}
+		isFlashing = false;
+		hasBeenTapped = true;
 		onToggleMode();
 	}
 
@@ -55,7 +64,7 @@
 		<button
 			onclick={handleToggle}
 			class="h-8 px-3 text-xs font-mono font-bold uppercase rounded-[2px] border bg-surface text-foreground hover:bg-white hover:shadow-sm transition-all flex items-center gap-2
-				{hasViewedLogs ? 'border-foreground/20' : 'border-primary shadow-[0_0_15px_rgba(224,122,95,0.6)] animate-pulse'}"
+				{isFlashing && msgMode === 'BARK' ? 'border-primary shadow-[0_0_15px_rgba(224,122,95,0.6)] animate-pulse' : 'border-foreground/20'}"
 		>
 			{#if msgMode === 'LOGS'}
 				<svg

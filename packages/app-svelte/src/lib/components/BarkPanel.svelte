@@ -12,6 +12,7 @@
 	import Typewriter from './Typewriter.svelte';
 	import { suspicionText, suspicionShown, markSuspicionShown } from '$lib/stores/game';
 	import { fitText } from '$lib/actions/fitText';
+	import { fly, fade } from 'svelte/transition';
 
 	interface Scenario {
 		header: string;
@@ -175,7 +176,10 @@
 				use:fitText={{ text: currentBark, minSize: 11, maxSize: 18, multiLine: true }}
 			>
 				<div class="w-full text-left">
-					{#if !delayStart}
+					{#if delayStart}
+						<!-- Show just the cursor during initial delay -->
+						<span class="whitespace-pre-wrap"><span class="inline-block w-2 h-4 ml-1 align-middle bg-primary animate-cursor"></span></span>
+					{:else}
 						<Typewriter
 							text={currentBark}
 							speed={30}
@@ -224,7 +228,10 @@
 				<!-- Facts List -->
 				<ul class="flex flex-col gap-1">
 					{#each scenario.facts as fact, i}
-						<li class="flex gap-2 text-foreground/90 leading-snug items-start font-sans">
+						<li
+							class="flex gap-2 text-foreground/90 leading-snug items-start font-sans"
+							in:fly={{ y: 5, duration: 150, delay: i * 50 }}
+						>
 							<span class="font-mono font-bold text-foreground/50 shrink-0">
 								{formatFactNumber(i)}
 							</span>

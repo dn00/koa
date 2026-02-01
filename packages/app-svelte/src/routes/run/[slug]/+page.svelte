@@ -20,6 +20,14 @@
 		}
 	});
 
+	// Reset intro state when puzzle changes (for new game)
+	$effect(() => {
+		if ($currentPuzzle) {
+			showIntro = true;
+			isTransitioning = false;
+		}
+	});
+
 	// NOTE: Navigation to /result is now handled by RunScreen after FinalAuditPanel completes
 	// This ensures the Final Audit animation plays before showing results.
 	// Only navigate on SHARE phase (for future share functionality)
@@ -44,13 +52,15 @@
 </script>
 
 {#if $currentPuzzle}
-	{#if showIntro}
-		<div class="h-full w-full transition-all duration-400 {isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}">
-			<IntroScreen puzzle={$currentPuzzle} dayNumber={1} onStart={handleStart} />
-		</div>
-	{:else}
-		<div class="h-full w-full animate-in fade-in zoom-in-95 duration-500">
-			<RunScreen puzzle={$currentPuzzle} onBack={handleBack} />
-		</div>
-	{/if}
+	{#key $currentPuzzle.slug}
+		{#if showIntro}
+			<div class="h-full w-full transition-all duration-400 {isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}">
+				<IntroScreen puzzle={$currentPuzzle} dayNumber={1} onStart={handleStart} />
+			</div>
+		{:else}
+			<div class="h-full w-full animate-in fade-in zoom-in-95 duration-500">
+				<RunScreen puzzle={$currentPuzzle} onBack={handleBack} />
+			</div>
+		{/if}
+	{/key}
 {/if}

@@ -30,7 +30,7 @@
 		class="h-full aspect-square bg-surface border-2 border-primary flex flex-col items-center justify-center shadow-sm shrink-0"
 	>
 		<div class="text-2xl mb-1">{card.icon}</div>
-		<span class="text-[9px] font-mono font-bold uppercase bg-primary text-white px-1.5 py-0.5 rounded-[1px]">
+		<span class="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-[1px] {typeColor}">
 			{displayType}
 		</span>
 	</div>
