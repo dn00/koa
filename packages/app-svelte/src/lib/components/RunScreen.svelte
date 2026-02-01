@@ -79,7 +79,8 @@
 	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
 	let portalHeight = $state<number>(320);
-	let logsRequiredHeight = $state(0);
+	let logsMinHeight = $state(0);
+	let logsMaxHeight = $state(0);
 	let portalChrome = $state(0);
 	const GRID_PADDING = 32;
 	const CARD_TRAY_PADDING = 16;
@@ -115,8 +116,8 @@
 		const maxPortal = Math.max(basePortal, vh - middleH - oneRowMin);
 		const chrome = getPortalChrome();
 		portalChrome = chrome;
-		if (logsRequiredHeight > 0) {
-			const requiredPortal = logsRequiredHeight + chrome;
+		if (logsMaxHeight > 0) {
+			const requiredPortal = logsMaxHeight + chrome;
 			portalHeight = Math.min(Math.max(basePortal, requiredPortal), maxPortal);
 		} else {
 			portalHeight = basePortal;
@@ -187,7 +188,7 @@
 		return () => cardScrollerEl.removeEventListener('scroll', onScroll);
 	});
 
-	let forceLogsMinSize = $derived(msgMode === 'LOGS' && logsRequiredHeight + portalChrome > portalHeight);
+	let forceLogsMinSize = $derived(msgMode === 'LOGS' && logsMinHeight + portalChrome > portalHeight);
 
 	// Task 022: KOA mood override during processing
 	let moodOverride = $state<KoaMood | null>(null);
@@ -479,9 +480,10 @@ function handleAuditBarkComplete() {
 		setTimeout(() => completeAudit(), 1600);
 }
 
-function handleLogsMeasure(height: number) {
-	if (!Number.isFinite(height)) return;
-	logsRequiredHeight = Math.ceil(height);
+function handleLogsMeasure(payload: { minHeight: number; maxHeight: number }) {
+	if (!payload) return;
+	if (Number.isFinite(payload.minHeight)) logsMinHeight = Math.ceil(payload.minHeight);
+	if (Number.isFinite(payload.maxHeight)) logsMaxHeight = Math.ceil(payload.maxHeight);
 	updatePortalHeight();
 }
 
@@ -568,7 +570,7 @@ function handleLogsMeasure(height: number) {
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 min-h-[9rem] max-h-[14rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
+		class="shrink-0 min-h-[10rem] max-h-[15rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 		bind:this={overrideEl}
