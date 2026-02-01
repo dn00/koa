@@ -418,14 +418,14 @@
 					class="h-full overflow-y-auto pr-6 pt-4 pb-4 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
 					style="-webkit-overflow-scrolling: touch;"
 					bind:this={logsScrollEl}
-					use:fitText={{
-						text: [scenario.header, ...scenario.facts],
-						minSize: 9.5,
-						maxSize: logsForceMin ? 9.5 : 13,
-						multiLine: true,
-						onFit: () => requestAnimationFrame(updateLogsScrollState)
-					}}
-				>
+						use:fitText={{
+							text: [scenario.header, ...scenario.facts],
+							minSize: 10,
+							maxSize: logsForceMin ? 10 : 13.5,
+							multiLine: true,
+							onFit: () => requestAnimationFrame(updateLogsScrollState)
+						}}
+					>
 					<!-- Scenario Header -->
 					<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
 						<svg
@@ -501,7 +501,7 @@
 		<div
 			class="pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground"
 			bind:this={logsMeasureEl}
-			style="font-size: 9.5px; line-height: 1.4;"
+			style="font-size: 10px; line-height: 1.4;"
 		>
 			<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
 				<svg
