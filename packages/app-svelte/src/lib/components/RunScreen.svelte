@@ -568,7 +568,7 @@ function handleLogsMeasure(height: number) {
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 h-[7.5rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
+		class="shrink-0 h-[8.5rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden flex flex-col"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 		bind:this={overrideEl}
@@ -685,14 +685,14 @@ function handleLogsMeasure(height: number) {
 				<div
 					class="pointer-events-none absolute inset-y-0 left-1 flex items-center text-muted-foreground transition-opacity {atScrollStart ? 'opacity-20' : 'opacity-80'}"
 				>
-					<div class="h-6 w-6 rounded-full border border-foreground/30 bg-surface/90 flex items-center justify-center text-xs">
+					<div class="h-6 w-6 flex items-center justify-center text-sm">
 						‹
 					</div>
 				</div>
 				<div
 					class="pointer-events-none absolute inset-y-0 right-1 flex items-center text-muted-foreground transition-opacity {atScrollEnd ? 'opacity-20' : 'opacity-80'}"
 				>
-					<div class="h-6 w-6 rounded-full border border-foreground/30 bg-surface/90 flex items-center justify-center text-xs">
+					<div class="h-6 w-6 flex items-center justify-center text-sm">
 						›
 					</div>
 				</div>

@@ -76,6 +76,10 @@
 	// Task 701: Track suspicion animation state
 	let suspicionLineVisible = $state(false);
 	let fitToken = $state(0);
+	let barkScrollEl: HTMLDivElement | null = null;
+	let barkScrollable = $state(false);
+	let barkAtTop = $state(true);
+	let barkAtBottom = $state(false);
 	let logsScrollEl: HTMLDivElement | null = null;
 	let logsMeasureEl: HTMLDivElement | null = null;
 	let headerEl: HTMLDivElement | null = null;
@@ -132,12 +136,28 @@
 		logsAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
 	}
 
+	function updateBarkScrollState() {
+		if (!barkScrollEl) return;
+		const { scrollTop, scrollHeight, clientHeight } = barkScrollEl;
+		barkScrollable = scrollHeight > clientHeight + 1;
+		barkAtTop = scrollTop <= 1;
+		barkAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+	}
+
 	$effect(() => {
 		if (!logsScrollEl) return;
 		const onScroll = () => requestAnimationFrame(updateLogsScrollState);
 		logsScrollEl.addEventListener('scroll', onScroll, { passive: true });
 		updateLogsScrollState();
 		return () => logsScrollEl.removeEventListener('scroll', onScroll);
+	});
+
+	$effect(() => {
+		if (!barkScrollEl) return;
+		const onScroll = () => requestAnimationFrame(updateBarkScrollState);
+		barkScrollEl.addEventListener('scroll', onScroll, { passive: true });
+		updateBarkScrollState();
+		return () => barkScrollEl.removeEventListener('scroll', onScroll);
 	});
 
 	$effect(() => {
@@ -150,6 +170,15 @@
 	});
 
 	$effect(() => {
+		if (!barkScrollEl) return;
+		const observer = new MutationObserver(() => {
+			requestAnimationFrame(updateBarkScrollState);
+		});
+		observer.observe(barkScrollEl, { childList: true, subtree: true, characterData: true });
+		return () => observer.disconnect();
+	});
+
+	$effect(() => {
 		if (msgMode !== 'LOGS') {
 			lastMeasuredHeight = null;
 		}
@@ -158,6 +187,12 @@
 	$effect(() => {
 		if (msgMode === 'LOGS') {
 			requestAnimationFrame(updateLogsScrollState);
+		}
+	});
+
+	$effect(() => {
+		if (msgMode === 'BARK') {
+			requestAnimationFrame(updateBarkScrollState);
 		}
 	});
 
@@ -280,66 +315,99 @@
 		data-panel-content
 	>
 		{#if msgMode === 'BARK'}
-			<div
-				class="flex-1 min-h-0 flex flex-col justify-center overflow-hidden"
-				use:fitText={{ text: currentBark, minSize: 9, maxSize: 18, multiLine: true, refitToken: fitToken }}
-			>
-				<div class="w-full text-left">
-					{#if delayStart}
-						<!-- Show just the cursor during initial delay -->
-						<span class="whitespace-pre-wrap"><span class="inline-block w-2 h-4 ml-1 align-middle bg-primary animate-cursor"></span></span>
-					{:else}
-						<Typewriter
-							text={currentBark}
-							speed={auditPhase ? 20 : 30}
-							skipAnimation={!!typedBarks[currentBark]}
-							onStart={onSpeechStart}
-							onComplete={handleBarkComplete}
-						/>
-					{/if}
+			<div class="flex-1 min-h-0 relative">
+				<div
+					class="h-full overflow-y-auto pr-6 pt-4 pb-4 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
+					style="-webkit-overflow-scrolling: touch;"
+					bind:this={barkScrollEl}
+				>
+					<div
+						class="min-h-full flex flex-col {barkScrollable ? 'justify-start' : 'justify-center'}"
+						use:fitText={{ text: currentBark, minSize: 9, maxSize: 18, multiLine: true, refitToken: fitToken }}
+					>
+						<div class="w-full text-left">
+							{#if delayStart}
+								<!-- Show just the cursor during initial delay -->
+								<span class="whitespace-pre-wrap"><span class="inline-block w-2 h-4 ml-1 align-middle bg-primary animate-cursor"></span></span>
+							{:else}
+								<Typewriter
+									text={currentBark}
+									speed={auditPhase ? 20 : 30}
+									skipAnimation={!!typedBarks[currentBark]}
+									onStart={onSpeechStart}
+									onComplete={handleBarkComplete}
+								/>
+							{/if}
+						</div>
+
+						<!-- Task 701: T2 Suspicion Display (debug style) -->
+						{#if turnsPlayed === 2 && $suspicionText && suspicionLineVisible}
+							<div class="mt-3 pt-2 border-t border-foreground/10 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+								<div class="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+									Pattern detected...
+								</div>
+								<div class="text-xs font-mono text-amber-600">
+									⚠️ {$suspicionText.line}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Audit Sequence: Header + Result Lines -->
+						{#if auditPhase}
+							<div class="mt-3 pt-2 border-t border-foreground/10 space-y-1">
+								<div class="text-[10px] font-mono uppercase tracking-wider text-muted-foreground animate-in fade-in duration-200">
+									Cross-referencing...
+								</div>
+								{#if revealedAuditLines?.coverage}
+									<div
+										class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
+											{revealedAuditLines.coverage.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
+									>
+										{revealedAuditLines.coverage}
+									</div>
+								{/if}
+								{#if revealedAuditLines?.independence}
+									<div
+										class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
+											{revealedAuditLines.independence.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
+									>
+										{revealedAuditLines.independence}
+									</div>
+								{/if}
+								{#if revealedAuditLines?.concern}
+									<div
+										class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
+											{revealedAuditLines.concern.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
+									>
+										{revealedAuditLines.concern}
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
 				</div>
 
-				<!-- Task 701: T2 Suspicion Display (debug style) -->
-				{#if turnsPlayed === 2 && $suspicionText && suspicionLineVisible}
-					<div class="mt-3 pt-2 border-t border-foreground/10 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
-						<div class="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-							Pattern detected...
-						</div>
-						<div class="text-xs font-mono text-amber-600">
-							⚠️ {$suspicionText.line}
-						</div>
-					</div>
+				{#if barkScrollable && !barkAtTop}
+					<div class="pointer-events-none absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-background/95 to-transparent"></div>
 				{/if}
-
-				<!-- Audit Sequence: Header + Result Lines -->
-				{#if auditPhase}
-					<div class="mt-3 pt-2 border-t border-foreground/10 space-y-1">
-						<div class="text-[10px] font-mono uppercase tracking-wider text-muted-foreground animate-in fade-in duration-200">
-							Cross-referencing...
-						</div>
-						{#if revealedAuditLines?.coverage}
-							<div
-								class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
-									{revealedAuditLines.coverage.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
-							>
-								{revealedAuditLines.coverage}
+				{#if barkScrollable && !barkAtBottom}
+					<div class="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background/95 to-transparent"></div>
+				{/if}
+				{#if barkScrollable}
+					<div class="pointer-events-none absolute right-1 top-1 bottom-1 flex flex-col items-center justify-between text-muted-foreground">
+						{#if !barkAtTop}
+							<div class="h-5 w-5 flex items-center justify-center text-[11px]">
+								⌃
 							</div>
+						{:else}
+							<div class="h-5 w-5"></div>
 						{/if}
-						{#if revealedAuditLines?.independence}
-							<div
-								class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
-									{revealedAuditLines.independence.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
-							>
-								{revealedAuditLines.independence}
+						{#if !barkAtBottom}
+							<div class="h-5 w-5 flex items-center justify-center text-[11px]">
+								⌄
 							</div>
-						{/if}
-						{#if revealedAuditLines?.concern}
-							<div
-								class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
-									{revealedAuditLines.concern.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
-							>
-								{revealedAuditLines.concern}
-							</div>
+						{:else}
+							<div class="h-5 w-5"></div>
 						{/if}
 					</div>
 				{/if}
@@ -347,7 +415,7 @@
 		{:else}
 			<div class="flex-1 min-h-0 relative">
 				<div
-					class="h-full overflow-y-auto pr-1 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
+					class="h-full overflow-y-auto pr-6 pt-4 pb-4 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
 					style="-webkit-overflow-scrolling: touch;"
 					bind:this={logsScrollEl}
 					use:fitText={{
@@ -401,18 +469,27 @@
 				</div>
 
 				{#if logsScrollable && !logsAtTop}
-					<div class="pointer-events-none absolute top-0 left-0 right-0 h-5 bg-gradient-to-b from-background/90 to-transparent">
-						<div class="absolute top-0.5 left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
-							▲
-						</div>
-					</div>
+					<div class="pointer-events-none absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-background/95 to-transparent"></div>
 				{/if}
-
 				{#if logsScrollable && !logsAtBottom}
-					<div class="pointer-events-none absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-t from-background/90 to-transparent">
-						<div class="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
-							▼
-						</div>
+					<div class="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background/95 to-transparent"></div>
+				{/if}
+				{#if logsScrollable}
+					<div class="pointer-events-none absolute right-1 top-1 bottom-1 flex flex-col items-center justify-between text-muted-foreground">
+						{#if !logsAtTop}
+							<div class="h-5 w-5 flex items-center justify-center text-[11px]">
+								⌃
+							</div>
+						{:else}
+							<div class="h-5 w-5"></div>
+						{/if}
+						{#if !logsAtBottom}
+							<div class="h-5 w-5 flex items-center justify-center text-[11px]">
+								⌄
+							</div>
+						{:else}
+							<div class="h-5 w-5"></div>
+						{/if}
 					</div>
 				{/if}
 			</div>
