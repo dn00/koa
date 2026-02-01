@@ -1,5 +1,5 @@
 /**
- * KOAAvatar styles (Task 023)
+ * KoAAvatar styles (Task 023)
  * EC-1: Smooth transition between moods via CSS animation
  */
 
@@ -45,11 +45,9 @@
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    var(--mood-color) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center,
+      var(--mood-color) 0%,
+      transparent 70%);
   opacity: 0.4;
   /* EC-1: Smooth transition */
   transition: background 0.5s ease-in-out;
@@ -62,12 +60,10 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at 30% 30%,
-    color-mix(in srgb, var(--mood-color) 60%, white) 0%,
-    var(--mood-color) 50%,
-    color-mix(in srgb, var(--mood-color) 70%, black) 100%
-  );
+  background: radial-gradient(circle at 30% 30%,
+      color-mix(in srgb, var(--mood-color) 60%, white) 0%,
+      var(--mood-color) 50%,
+      color-mix(in srgb, var(--mood-color) 70%, black) 100%);
   /* EC-1: Smooth transition */
   transition: background 0.5s ease-in-out;
   box-shadow:
@@ -89,10 +85,13 @@
 
 /* Pulse animation for glow */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.6;
     transform: scale(1.05);
@@ -102,12 +101,10 @@
 /* Fallback for browsers without color-mix support */
 @supports not (color: color-mix(in srgb, red 50%, blue)) {
   .core {
-    background: radial-gradient(
-      circle at 30% 30%,
-      #ffffff 0%,
-      var(--mood-color) 30%,
-      var(--mood-color) 70%,
-      #000000 100%
-    );
+    background: radial-gradient(circle at 30% 30%,
+        #ffffff 0%,
+        var(--mood-color) 30%,
+        var(--mood-color) 70%,
+        #000000 100%);
   }
 }
