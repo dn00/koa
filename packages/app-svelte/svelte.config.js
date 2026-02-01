@@ -12,6 +12,9 @@ const config = {
 		paths: {
 			base: ''
 		},
+		prerender: {
+			handleUnseenRoutes: 'ignore'
+		},
 		alias: {
 			$lib: './src/lib',
 			$stores: './src/lib/stores',
