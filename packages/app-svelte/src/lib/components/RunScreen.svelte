@@ -77,10 +77,10 @@
 	let openingBarkComplete = $state(false); // Track when first bark finishes for LOG flash
 	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
-	let portalHeight = $state<number>(320);
+	let portalMinHeight = $state<number>(320);
+	let portalMaxHeight = $state<number>(420);
 	let viewportHeight = $state<number>(0);
 	let minBottomSpace = $state<number>(260);
-	let logsMeasuredHeight = $state<number>(0);
 	const GRID_TWO_ROW_MIN = 230;
 	let cardGridEl: HTMLDivElement | null = null;
 	let cardScrollerEl: HTMLDivElement | null = null;
@@ -100,12 +100,11 @@
 	});
 
 	function recomputePortalHeight() {
+		const basePortal = Math.round(viewportHeight * 0.4);
 		const maxPortal = Math.max(240, viewportHeight - minBottomSpace);
-		if (logsMeasuredHeight > 0) {
-			portalHeight = Math.min(Math.ceil(logsMeasuredHeight), maxPortal);
-		} else {
-			portalHeight = Math.min(portalHeight, maxPortal);
-		}
+		const clampedBase = Math.min(basePortal, maxPortal);
+		portalMinHeight = Math.max(240, clampedBase);
+		portalMaxHeight = Math.max(240, maxPortal);
 	}
 
 	function updateMinBottomSpace() {
@@ -113,8 +112,12 @@
 		const actionH = actionBarEl?.getBoundingClientRect().height ?? 0;
 		const cardEl = cardGridEl?.querySelector('[data-card-id]') as HTMLElement | null;
 		const cardH = cardEl?.getBoundingClientRect().height ?? 120;
+		const rowGap = 12;
+		const gridMin = compactGrid
+			? cardH
+			: Math.max(GRID_TWO_ROW_MIN, cardH * 2 + rowGap);
 		const padding = compactGrid ? 24 : 32;
-		minBottomSpace = Math.ceil(overrideH + actionH + cardH + padding);
+		minBottomSpace = Math.ceil(overrideH + actionH + gridMin + padding);
 		recomputePortalHeight();
 	}
 
@@ -448,11 +451,6 @@
 		setTimeout(() => completeAudit(), 1600);
 	}
 
-	function handleLogsMeasure(height: number) {
-		logsMeasuredHeight = Math.ceil(height);
-		recomputePortalHeight();
-	}
-
 </script>
 
 <div
@@ -483,13 +481,13 @@
 	<!-- Zone 1: Bark Panel with floating avatar -->
 	<div
 		class="shrink-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
-		style={`height: ${portalHeight}px;`}
+		style={`min-height: ${portalMinHeight}px; max-height: ${portalMaxHeight}px;`}
 		data-zone="hero"
 	>
 		<!-- Background Effects -->
 		<div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
 			<div class="absolute inset-0 bg-dot-pattern opacity-30"></div>
-			<div class="absolute inset-0 scanlines"></div>
+			<div class="absolute inset-0 scanlines paused"></div>
 			<div class="absolute inset-0 crt-vignette"></div>
 			<div class="absolute inset-0 noise-overlay"></div>
 			<!-- Portal flash on card play -->
@@ -517,7 +515,6 @@
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
 				onAuditBarkComplete={handleAuditBarkComplete}
-				onLogsMeasure={handleLogsMeasure}
 				onModeChange={(m) => (msgMode = m)}
 			/>
 		</div>

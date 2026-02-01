@@ -34,7 +34,7 @@
 	<!-- Background pattern -->
 	<div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
 		<div class="absolute inset-0 bg-dot-pattern opacity-30"></div>
-		<div class="absolute inset-0 scanlines"></div>
+		<div class="absolute inset-0 scanlines paused"></div>
 		<div class="absolute inset-0 crt-vignette"></div>
 		<div class="absolute inset-0 noise-overlay"></div>
 	</div>
