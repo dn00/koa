@@ -7,6 +7,7 @@
 
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import type { VerdictData, Tier } from '@hsh/engine-core';
 	import { getCeilingExplanation, coverageLines, independenceLines, getConcernLine } from '@hsh/engine-core';
 	import { mode, outcome, ceilingBlocker, concern, currentPuzzle, axisResults } from '$lib/stores/game';
@@ -102,7 +103,7 @@
 	let results = $derived(verdict.playedCards.map((pc) => !pc.wasLie));
 
 	function handlePlayAgain() {
-		goto('/');
+		goto(`${base}/`);
 	}
 
 	async function handleShare() {

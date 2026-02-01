@@ -10,6 +10,7 @@
 	 */
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import type { V5Puzzle } from '@hsh/engine-core';
 	import {
 		coverageLines,
@@ -355,7 +356,7 @@
 		if (onBack) {
 			onBack();
 		} else {
-			goto('/');
+			goto(`${base}/`);
 		}
 	}
 
@@ -436,7 +437,7 @@
 
 		<!-- Bark Panel Container -->
 		<div
-			class="flex-1 pl-14 pt-10 pb-5 min-h-0 flex flex-col z-10 relative"
+			class="flex-1 pl-14 pb-4 min-h-0 flex flex-col z-10 relative"
 			data-zone="bark-panel"
 		>
 			<BarkPanel
@@ -546,7 +547,7 @@
 			<!-- Audit Button Overlay -->
 			{#if showAuditButton}
 				<div class="absolute inset-0 flex items-center justify-center bg-surface/95" data-zone="audit-proceed">
-					<Zone3AuditButton onProceed={() => { resetAuditState(); goto('/result'); }} />
+					<Zone3AuditButton onProceed={() => { resetAuditState(); goto(`${base}/result`); }} />
 				</div>
 			{/if}
 		</div>
@@ -578,4 +579,3 @@
 		</div>
 	{/if}
 </div>
-

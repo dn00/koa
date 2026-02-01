@@ -6,6 +6,7 @@
 	 * Navigation to /result is now handled by RunScreen after FinalAuditPanel completes.
 	 */
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { RunScreen, IntroScreen } from '$components';
 	import { gameState, currentPuzzle, phase } from '$stores/game';
 
@@ -16,7 +17,7 @@
 	// Redirect to home if no game started
 	$effect(() => {
 		if (!$gameState || !$currentPuzzle) {
-			goto('/');
+			goto(`${base}/`);
 		}
 	});
 
@@ -33,12 +34,12 @@
 	// Only navigate on SHARE phase (for future share functionality)
 	$effect(() => {
 		if ($phase === 'SHARE') {
-			goto('/result');
+			goto(`${base}/result`);
 		}
 	});
 
 	function handleBack() {
-		goto('/');
+		goto(`${base}/`);
 	}
 
 	function handleStart() {
