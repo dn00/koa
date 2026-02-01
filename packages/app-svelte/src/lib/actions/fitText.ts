@@ -4,9 +4,9 @@
  */
 export function fitText(
     node: HTMLElement,
-    options: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean }
+    options: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean; refitToken?: number }
 ) {
-    let { minSize = 12, maxSize = 18, multiLine = true } = options;
+    let { minSize = 12, maxSize = 18, multiLine = true, refitToken = 0 } = options;
 
     function fit() {
         // Reset to max size first
@@ -55,10 +55,11 @@ export function fitText(
     requestAnimationFrame(fit);
 
     return {
-        update(newOptions: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean }) {
+        update(newOptions: { text: string | any[]; minSize?: number; maxSize?: number; multiLine?: boolean; refitToken?: number }) {
             if (newOptions.minSize !== undefined) minSize = newOptions.minSize;
             if (newOptions.maxSize !== undefined) maxSize = newOptions.maxSize;
             if (newOptions.multiLine !== undefined) multiLine = newOptions.multiLine;
+            if (newOptions.refitToken !== undefined) refitToken = newOptions.refitToken;
             requestAnimationFrame(fit);
         },
         destroy() {

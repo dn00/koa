@@ -227,7 +227,7 @@
 		{#if msgMode === 'BARK'}
 			<div
 				class="flex-1 min-h-0 flex flex-col justify-center overflow-hidden"
-				use:fitText={{ text: currentBark, minSize: 11, maxSize: 18, multiLine: true, refitToken: fitToken }}
+				use:fitText={{ text: currentBark, minSize: 9, maxSize: 18, multiLine: true, refitToken: fitToken }}
 			>
 				<div class="w-full text-left">
 					{#if delayStart}

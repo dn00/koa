@@ -606,17 +606,9 @@
 				</div>
 			{/if}
 
-			{#if compactGrid && hasHorizontalOverflow && !atScrollEnd}
-				<div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-surface/95 to-transparent"></div>
-				<div class="pointer-events-none absolute top-2 right-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground bg-surface/90 border border-foreground/20 px-1.5 py-0.5 rounded-[2px]">
-					Swipe →
-				</div>
-			{/if}
-			{#if compactGrid && hasHorizontalOverflow && !atScrollStart}
-				<div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-surface/95 to-transparent"></div>
-				<div class="pointer-events-none absolute top-2 left-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground bg-surface/90 border border-foreground/20 px-1.5 py-0.5 rounded-[2px]">
-					← Swipe
-				</div>
+			{#if compactGrid && hasHorizontalOverflow}
+				<div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-surface/95 to-transparent {atScrollEnd ? 'opacity-0' : 'opacity-100'} transition-opacity"></div>
+				<div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-surface/95 to-transparent {atScrollStart ? 'opacity-0' : 'opacity-100'} transition-opacity"></div>
 			{/if}
 
 			<!-- Audit Button Overlay -->
