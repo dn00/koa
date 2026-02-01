@@ -35,6 +35,7 @@ export const PUZZLE_BIDET: V5Puzzle = {
   difficulty: 'easy',
 
   scenario: `Your $2000 smart toilet engaged "Power Wash" mode at 3:04 AM. For 45 minutes. Heated. Oscillating. Nobody was sitting on it. The bathroom is flooded. KOA has disabled all plumbing until you explain.`,
+  scenarioSummary: 'Your smart toilet ran Power Wash mode for 45 minutes at 3 AM.',
 
   knownFacts: [
     'Seat pressure sensor requires minimum 30 lbs weight to activate wash cycle',

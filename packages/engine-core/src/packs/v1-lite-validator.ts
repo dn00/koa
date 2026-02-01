@@ -1454,6 +1454,45 @@ export function formatPuzzleStats(stats: V1LitePuzzleStats, target: number = 57)
 }
 
 // ============================================================================
+// Task 409: Puzzle Structure Checks (V26)
+// ============================================================================
+
+/** Puzzle-level fields for validation */
+export interface V1LitePuzzleStructure {
+  readonly scenario?: string;
+  readonly scenarioSummary?: string;
+  readonly knownFacts?: readonly string[];
+}
+
+/**
+ * V26: Check scenarioSummary presence (required).
+ */
+export function checkScenarioSummary(puzzle: V1LitePuzzleStructure): V1LiteCheck {
+  const has = !!puzzle.scenarioSummary && puzzle.scenarioSummary.trim() !== '';
+  return {
+    id: 'V26',
+    label: 'scenarioSummary presence',
+    passed: has,
+    detail: has ? 'scenarioSummary present' : 'missing scenarioSummary (required)',
+    severity: 'error',
+  };
+}
+
+/**
+ * V27: Check knownFacts has exactly 3 entries.
+ */
+export function checkKnownFactsCount(puzzle: V1LitePuzzleStructure): V1LiteCheck {
+  const count = puzzle.knownFacts?.length ?? 0;
+  return {
+    id: 'V27',
+    label: 'knownFacts count (exactly 3)',
+    passed: count === 3,
+    detail: count === 3 ? '3 knownFacts present' : `${count} knownFacts (need exactly 3)`,
+    severity: 'error',
+  };
+}
+
+// ============================================================================
 // Combined Validator
 // ============================================================================
 
@@ -1466,6 +1505,7 @@ export function formatPuzzleStats(stats: V1LitePuzzleStats, target: number = 57)
  * @param options.isMini - Whether this is a Mini puzzle (default: true)
  * @param options.koaBarks - Optional KOA barks to validate
  * @param options.dialogue - Optional dialogue fields to validate
+ * @param options.puzzle - Optional puzzle-level fields to validate
  * @returns V1LiteValidationResult with all check results
  */
 export function validateV1Lite(
@@ -1475,9 +1515,10 @@ export function validateV1Lite(
     isMini?: boolean;
     koaBarks?: V1LiteKoaBarks;
     dialogue?: V1LitePuzzleDialogue;
+    puzzle?: V1LitePuzzleStructure;
   } = {}
 ): V1LiteValidationResult {
-  const { isMini = true, koaBarks, dialogue } = options;
+  const { isMini = true, koaBarks, dialogue, puzzle } = options;
 
   const checks: V1LiteCheck[] = [];
 
@@ -1530,6 +1571,12 @@ export function validateV1Lite(
     checks.push(checkCardPlayedBarkCompleteness(cards, koaBarks));
     checks.push(checkStoryAndLiesBarks(lies, koaBarks));
     checks.push(checkDialogueSafety(dialogue, koaBarks));
+  }
+
+  // Task 409: Puzzle Structure Checks (only if puzzle provided)
+  if (puzzle) {
+    checks.push(checkScenarioSummary(puzzle));
+    checks.push(checkKnownFactsCount(puzzle));
   }
 
   // Passed if all error-level checks pass

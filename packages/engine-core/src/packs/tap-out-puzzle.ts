@@ -44,6 +44,7 @@ export const PUZZLE_TAP_OUT: V5Puzzle = {
   difficulty: 'medium',
 
   scenario: `Your basement kegerator achieved peak efficiency last night: entire CO2 tank emptied, 11 gallons of craft IPA gone flat, and your CO2 alarm woke three neighbors at 3:47 AM. It was supposed to be a "chill game night." KOA has disabled your beverage systems until you explain how two adults murdered a half-barrel.`,
+  scenarioSummary: 'Your kegerator emptied 11 gallons of beer overnight.',
 
   knownFacts: [
     'Kegerator logged 47 pour events between 10 PM and 3 AM, each drawing normal CO2',

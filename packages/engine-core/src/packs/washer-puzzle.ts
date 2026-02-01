@@ -75,6 +75,7 @@ export const PUZZLE_WASHER: V5Puzzle = {
   difficulty: 'medium',
 
   scenario: `3:14 AM. Your washing machine ran a full cycle. The drain hose disconnected. Your laundry room is flooded. KOA has locked the washer until you explain.`,
+  scenarioSummary: 'Your washing machine flooded the laundry room at 3 AM.',
 
   knownFacts: [
     "Washer's smart mode requires phone within Bluetooth range to start",

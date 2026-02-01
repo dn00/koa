@@ -77,11 +77,13 @@
 	let openingBarkComplete = $state(false); // Track when first bark finishes for LOG flash
 	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
-	let portalMinHeight = $state<number>(320);
-	let portalMaxHeight = $state<number>(420);
-	let viewportHeight = $state<number>(0);
-	let minBottomSpace = $state<number>(260);
-	const GRID_TWO_ROW_MIN = 230;
+	let portalHeight = $state<number>(320);
+	let cardTrayHeight = $state<number>(260);
+	const MIDDLE_MIN_PX = 88;
+	const CARD_TRAY_PADDING = 16;
+	const GRID_PADDING = 32;
+	const COMPACT_SCROLLER_PADDING = 20;
+	const ROW_GAP = 12;
 	let cardGridEl: HTMLDivElement | null = null;
 	let cardScrollerEl: HTMLDivElement | null = null;
 	let overrideEl: HTMLDivElement | null = null;
@@ -99,44 +101,40 @@
 		return () => clearTimeout(timer);
 	});
 
-	function recomputePortalHeight() {
-		const basePortal = Math.round(viewportHeight * 0.4);
-		const maxPortal = Math.max(240, viewportHeight - minBottomSpace);
-		const clampedBase = Math.min(basePortal, maxPortal);
-		portalMinHeight = Math.max(240, clampedBase);
-		portalMaxHeight = Math.max(240, maxPortal);
-	}
+	function updateLayout() {
+		const vh = window.innerHeight;
+		portalHeight = Math.round(vh * 0.4);
 
-	function updateMinBottomSpace() {
-		const overrideH = overrideEl?.getBoundingClientRect().height ?? 0;
+		const overrideH = overrideEl?.scrollHeight ?? 0;
 		const actionH = actionBarEl?.getBoundingClientRect().height ?? 0;
 		const cardEl = cardGridEl?.querySelector('[data-card-id]') as HTMLElement | null;
 		const cardH = cardEl?.getBoundingClientRect().height ?? 120;
-		const rowGap = 12;
-		const gridMin = compactGrid
-			? cardH
-			: Math.max(GRID_TWO_ROW_MIN, cardH * 2 + rowGap);
-		const padding = compactGrid ? 24 : 32;
-		minBottomSpace = Math.ceil(overrideH + actionH + gridMin + padding);
-		recomputePortalHeight();
+		const middleMin = Math.max(MIDDLE_MIN_PX, overrideH);
+		const twoRowHeight = actionH + cardH * 2 + ROW_GAP + GRID_PADDING + CARD_TRAY_PADDING;
+		const oneRowHeight = actionH + cardH + COMPACT_SCROLLER_PADDING + CARD_TRAY_PADDING;
+		const availableForBottom = vh - portalHeight - middleMin;
+		const nextCompact = availableForBottom < twoRowHeight;
+
+		if (compactGrid !== nextCompact) {
+			compactGrid = nextCompact;
+			requestAnimationFrame(updateLayout);
+			return;
+		}
+
+		const desiredHeight = nextCompact ? oneRowHeight : twoRowHeight;
+		const maxBottom = Math.max(0, vh - portalHeight);
+		cardTrayHeight = Math.min(desiredHeight, maxBottom);
+		requestAnimationFrame(updateOverflowState);
 	}
 
 	$effect(() => {
 		const updateViewport = () => {
-			viewportHeight = window.innerHeight;
-			recomputePortalHeight();
+			updateLayout();
 		};
 		updateViewport();
 		window.addEventListener('resize', updateViewport);
 		return () => window.removeEventListener('resize', updateViewport);
 	});
-
-	function updateGridMode() {
-		if (!cardGridEl) return;
-		compactGrid = cardGridEl.clientHeight < GRID_TWO_ROW_MIN;
-		updateMinBottomSpace();
-		requestAnimationFrame(updateOverflowState);
-	}
 
 	function updateOverflowState() {
 		if (!cardScrollerEl) return;
@@ -149,7 +147,7 @@
 	$effect(() => {
 		if (!cardGridEl) return;
 		const observer = new ResizeObserver(() => {
-			requestAnimationFrame(updateGridMode);
+			requestAnimationFrame(updateLayout);
 		});
 		observer.observe(cardGridEl);
 		return () => observer.disconnect();
@@ -157,7 +155,7 @@
 
 	$effect(() => {
 		const observer = new ResizeObserver(() => {
-			requestAnimationFrame(updateMinBottomSpace);
+			requestAnimationFrame(updateLayout);
 		});
 		if (overrideEl) observer.observe(overrideEl);
 		if (actionBarEl) observer.observe(actionBarEl);
@@ -197,21 +195,32 @@
 
 	// Derive scenario data from puzzle
 	let scenario = $derived({
-		header: puzzle.scenario.split('.')[0] + '.',
+		header: puzzle.scenarioSummary,
 		facts: [...puzzle.knownFacts]
 	});
 
 	// Track all original cards (stays constant throughout game)
 	let allCards = $state<UICard[]>([]);
 
-	// Initialize all cards once when puzzle loads
+	// Fisher-Yates shuffle to randomize card order
+	function shuffleCards<T>(array: T[]): T[] {
+		const shuffled = [...array];
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		}
+		return shuffled;
+	}
+
+	// Initialize all cards once when puzzle loads (shuffled to prevent predictable order)
 	$effect(() => {
 		if (puzzle && allCards.length === 0) {
-			allCards = puzzle.cards.map((card) => ({
+			const mappedCards = puzzle.cards.map((card) => ({
 				...card,
 				icon: getCardIcon(card.evidenceType),
 				title: card.source || card.claim.split(' ').slice(0, 5).join(' ')
 			}));
+			allCards = shuffleCards(mappedCards);
 		}
 	});
 
@@ -481,7 +490,7 @@
 	<!-- Zone 1: Bark Panel with floating avatar -->
 	<div
 		class="shrink-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
-		style={`min-height: ${portalMinHeight}px; max-height: ${portalMaxHeight}px;`}
+		style={`height: ${portalHeight}px;`}
 		data-zone="hero"
 	>
 		<!-- Background Effects -->
@@ -530,7 +539,7 @@
 
 	<!-- Zone 2: Override Sequence / Card Preview -->
 	<div
-		class="shrink-0 py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all min-h-[5.5rem]"
+		class="flex-1 min-h-[5.5rem] py-2 px-4 bg-background/50 border-b border-foreground/5 z-10 transition-all overflow-hidden"
 		data-zone="override-sequence"
 		data-zone2-mode={zone2Mode}
 		bind:this={overrideEl}
@@ -569,7 +578,8 @@
 
 	<!-- Zone 3: Card Tray / Audit Button -->
 	<div
-		class="flex-1 min-h-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
+		class="shrink-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
+		style={`height: ${cardTrayHeight}px;`}
 		data-zone="card-tray"
 	>
 		<!-- Action Bar -->

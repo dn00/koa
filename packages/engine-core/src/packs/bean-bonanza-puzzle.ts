@@ -37,6 +37,7 @@ export const PUZZLE_BEAN_BONANZA: V5Puzzle = {
   difficulty: 'easy',
 
   scenario: `Your smart pantry placed a restock order for forty-eight cans of beans at 3:14 AM. Kidney. Pinto. Garbanzo. You do not own a can opener. KOA froze the order and wants an explanation before your kitchen turns into a legume bunker.`,
+  scenarioSummary: 'Your smart pantry ordered 48 cans of beans at 3 AM.',
 
   knownFacts: [
     'Pantry purchases can only be cleared by a fingerprint scan on the pantry door.',

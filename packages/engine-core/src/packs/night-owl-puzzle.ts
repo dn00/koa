@@ -37,6 +37,7 @@ export const PUZZLE_NIGHT_OWL: V5Puzzle = {
   // Archetype: SEQUENCE — pattern that doesn't make sense
   // The TV ran cooking shows all night while you were clearly asleep
   scenario: `Your TV binged 6 hours of French cooking tutorials starting at 1 AM. Your sleep tracker says you were unconscious. Your viewing history now recommends a soufflé course. KOA has questions.`,
+  scenarioSummary: 'Your TV binged 6 hours of French cooking tutorials at 1 AM.',
 
   knownFacts: [
     // Fact 1: Only paired devices can control TV

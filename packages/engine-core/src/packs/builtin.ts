@@ -23,6 +23,7 @@ import { PUZZLE_CHEESE_HEIST } from './cheese-heist-puzzle.js';
 import { PUZZLE_BIDET } from './bidet-puzzle.js';
 import { PUZZLE_BEAN_BONANZA } from './bean-bonanza-puzzle.js';
 import { PUZZLE_TAP_OUT } from './tap-out-puzzle.js';
+import { PUZZLE_SMEAR_CAMPAIGN } from './smear-campaign-puzzle.js';
 
 /**
  * All V5 puzzles for the builtin pack.
@@ -32,6 +33,7 @@ const V5_PUZZLES: readonly V5Puzzle[] = [
   PUZZLE_BIDET,
   PUZZLE_BEAN_BONANZA,
   PUZZLE_TAP_OUT,
+  PUZZLE_SMEAR_CAMPAIGN,
   PUZZLE_SPRINKLER,
   PUZZLE_WASHER,
   PUZZLE_WINE_COOLER,

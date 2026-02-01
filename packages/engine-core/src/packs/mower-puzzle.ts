@@ -18,6 +18,7 @@ export const PUZZLE_MOWER: V5Puzzle = {
 
   // Your robot lawn mower went rogue at 3 AM
   scenario: `Your robot mower carved a perfect spiral into your front lawn at 3:14 AM. The neighborhood watch is impressed. The HOA is not. KOA has locked your yard access until you explain how a machine that should be asleep created performance art.`,
+  scenarioSummary: 'Your robot mower carved a spiral in your lawn at 3 AM.',
 
   knownFacts: [
     // Fact 1: Mower requires GPS boundary calibration before any start

@@ -44,6 +44,7 @@ export const PUZZLE_THERMOSTAT_INCIDENT: V5Puzzle = {
   name: 'The Thermostat Incident',
 
   scenario: `3:12 AM. The thermostat dropped from 72 to 58 degrees. Your partner woke up freezing. KOA has locked climate controls until you explain.`,
+  scenarioSummary: 'Your thermostat dropped 14 degrees at 3 AM.',
 
   // Mini: exactly 3 facts, each catches one lie (1:1 mapping)
   knownFacts: [

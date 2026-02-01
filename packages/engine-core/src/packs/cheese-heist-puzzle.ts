@@ -39,6 +39,7 @@ export const PUZZLE_CHEESE_HEIST: V5Puzzle = {
   difficulty: 'medium',
 
   scenario: `Your smart speaker ordered $400 of artisanal cheese at 3:17 AM. Aged gouda. Truffle brie. A wheel of pecorino. You're lactose intolerant. KOA has frozen the order and would like to discuss your sudden dairy ambitions.`,
+  scenarioSummary: 'Your smart speaker ordered $400 of cheese at 3 AM.',
 
   knownFacts: [
     'Voice ordering requires a registered voice profile — yours is the only one on this speaker.',

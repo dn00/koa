@@ -59,6 +59,9 @@ export interface V5Puzzle {
   /** 2-3 line scenario setting the scene */
   readonly scenario: string;
 
+  /** Short summary of scenario (for compact displays) */
+  readonly scenarioSummary: string;
+
   /** 3-5 bullet points of known facts for player reasoning */
   readonly knownFacts: readonly string[];
 

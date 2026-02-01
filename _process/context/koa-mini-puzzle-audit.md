@@ -458,6 +458,22 @@ Rate each category (0-10 points each):
 
 The validator can't check if KOA sounds right. You must.
 
+### Voice Differentiation Check (CRITICAL)
+
+Each puzzle must have a DISTINCT speech pattern from other puzzles. Compare against recent puzzles:
+
+**Reference patterns to avoid copying:**
+- **Cheese Heist style:** Technical/procedural ("Building an airtight alibi", "Eliminating all the variables", "The math doesn't work")
+- **Tap Out style:** Quantity-focused with puns ("The math is judgmental", "flatter than the beer", "well-documented bender")
+
+For this puzzle, verify:
+- [ ] Barks do NOT use procedural/alibi language from Cheese Heist
+- [ ] Barks do NOT use quantity puns or "math" jokes from Tap Out
+- [ ] Puzzle has its OWN distinct voice (e.g., deadpan horror, dry observations, specific scenario humor)
+- [ ] Sequence barks feel fresh, not like templates from other puzzles
+
+**If barks sound interchangeable with another puzzle, flag for revision.**
+
 ### KOA Personality Check
 - [ ] Sarcastic but not mean
 - [ ] Uses player's data against them (affectionately)

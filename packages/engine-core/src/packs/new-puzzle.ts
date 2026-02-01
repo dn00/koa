@@ -83,6 +83,7 @@ export const PUZZLE_WINE_COOLER: V5Puzzle = {
   difficulty: 'medium',
 
   scenario: `2:33 AM. Your smart wine cooler opened. A 2019 Burgundy is now missing. You claimed to be asleep. KOA has locked the cooler until you explain.`,
+  scenarioSummary: 'Your wine cooler opened at 2 AM and a bottle is missing.',
 
   // Mini: exactly 3 facts (2 catch lies directly, 1 supports truths)
   knownFacts: [

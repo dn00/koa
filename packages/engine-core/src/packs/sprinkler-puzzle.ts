@@ -224,6 +224,7 @@ export const PUZZLE_SPRINKLER: V5Puzzle = {
   difficulty: 'medium',
 
   scenario: `3:12 AM. January. Your sprinklers ran for 20 minutes. Your lawn is now an ice rink. KOA has disabled outdoor water until you explain.`,
+  scenarioSummary: 'Your sprinklers ran in January, turning your lawn into an ice rink.',
 
   knownFacts: [
     'Sprinkler control box is inside the locked garage (only access point)',
