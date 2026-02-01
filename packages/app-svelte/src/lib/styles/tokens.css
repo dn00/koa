@@ -18,14 +18,15 @@
 }
 
 html {
-	-webkit-text-size-adjust: 100%;
+	-webkit-text-size-adjust: none;
 	-moz-text-size-adjust: none;
-	text-size-adjust: 100%;
+	text-size-adjust: none;
 }
 
 body {
+	-webkit-text-size-adjust: none;
 	-moz-text-size-adjust: none;
-	text-size-adjust: 100%;
+	text-size-adjust: none;
 }
 
 body {
