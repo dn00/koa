@@ -394,7 +394,7 @@
 
 	<!-- Zone 1: Bark Panel with floating avatar -->
 	<div
-		class="flex-1 min-h-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
+		class="shrink-0 h-[clamp(260px,40vh,420px)] bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible crt-glow"
 		data-zone="hero"
 	>
 		<!-- Background Effects -->
@@ -481,7 +481,7 @@
 
 	<!-- Zone 3: Card Tray / Audit Button -->
 	<div
-		class="shrink-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
+		class="flex-1 min-h-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
 		data-zone="card-tray"
 	>
 		<!-- Action Bar -->
@@ -496,7 +496,7 @@
 		</div>
 
 		<!-- Card Grid or Audit Button -->
-		<div class="p-4 bg-surface/50 relative min-h-60" data-zone="card-grid">
+		<div class="p-4 bg-surface/50 relative flex-1 min-h-0 overflow-hidden" data-zone="card-grid">
 			<div class="grid grid-cols-3 grid-rows-2 gap-3">
 				{#each allCards as card (card.id)}
 					{@const isPlayed = isCardPlayed(card.id)}
