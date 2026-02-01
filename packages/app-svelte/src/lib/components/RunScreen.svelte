@@ -79,9 +79,9 @@
 	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
 	let revealProgress = $state(0); // 0-1 progress of card reveal animation
 	let portalHeight = $state<number>(320);
-	let logsMinHeight = $state(0);
-	let logsMaxHeight = $state(0);
+let logsMinHeight = $state(0);
 	let portalChrome = $state(0);
+	let logsMeasureLocked = $state(false);
 	const GRID_PADDING = 32;
 	const CARD_TRAY_PADDING = 16;
 	const COMPACT_SCROLLER_PADDING = 20;
@@ -117,8 +117,8 @@
 		const maxPortal = Math.max(basePortal, vh - middleH - oneRowMin - PORTAL_MAX_REDUCTION);
 		const chrome = getPortalChrome();
 		portalChrome = chrome;
-		if (logsMaxHeight > 0) {
-			const requiredPortal = logsMaxHeight + chrome;
+		if (logsMinHeight > 0) {
+			const requiredPortal = logsMinHeight + chrome;
 			portalHeight = Math.min(Math.max(basePortal, requiredPortal), maxPortal);
 		} else {
 			portalHeight = basePortal;
@@ -137,6 +137,7 @@
 
 	$effect(() => {
 		const updateViewport = () => {
+			logsMeasureLocked = false;
 			updatePortalHeight();
 			requestAnimationFrame(updateGridMode);
 		};
@@ -481,11 +482,11 @@ function handleAuditBarkComplete() {
 		setTimeout(() => completeAudit(), 1600);
 }
 
-function handleLogsMeasure(payload: { minHeight: number; maxHeight: number }) {
-	if (!payload) return;
-	if (Number.isFinite(payload.minHeight)) logsMinHeight = Math.ceil(payload.minHeight);
-	if (Number.isFinite(payload.maxHeight)) logsMaxHeight = Math.ceil(payload.maxHeight);
+function handleLogsMeasure(height: number) {
+	if (!Number.isFinite(height) || logsMeasureLocked) return;
+	logsMinHeight = Math.ceil(height);
 	updatePortalHeight();
+	logsMeasureLocked = true;
 }
 
 </script>

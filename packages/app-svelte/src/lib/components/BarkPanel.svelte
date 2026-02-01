@@ -49,8 +49,8 @@
 		onSpeechComplete?: () => void;
 		/** Called when audit bark completes (to advance phase) */
 		onAuditBarkComplete?: () => void;
-		/** Called with LOGS heights (min/max font size) */
-		onLogsMeasure?: (payload: { minHeight: number; maxHeight: number }) => void;
+		/** Called with LOGS min-height (at min font size) */
+		onLogsMeasure?: (height: number) => void;
 		/** Force LOGS to use min font size */
 		forceLogsMinSize?: boolean;
 		/** Called when mode changes */
@@ -82,14 +82,12 @@
 	let barkAtBottom = $state(false);
 	let logsScrollEl: HTMLDivElement | null = null;
 	let logsMeasureEl: HTMLDivElement | null = null;
-	let logsMeasureMaxEl: HTMLDivElement | null = null;
 	let headerEl: HTMLDivElement | null = null;
 	let logsScrollable = $state(false);
 	let logsAtTop = $state(true);
 	let logsAtBottom = $state(false);
 	let logsForceMin = $state(false);
 	let lastMeasuredMin = $state<number | null>(null);
-	let lastMeasuredMax = $state<number | null>(null);
 
 	// Track previous bark to detect changes
 	let previousBark = $state<string | undefined>(undefined);
@@ -183,7 +181,6 @@
 	$effect(() => {
 		if (msgMode !== 'LOGS') {
 			lastMeasuredMin = null;
-			lastMeasuredMax = null;
 		}
 	});
 
@@ -207,31 +204,27 @@
 		}
 	});
 
-	function measureLogsHeights() {
-		if (!logsMeasureEl || !logsMeasureMaxEl) return;
+	function measureLogsHeight() {
+		if (!logsMeasureEl) return;
 		const headerHeight = headerEl?.getBoundingClientRect().height ?? 0;
 		const minBodyHeight = logsMeasureEl.getBoundingClientRect().height;
-		const maxBodyHeight = logsMeasureMaxEl.getBoundingClientRect().height;
 		const minTotal = Math.ceil(headerHeight + minBodyHeight);
-		const maxTotal = Math.ceil(headerHeight + maxBodyHeight);
-		if (lastMeasuredMin !== minTotal || lastMeasuredMax !== maxTotal) {
+		if (lastMeasuredMin !== minTotal) {
 			lastMeasuredMin = minTotal;
-			lastMeasuredMax = maxTotal;
-			onLogsMeasure?.({ minHeight: minTotal, maxHeight: maxTotal });
+			onLogsMeasure?.(minTotal);
 		}
 	}
 
 	$effect(() => {
-		measureLogsHeights();
+		measureLogsHeight();
 	});
 
 	$effect(() => {
-		if (!logsMeasureEl || !logsMeasureMaxEl) return;
+		if (!logsMeasureEl) return;
 		const observer = new ResizeObserver(() => {
-			requestAnimationFrame(measureLogsHeights);
+			requestAnimationFrame(measureLogsHeight);
 		});
 		observer.observe(logsMeasureEl);
-		observer.observe(logsMeasureMaxEl);
 		if (headerEl) observer.observe(headerEl);
 		return () => observer.disconnect();
 	});
@@ -503,50 +496,12 @@
 		{/if}
 	</div>
 
-	<!-- Hidden LOGS measure (min/max font size, full content) -->
+	<!-- Hidden LOGS measure (min font size, full content) -->
 	<div class="absolute inset-0 pointer-events-none opacity-0 -z-10" aria-hidden="true">
 		<div
 			class="pl-6 pr-10 pt-3 pb-12 leading-relaxed text-foreground"
 			bind:this={logsMeasureEl}
 			style="font-size: 10px; line-height: 1.4;"
-		>
-			<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
-				<svg
-					width="12"
-					height="12"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					class="shrink-0"
-				>
-					<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-					<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-				</svg>
-				<span class="font-bold font-mono uppercase leading-tight">
-					{scenario.header}
-				</span>
-			</div>
-			<div class="mb-2">
-				<div class="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
-					Known Facts
-				</div>
-			</div>
-			<ul class="flex flex-col gap-1.5">
-				{#each scenario.facts as fact, i}
-					<li class="flex gap-2 text-foreground/90 leading-snug items-start font-sans bg-slate-50/50 p-1.5 rounded-[2px] border-l-2 border-slate-200">
-						<span class="font-mono font-bold text-primary/70 shrink-0 text-[10px]">
-							{formatFactNumber(i)}
-						</span>
-						<span>{fact}</span>
-					</li>
-				{/each}
-			</ul>
-		</div>
-		<div
-			class="pl-6 pr-10 pt-3 pb-12 leading-relaxed text-foreground"
-			bind:this={logsMeasureMaxEl}
-			style="font-size: 13.5px; line-height: 1.4;"
 		>
 			<div class="flex items-center gap-1.5 mb-1.5 text-red-500 border-b border-red-100 pb-1">
 				<svg
