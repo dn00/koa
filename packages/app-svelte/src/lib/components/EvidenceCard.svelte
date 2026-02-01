@@ -73,7 +73,7 @@
 	}
 
 	function handlePointerDown(e: PointerEvent) {
-		if (disabled || e.pointerType !== 'touch') return;
+		if (disabled || e.pointerType !== 'touch' || touchHandling) return;
 		// Long-press to preview on touch
 		if (holdTimeoutId) clearTimeout(holdTimeoutId);
 		holdTimeoutId = setTimeout(() => {
@@ -84,7 +84,7 @@
 	}
 
 	function handlePointerUp(e: PointerEvent) {
-		if (e.pointerType !== 'touch') return;
+		if (e.pointerType !== 'touch' || touchHandling) return;
 		if (holdTimeoutId) {
 			clearTimeout(holdTimeoutId);
 			holdTimeoutId = null;
@@ -96,7 +96,49 @@
 	}
 
 	function handlePointerCancel(e: PointerEvent) {
-		if (e.pointerType !== 'touch') return;
+		if (e.pointerType !== 'touch' || touchHandling) return;
+		if (holdTimeoutId) {
+			clearTimeout(holdTimeoutId);
+			holdTimeoutId = null;
+		}
+		if (touchPreviewActive) {
+			touchPreviewActive = false;
+			onBlur?.({ delayMs: 0 });
+		}
+	}
+
+	let touchHandling = false;
+
+	function handleTouchStart(e: TouchEvent) {
+		if (disabled) return;
+		touchHandling = true;
+		e.preventDefault();
+		if (holdTimeoutId) clearTimeout(holdTimeoutId);
+		holdTimeoutId = setTimeout(() => {
+			touchPreviewActive = true;
+			suppressNextClick = true;
+			onFocus?.(card);
+		}, 250);
+	}
+
+	function handleTouchEnd(e: TouchEvent) {
+		if (!touchHandling) return;
+		e.preventDefault();
+		touchHandling = false;
+		if (holdTimeoutId) {
+			clearTimeout(holdTimeoutId);
+			holdTimeoutId = null;
+		}
+		if (touchPreviewActive) {
+			touchPreviewActive = false;
+			onBlur?.({ delayMs: 350 });
+		}
+	}
+
+	function handleTouchCancel(e: TouchEvent) {
+		if (!touchHandling) return;
+		e.preventDefault();
+		touchHandling = false;
 		if (holdTimeoutId) {
 			clearTimeout(holdTimeoutId);
 			holdTimeoutId = null;
@@ -133,6 +175,9 @@
 		onpointerdown={handlePointerDown}
 		onpointerup={handlePointerUp}
 		onpointercancel={handlePointerCancel}
+		ontouchstart={handleTouchStart}
+		ontouchend={handleTouchEnd}
+		ontouchcancel={handleTouchCancel}
 		oncontextmenu={handleContextMenu}
 		ondragstart={handleDragStart}
 		onkeydown={(e) => e.key === 'Enter' && handleClick()}
