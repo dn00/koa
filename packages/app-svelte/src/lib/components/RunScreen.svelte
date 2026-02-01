@@ -556,10 +556,14 @@
 		</div>
 
 		<!-- Card Grid or Audit Button -->
-		<div class="p-4 bg-surface/50 relative flex-1 min-h-0 overflow-hidden" data-zone="card-grid" bind:this={cardGridEl}>
+		<div
+			class="bg-surface/50 relative flex-1 min-h-0 overflow-hidden {compactGrid ? 'p-0' : 'p-4'}"
+			data-zone="card-grid"
+			bind:this={cardGridEl}
+		>
 			{#if compactGrid}
 				<div
-					class="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide pr-6 pb-1 pt-4"
+					class="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide pt-4 pb-1 px-0"
 					bind:this={cardScrollerEl}
 				>
 					{#each allCards as card (card.id)}
@@ -607,8 +611,20 @@
 			{/if}
 
 			{#if compactGrid && hasHorizontalOverflow}
-				<div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-surface/95 to-transparent {atScrollEnd ? 'opacity-0' : 'opacity-100'} transition-opacity"></div>
-				<div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-surface/95 to-transparent {atScrollStart ? 'opacity-0' : 'opacity-100'} transition-opacity"></div>
+				<div
+					class="pointer-events-none absolute inset-y-0 left-1 flex items-center text-muted-foreground transition-opacity {atScrollStart ? 'opacity-20' : 'opacity-80'}"
+				>
+					<div class="h-6 w-6 rounded-full border border-foreground/30 bg-surface/90 flex items-center justify-center text-xs">
+						‹
+					</div>
+				</div>
+				<div
+					class="pointer-events-none absolute inset-y-0 right-1 flex items-center text-muted-foreground transition-opacity {atScrollEnd ? 'opacity-20' : 'opacity-80'}"
+				>
+					<div class="h-6 w-6 rounded-full border border-foreground/30 bg-surface/90 flex items-center justify-center text-xs">
+						›
+					</div>
+				</div>
 			{/if}
 
 			<!-- Audit Button Overlay -->

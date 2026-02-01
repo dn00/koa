@@ -21,6 +21,7 @@ html {
 	-webkit-text-size-adjust: none;
 	-moz-text-size-adjust: none;
 	text-size-adjust: none;
+	font-size: calc(16px * var(--ui-scale, 1));
 }
 
 body {
@@ -35,14 +36,8 @@ body {
 	font-family: 'Inter', sans-serif;
 }
 
-@media (pointer: coarse) and (min-width: 900px) {
-	html {
-		font-size: 14px;
-	}
-
-	.app-shell {
-		max-width: 460px;
-	}
+.app-shell {
+	max-width: calc(560px * var(--ui-scale, 1));
 }
 
 /* ============================================
