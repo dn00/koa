@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import KoaAvatar from '$lib/components/KoaAvatar.svelte';
-import { deriveKoaMood, type KOAMood } from '$lib/utils/koaMood';
+import { deriveKoaMood, type KoaMood } from '$lib/utils/koaMood';
 import type { GameState } from '@hsh/engine-core';
 
 describe('Task 012: KOA Avatar', () => {
@@ -28,7 +28,7 @@ describe('Task 012: KOA Avatar', () => {
 		it('accepts all expected props', () => {
 			const { container } = render(KoaAvatar, {
 				props: {
-					mood: 'impressed' as KOAMood,
+					mood: 'impressed' as KoaMood,
 					isSpeaking: true,
 					size: 'hero'
 				}

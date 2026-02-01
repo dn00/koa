@@ -17,11 +17,15 @@
 		playedCards: UICard[];
 		/** Maximum number of slots */
 		maxSlots?: number;
+		/** Card currently being transmitted (shows with reveal animation) */
+		pendingCard?: UICard | null;
+		/** Reveal progress for pending card (0-1) */
+		revealProgress?: number;
 		/** Callback when a played card is clicked */
 		onCardClick?: (card: UICard) => void;
 	}
 
-	let { focusedCard, playedCards, maxSlots = 3, onCardClick }: Props = $props();
+	let { focusedCard, playedCards, maxSlots = 3, pendingCard = null, revealProgress = 0, onCardClick }: Props = $props();
 </script>
 
 <div class="h-24 relative" data-zone2-content>
@@ -40,7 +44,7 @@
 	{:else}
 		<!-- Override Sequence Mode -->
 		<div class="absolute inset-0">
-			<OverrideSequence {playedCards} {maxSlots} {onCardClick} />
+			<OverrideSequence {playedCards} {maxSlots} {pendingCard} {revealProgress} {onCardClick} />
 		</div>
 	{/if}
 </div>

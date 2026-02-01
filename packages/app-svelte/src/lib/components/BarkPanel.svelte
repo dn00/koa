@@ -2,21 +2,30 @@
 	/**
 	 * Task 016: BarkPanel Component
 	 * Task 701: T2 Suspicion Display
+	 * Audit Sequence Display
 	 *
 	 * Tabbed panel showing KOA's current bark (SYS_MSG tab) or
 	 * scenario facts (LOGS tab). Bark text uses typewriter effect.
 	 * Shows T2 suspicion line + subtitle after sequence bark completes.
+	 * Also handles T3 audit sequence display with revealed result lines.
 	 */
 
 	import { untrack } from 'svelte';
 	import Typewriter from './Typewriter.svelte';
 	import { suspicionText, suspicionShown, markSuspicionShown } from '$lib/stores/game';
 	import { fitText } from '$lib/actions/fitText';
-	import { fly, fade } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
+	import type { AuditPhase } from '@hsh/engine-core';
 
 	interface Scenario {
 		header: string;
 		facts: string[];
+	}
+
+	interface RevealedAuditLines {
+		coverage?: string;
+		independence?: string;
+		concern?: string;
 	}
 
 	interface Props {
@@ -30,10 +39,16 @@
 		turnsPlayed?: number;
 		/** Delay before typewriter starts */
 		delayStart?: boolean;
+		/** Current audit phase (null if not in audit) */
+		auditPhase?: AuditPhase;
+		/** Revealed audit result lines */
+		revealedAuditLines?: RevealedAuditLines;
 		/** Called when typewriter starts */
 		onSpeechStart?: () => void;
 		/** Called when typewriter completes */
 		onSpeechComplete?: () => void;
+		/** Called when audit bark completes (to advance phase) */
+		onAuditBarkComplete?: () => void;
 		/** Called when mode changes */
 		onModeChange: (mode: 'BARK' | 'LOGS') => void;
 	}
@@ -44,8 +59,11 @@
 		msgMode,
 		turnsPlayed = 0,
 		delayStart = false,
+		auditPhase = null,
+		revealedAuditLines = {},
 		onSpeechStart,
 		onSpeechComplete,
+		onAuditBarkComplete,
 		onModeChange
 	}: Props = $props();
 
@@ -82,6 +100,11 @@
 				suspicionLineVisible = true;
 				markSuspicionShown();
 			}, 400);
+		}
+
+		// Audit sequence: signal bark completion to advance phase
+		if (auditPhase && auditPhase !== 'ready') {
+			onAuditBarkComplete?.();
 		}
 	}
 
@@ -182,7 +205,7 @@
 					{:else}
 						<Typewriter
 							text={currentBark}
-							speed={30}
+							speed={auditPhase ? 20 : 30}
 							skipAnimation={!!typedBarks[currentBark]}
 							onStart={onSpeechStart}
 							onComplete={handleBarkComplete}
@@ -190,14 +213,48 @@
 					{/if}
 				</div>
 
-				<!-- Task 701: T2 Suspicion Display -->
+				<!-- Task 701: T2 Suspicion Display (debug style) -->
 				{#if turnsPlayed === 2 && $suspicionText && suspicionLineVisible}
-					<div class="mt-4 pt-3 border-t border-foreground/10">
-						<div
-							class="suspicion-line text-foreground/90 animate-in fade-in slide-in-from-bottom-2 duration-300"
-						>
-							{$suspicionText.line}
+					<div class="mt-3 pt-2 border-t border-foreground/10 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+						<div class="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+							Pattern detected...
 						</div>
+						<div class="text-xs font-mono text-amber-600">
+							⚠️ {$suspicionText.line}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Audit Sequence: Header + Result Lines -->
+				{#if auditPhase}
+					<div class="mt-3 pt-2 border-t border-foreground/10 space-y-1">
+						<div class="text-[10px] font-mono uppercase tracking-wider text-muted-foreground animate-in fade-in duration-200">
+							Cross-referencing...
+						</div>
+						{#if revealedAuditLines?.coverage}
+							<div
+								class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
+									{revealedAuditLines.coverage.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
+							>
+								{revealedAuditLines.coverage}
+							</div>
+						{/if}
+						{#if revealedAuditLines?.independence}
+							<div
+								class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
+									{revealedAuditLines.independence.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
+							>
+								{revealedAuditLines.independence}
+							</div>
+						{/if}
+						{#if revealedAuditLines?.concern}
+							<div
+								class="audit-line text-xs font-mono animate-in fade-in slide-in-from-bottom-1 duration-200
+									{revealedAuditLines.concern.includes('✅') ? 'text-green-600' : 'text-amber-600'}"
+							>
+								{revealedAuditLines.concern}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -225,14 +282,21 @@
 					</span>
 				</div>
 
+				<!-- Known Facts Section -->
+				<div class="mb-2">
+					<div class="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+						Known Facts
+					</div>
+				</div>
+
 				<!-- Facts List -->
-				<ul class="flex flex-col gap-1">
+				<ul class="flex flex-col gap-1.5">
 					{#each scenario.facts as fact, i}
 						<li
-							class="flex gap-2 text-foreground/90 leading-snug items-start font-sans"
+							class="flex gap-2 text-foreground/90 leading-snug items-start font-sans bg-slate-50/50 p-1.5 rounded-[2px] border-l-2 border-slate-200"
 							in:fly={{ y: 5, duration: 150, delay: i * 50 }}
 						>
-							<span class="font-mono font-bold text-foreground/50 shrink-0">
+							<span class="font-mono font-bold text-primary/70 shrink-0 text-[10px]">
 								{formatFactNumber(i)}
 							</span>
 							<span>{fact}</span>

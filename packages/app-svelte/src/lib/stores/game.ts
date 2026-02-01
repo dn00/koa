@@ -6,7 +6,7 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import type { Card, GameState, V5Puzzle, EngineError, Concern, CoverageResult, IndependenceLevel, MiniLiteTierInput, Tier } from '@hsh/engine-core';
+import type { Card, GameState, V5Puzzle, EngineError, Concern, CoverageResult, IndependenceLevel, MiniLiteTierInput, Tier, AuditPhase } from '@hsh/engine-core';
 import {
 	createGameState,
 	playCard,
@@ -172,6 +172,55 @@ export const suspicionShown = writable<boolean>(false);
  */
 export function markSuspicionShown(): void {
 	suspicionShown.set(true);
+}
+
+// ============================================================================
+// Audit Sequence State Stores
+// ============================================================================
+
+/**
+ * Current audit phase for end-game sequence.
+ * null = not in audit, 'ready' = audit complete, user can proceed
+ */
+export const auditPhase = writable<AuditPhase>(null);
+
+/**
+ * Individual audit result lines as they're revealed.
+ */
+export const revealedAuditLines = writable<{
+	coverage?: string;
+	independence?: string;
+	concern?: string;
+}>({});
+
+/**
+ * Start the audit sequence (called from RunScreen after T3 bark completes).
+ */
+export function startAuditSequence(): void {
+	auditPhase.set('auditing');
+	revealedAuditLines.set({});
+}
+
+/**
+ * Complete the audit and show the results button.
+ */
+export function completeAudit(): void {
+	auditPhase.set('ready');
+}
+
+/**
+ * Reveal an audit line result.
+ */
+export function revealAuditLine(dimension: 'coverage' | 'independence' | 'concern', line: string): void {
+	revealedAuditLines.update((lines) => ({ ...lines, [dimension]: line }));
+}
+
+/**
+ * Reset audit state (called when navigating away from run screen).
+ */
+export function resetAuditState(): void {
+	auditPhase.set(null);
+	revealedAuditLines.set({});
 }
 
 // ============================================================================
@@ -401,6 +450,10 @@ export function startGame(puzzle: V5Puzzle, _seed: number): void {
 	// Reset suspicion state stores (Task 502)
 	suspicionText.set(null);
 	suspicionShown.set(false);
+
+	// Reset audit state stores
+	auditPhase.set(null);
+	revealedAuditLines.set({});
 }
 
 /**
@@ -582,4 +635,8 @@ export function resetStores(): void {
 	// Reset suspicion state stores (Task 502)
 	suspicionText.set(null);
 	suspicionShown.set(false);
+
+	// Reset audit state stores
+	auditPhase.set(null);
+	revealedAuditLines.set({});
 }

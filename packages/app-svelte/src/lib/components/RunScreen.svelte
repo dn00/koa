@@ -6,21 +6,32 @@
 	 *
 	 * Orchestrates V5 gameplay: 3 turns of card play followed by Final Audit.
 	 * Uses panel-based layout with KOA avatar + bark side-by-side.
-	 * After T3, shows FinalAuditPanel before navigating to result.
+	 * After T3, runs audit sequence in BarkPanel, then shows View Results button.
 	 */
 
 	import { goto } from '$app/navigation';
 	import type { V5Puzzle } from '@hsh/engine-core';
+	import {
+		coverageLines,
+		independenceLines,
+		getConcernLine
+	} from '@hsh/engine-core';
 	import {
 		gameState,
 		phase,
 		mode,
 		playCardAction,
 		axisResults,
+		auditPhase,
+		revealedAuditLines,
+		startAuditSequence,
+		completeAudit,
+		revealAuditLine,
+		resetAuditState,
 		type UICard
 	} from '$lib/stores/game';
 	import { tick } from 'svelte';
-	import { getEvidenceTypeLabel, EVIDENCE_TYPE_HEX } from '$lib/utils/evidenceTypes';
+	import { EVIDENCE_TYPE_HEX } from '$lib/utils/evidenceTypes';
 	import { deriveKoaMood, type KoaMood } from '$lib/utils/koaMood';
 	import { animateCardPlay } from '$lib/animations/gsap';
 	import KoaAvatar from './KoaAvatar.svelte';
@@ -28,7 +39,7 @@
 	import Zone2Display from './Zone2Display.svelte';
 	import ActionBar from './ActionBar.svelte';
 	import EvidenceCard from './EvidenceCard.svelte';
-	import FinalAuditPanel from './FinalAuditPanel.svelte';
+	import Zone3AuditButton from './Zone3AuditButton.svelte';
 
 	interface Props {
 		/** The puzzle being played */
@@ -63,6 +74,8 @@
 	let portalFlashColor = $state('#E07A5F'); // Flash color based on card type
 	let inspectedCard = $state<UICard | null>(null); // Clicked card from played slots
 	let openingBarkComplete = $state(false); // Track when first bark finishes for LOG flash
+	let pendingCard = $state<UICard | null>(null); // Card being revealed in slot
+	let revealProgress = $state(0); // 0-1 progress of card reveal animation
 
 	// Start initial delay timer on mount
 	$effect(() => {
@@ -75,13 +88,21 @@
 	// Task 022: KOA mood override during processing
 	let moodOverride = $state<KoaMood | null>(null);
 
-	// Task 901: Final Audit Panel state (component-local animation phase)
-	let showFinalAudit = $state(false);
+	// Derive whether to show audit proceed button
+	let showAuditButton = $derived($auditPhase === 'ready');
 
 	// Initialize bark from puzzle opening line
 	$effect(() => {
 		if (puzzle.openingLine) {
 			currentBark = puzzle.openingLine;
+		}
+	});
+
+	// When audit starts, trigger the result reveal (T3 bark stays visible)
+	$effect(() => {
+		if ($auditPhase === 'auditing') {
+			// Delay then reveal results - T3 bark stays as currentBark
+			setTimeout(() => handleAuditBarkComplete(), 600);
 		}
 	});
 
@@ -196,11 +217,11 @@
 			clearTimeout(focusTimeoutId);
 			focusTimeoutId = null;
 		}
-		
+
 		// Ensure slots are visible before animating
 		const wasFocused = focusedCard !== null;
 		focusedCard = null;
-		
+
 		if (wasFocused) {
 			await tick();
 		}
@@ -208,21 +229,41 @@
 		// Task 022: Set KOA mood to PROCESSING (receiving data)
 		moodOverride = 'PROCESSING';
 
-		// Task 022: Get card element and slot for animation
+		// Set pending card immediately so it shows in the slot
+		pendingCard = card;
+		revealProgress = 0;
+
+		// Get card element for pulse animation
 		const cardElement = document.querySelector(`[data-card-id="${selectedCardId}"]`) as HTMLElement;
-		const slotElement = document.querySelector('[data-slot-filled="false"]') as HTMLElement;
+		const color = EVIDENCE_TYPE_HEX[card.evidenceType] || '#3b82f6';
 
-		console.log('[RunScreen] Animation elements:', { cardElement, slotElement });
+		// Start animations on next frame (after DOM updates with pending card)
+		requestAnimationFrame(() => {
+			// Get slot element (now has pending card)
+			const slotElement = document.querySelector('[data-slot-pending="true"]') as HTMLElement;
 
-		// Task 022: Animate card play if elements exist
-		if (cardElement && slotElement) {
-			const color = EVIDENCE_TYPE_HEX[card.evidenceType] || '#3b82f6';
-			console.log('[RunScreen] Animating with color:', color);
-			animateCardPlay(cardElement, slotElement, color);
-		} else {
-			console.warn('[RunScreen] Missing animation elements, skipping animation');
-		}
+			// Animate card pulse and slot energy fill
+			if (cardElement && slotElement) {
+				animateCardPlay(cardElement, slotElement, color);
+			}
 
+			// Animate reveal progress from 0 to 1
+			const startTime = performance.now();
+			const duration = TIMING.energyFill;
+
+			function animateReveal(currentTime: number) {
+				const elapsed = currentTime - startTime;
+				const progress = Math.min(elapsed / duration, 1);
+
+				// Easing function (ease-out) - same as GSAP power2.out
+				revealProgress = 1 - Math.pow(1 - progress, 2);
+
+				if (progress < 1) {
+					requestAnimationFrame(animateReveal);
+				}
+			}
+			requestAnimationFrame(animateReveal);
+		});
 
 		// Determine if final turn (for longer dramatic pause)
 		const currentTurns = $gameState?.turnsPlayed || 0;
@@ -234,13 +275,14 @@
 
 		// Task 022: After animation + thinking, KOA responds
 		setTimeout(() => {
+			// Clear pending card before playing (so state update shows the real card)
+			pendingCard = null;
+			revealProgress = 0;
+
 			// Play the card (updates game state)
 			const result = playCardAction(selectedCardId!, card);
 
 			if (result.ok) {
-				// Update bark with KOA response
-				currentBark = result.value.koaResponse || getDefaultResponse($gameState?.turnsPlayed || 0);
-
 				// Trigger portal flash effect after successful transmission
 				portalFlashColor = EVIDENCE_TYPE_HEX[card.evidenceType] || '#E07A5F';
 				portalFlash = true;
@@ -252,21 +294,14 @@
 				// Otherwise clear the processing mood
 				if (result.value.typeTaxApplied) {
 					moodOverride = 'DISAPPOINTED';
-					// Mood clears when player selects next card (see handleCardClick)
 				} else {
 					moodOverride = null;
 				}
 
 				selectedCardId = null;
 
-				// Task 901: Check if game is over - show Final Audit panel
-				if ($phase === 'RESULT') {
-					// Show Final Audit panel instead of immediate navigation
-					// Navigation happens after FinalAuditPanel animation completes
-					setTimeout(() => {
-						showFinalAudit = true;
-					}, TIMING.verdictTransition);
-				}
+				// Update bark with KOA response (T3 bark will trigger audit after completion)
+				currentBark = result.value.koaResponse || getDefaultResponse($gameState?.turnsPlayed || 0);
 			} else {
 				moodOverride = null;
 			}
@@ -301,6 +336,10 @@
 		if (!openingBarkComplete && ($gameState?.turnsPlayed ?? 0) === 0) {
 			openingBarkComplete = true;
 		}
+		// Start audit after T3 bark completes (with delay)
+		if ($phase === 'RESULT' && !$auditPhase) {
+			setTimeout(() => startAuditSequence(), 500);
+		}
 	}
 
 	// Confirmation dialog state
@@ -329,19 +368,25 @@
 		return playedCards.some((pc) => pc.id === cardId);
 	}
 
-	// Task 901: Handle Final Audit panel completion
-	function handleFinalAuditComplete() {
-		console.log('[RunScreen] Final Audit complete, navigating to result');
-		goto('/result');
+	// Handle audit bark completion - reveal all result lines and complete
+	function handleAuditBarkComplete() {
+		// Reveal all 3 lines sequentially
+		const coverageLine = $axisResults?.coverage.status === 'complete'
+			? coverageLines.complete
+			: coverageLines.gap;
+		const independenceLine = $axisResults?.independence === 'diverse'
+			? independenceLines.diverse
+			: independenceLines.correlated;
+		const concernHit = $axisResults?.concernHit ?? false;
+		const noConcern = $axisResults?.noConcern ?? false;
+		const concernLine = getConcernLine(concernHit, noConcern);
+
+		setTimeout(() => revealAuditLine('coverage', coverageLine), 300);
+		setTimeout(() => revealAuditLine('independence', independenceLine), 700);
+		setTimeout(() => revealAuditLine('concern', concernLine), 1100);
+		setTimeout(() => completeAudit(), 1600);
 	}
 
-	// Task 901: Derived props for FinalAuditPanel
-	let finalAuditProps = $derived({
-		coverageComplete: $axisResults?.coverage.status === 'complete',
-		independenceOk: $axisResults?.independence === 'diverse',
-		concernHit: $axisResults?.concernHit ?? false,
-		noConcern: $axisResults?.noConcern ?? false
-	});
 </script>
 
 <div
@@ -400,8 +445,11 @@
 				{msgMode}
 				turnsPlayed={$gameState?.turnsPlayed ?? 0}
 				delayStart={isInitializing}
+				auditPhase={$auditPhase}
+				revealedAuditLines={$revealedAuditLines}
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
+				onAuditBarkComplete={handleAuditBarkComplete}
 				onModeChange={(m) => (msgMode = m)}
 			/>
 		</div>
@@ -429,7 +477,7 @@
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 					</svg>
-					DATA_ANALYSIS_PREVIEW
+					RECEIPT_ANALYSIS
 				</div>
 			{:else}
 				<div class="text-[10px] font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider">
@@ -446,12 +494,14 @@
 		<Zone2Display
 			focusedCard={focusedCard || inspectedCard}
 			{playedCards}
+			{pendingCard}
+			{revealProgress}
 			maxSlots={3}
 			onCardClick={(card) => (inspectedCard = card)}
 		/>
 	</div>
 
-	<!-- Zone 3: Card Tray -->
+	<!-- Zone 3: Card Tray / Audit Button -->
 	<div
 		class="shrink-0 bg-surface border-t-2 border-foreground relative z-30 flex flex-col pb-4"
 		data-zone="card-tray"
@@ -459,7 +509,7 @@
 		<!-- Action Bar -->
 		<div data-zone="action-bar">
 			<ActionBar
-				selectedCardId={isProcessing || isInitializing ? null : selectedCardId}
+				selectedCardId={isProcessing || isInitializing || showAuditButton ? null : selectedCardId}
 				{msgMode}
 				shouldFlashLogs={openingBarkComplete}
 				onTransmit={handleTransmit}
@@ -467,8 +517,8 @@
 			/>
 		</div>
 
-		<!-- Card Grid -->
-		<div class="p-4 bg-surface/50" data-zone="card-grid">
+		<!-- Card Grid or Audit Button -->
+		<div class="p-4 bg-surface/50 relative min-h-60" data-zone="card-grid">
 			<div class="grid grid-cols-3 md:grid-cols-6 gap-3">
 				{#each allCards as card (card.id)}
 					{@const isPlayed = isCardPlayed(card.id)}
@@ -484,27 +534,23 @@
 							variant="icon"
 							mode={$mode}
 							isSelected={selectedCardId === card.id && !isPlayed}
-							disabled={isPlayed || isProcessing}
-							onClick={() => !isPlayed && handleCardClick(card.id)}
-							onFocus={() => !isPlayed && handleCardFocus(card)}
+							disabled={isPlayed || isProcessing || showAuditButton}
+							onClick={() => !isPlayed && !showAuditButton && handleCardClick(card.id)}
+							onFocus={() => !isPlayed && !showAuditButton && handleCardFocus(card)}
 							onBlur={handleCardBlur}
 						/>
 					</div>
 				{/each}
 			</div>
+
+			<!-- Audit Button Overlay -->
+			{#if showAuditButton}
+				<div class="absolute inset-0 flex items-center justify-center bg-surface/95" data-zone="audit-proceed">
+					<Zone3AuditButton onProceed={() => { resetAuditState(); goto('/result'); }} />
+				</div>
+			{/if}
 		</div>
 	</div>
-
-	<!-- Task 901: Final Audit Panel (shown after T3 before navigating to Result) -->
-	{#if showFinalAudit}
-		<FinalAuditPanel
-			coverageComplete={finalAuditProps.coverageComplete}
-			independenceOk={finalAuditProps.independenceOk}
-			concernHit={finalAuditProps.concernHit}
-			noConcern={finalAuditProps.noConcern}
-			onComplete={handleFinalAuditComplete}
-		/>
-	{/if}
 
 	<!-- Exit Confirmation Dialog -->
 	{#if showExitConfirm}

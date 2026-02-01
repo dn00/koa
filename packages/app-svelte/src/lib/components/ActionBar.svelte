@@ -57,7 +57,7 @@
 
 <div class="h-12 border-b border-foreground/10 flex items-center justify-between px-4 bg-muted/5">
 	<span class="text-[10px] font-mono font-bold uppercase text-muted-foreground tracking-wider">
-		AVAILABLE VARIABLES
+		AVAILABLE RECEIPTS
 	</span>
 
 	<div class="flex items-center gap-2">

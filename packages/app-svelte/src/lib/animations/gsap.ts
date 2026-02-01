@@ -183,78 +183,140 @@ export function animateCardPlay(
 	const b = parseInt(hex.substring(4, 6), 16);
 	const rgb = `${r}, ${g}, ${b}`;
 
-	// Create energy fill overlay element
-	const energyFill = document.createElement('div');
-	// Task: Modern Brutalist Update - Hatched Pattern, Hard Edges, No Blur
-	energyFill.style.cssText = `
+	// Create energy fill container
+	const energyContainer = document.createElement('div');
+	energyContainer.style.cssText = `
 		position: absolute;
 		bottom: 0;
 		left: 0;
 		right: 0;
 		height: 0%;
-		background-color: transparent;
-		background-image: repeating-linear-gradient(
-			45deg,
-			rgba(${rgb}, 0.15) 0px,
-			rgba(${rgb}, 0.15) 2px,
-			transparent 2px,
-			transparent 8px
-		);
 		pointer-events: none;
-		z-index: 10;
-		border-top: 2px solid ${color};
+		z-index: 5;
+		overflow: hidden;
 	`;
+
+	// Main energy fill with animated gradient
+	const energyFill = document.createElement('div');
+	energyFill.style.cssText = `
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			0deg,
+			${color} 0%,
+			rgba(${rgb}, 0.8) 20%,
+			rgba(${rgb}, 0.4) 60%,
+			rgba(${rgb}, 0.1) 100%
+		);
+	`;
+
+	// Scanline overlay for tech feel
+	const scanlines = document.createElement('div');
+	scanlines.style.cssText = `
+		position: absolute;
+		inset: 0;
+		background-image: repeating-linear-gradient(
+			0deg,
+			transparent 0px,
+			transparent 2px,
+			rgba(0, 0, 0, 0.1) 2px,
+			rgba(0, 0, 0, 0.1) 4px
+		);
+		animation: energyScan 0.1s linear infinite;
+	`;
+
+	// Bright edge at top
+	const topEdge = document.createElement('div');
+	topEdge.style.cssText = `
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 4px;
+		background: linear-gradient(0deg, ${color}, #FFFFFF);
+		box-shadow: 0 0 10px ${color}, 0 0 20px ${color}, 0 0 30px rgba(${rgb}, 0.5);
+	`;
+
+	// Add CSS animation if not already present
+	if (!document.getElementById('energy-animation-styles')) {
+		const style = document.createElement('style');
+		style.id = 'energy-animation-styles';
+		style.textContent = `
+			@keyframes energyScan {
+				0% { transform: translateY(0); }
+				100% { transform: translateY(4px); }
+			}
+			@keyframes energyPulse {
+				0%, 100% { opacity: 0.8; }
+				50% { opacity: 1; }
+			}
+		`;
+		document.head.appendChild(style);
+	}
+
+	energyContainer.appendChild(energyFill);
+	energyContainer.appendChild(scanlines);
+	energyContainer.appendChild(topEdge);
 
 	// Make slot position relative if not already
 	const originalPosition = slot.style.position;
 	slot.style.position = 'relative';
-	slot.appendChild(energyFill);
+	slot.appendChild(energyContainer);
 
 	// Slot: energy fill from bottom effect
 	const slotTween = gsap.timeline({
 		onComplete: () => {
-			// Clean up energy fill element
-			energyFill.remove();
+			// Clean up energy elements
+			energyContainer.remove();
 			slot.style.position = originalPosition;
 		}
 	});
 
 	slotTween
-		// Start with slot slightly transparent
-		.set(slot, { opacity: 0.3 })
-		// Energy fills from bottom
-		.to(energyFill, {
+		// Energy fills from bottom - use full duration to sync with card reveal
+		.to(energyContainer, {
 			height: '100%',
-			duration: duration * 0.5,
-			ease: 'power2.inOut'
-		})
-		// Flash bright at peak - Hard edge flash, no blur
-		.to(energyFill, {
-			backgroundColor: `rgba(${rgb}, 0.1)`, // Slight base tint
-			borderTopColor: '#FFFFFF', // White hot top edge
-			duration: duration * 0.15,
-			ease: 'steps(2)' // Stutter flash for brutalist feel
-		}, '-=0.1')
-		// Slot content fades in as energy peaks
-		.to(slot, {
-			opacity: 1,
-			duration: duration * 0.2,
+			duration: duration,
 			ease: 'power2.out'
+		})
+		// Flash bright at peak
+		.to(topEdge, {
+			boxShadow: `0 0 20px #FFFFFF, 0 0 40px ${color}, 0 0 60px ${color}`,
+			duration: 0.15,
+			ease: 'power2.in'
 		}, '-=0.15')
-		// Energy dissipates upward
+		// Quick flash of the whole thing
+		.to(energyFill, {
+			opacity: 1.5,
+			duration: 0.1,
+		}, '-=0.1')
+		// Energy dissipates
 		.to(energyFill, {
 			opacity: 0,
-			duration: duration * 0.3,
+			duration: duration * 0.1,
 			ease: 'power2.out'
-		})
-		// Subtle scale pulse on completion
-		.fromTo(slot,
-			{ scale: 1.02 },
-			{ scale: 1, duration: duration * 0.2, ease: 'back.out(2)' }, // Snappier landing
-			'-=0.2'
-		);
+		});
 
 	return { cardTween, slotTween };
+}
+
+/**
+ * Animate card appearing in slot after being played.
+ * Call this when the card content appears in the slot.
+ *
+ * @param slotContent - The card content element inside the slot
+ */
+export function animateCardReveal(slotContent: HTMLElement): gsap.core.Tween {
+	const duration = getEffectiveDuration(300) / 1000;
+
+	return gsap.from(slotContent, {
+		scale: 0.8,
+		opacity: 0,
+		y: 10,
+		duration,
+		ease: EASE.SPRING,
+		clearProps: 'all'
+	});
 }
 
 // ============================================================================

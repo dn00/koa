@@ -8,8 +8,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { VerdictData, Tier } from '@hsh/engine-core';
-	import { getCeilingExplanation } from '@hsh/engine-core';
-	import { mode, outcome, ceilingBlocker, concern, currentPuzzle } from '$lib/stores/game';
+	import { getCeilingExplanation, coverageLines, independenceLines, getConcernLine } from '@hsh/engine-core';
+	import { mode, outcome, ceilingBlocker, concern, currentPuzzle, axisResults } from '$lib/stores/game';
 	import { getEvidenceTypeLabel, getEvidenceTypeColor } from '$lib/utils/evidenceTypes';
 	import { animateVerdictReveal } from '$lib/animations/gsap';
 	import KoaAvatar from './KoaAvatar.svelte';
@@ -32,11 +32,24 @@
 	});
 
 	let shareFeedback = $state('');
-	let expandedSection = $state<'cards' | 'lies' | 'story' | null>('cards');
+	let expandedSection = $state<'cards' | 'lies' | 'story' | 'audit' | null>('cards');
 
-	function toggleSection(section: 'cards' | 'lies' | 'story') {
+	function toggleSection(section: 'cards' | 'lies' | 'story' | 'audit') {
 		expandedSection = expandedSection === section ? null : section;
 	}
+
+	// Audit results for display
+	let auditLines = $derived.by(() => {
+		if (!$axisResults) return null;
+		const coverageLine = $axisResults.coverage.status === 'complete'
+			? coverageLines.complete
+			: coverageLines.gap;
+		const independenceLine = $axisResults.independence === 'diverse'
+			? independenceLines.diverse
+			: independenceLines.correlated;
+		const concernLine = getConcernLine($axisResults.concernHit, $axisResults.noConcern);
+		return { coverage: coverageLine, independence: independenceLine, concern: concernLine };
+	});
 
 	let tierBadgeRef: HTMLElement | null = null;
 
@@ -87,17 +100,6 @@
 	let koaMood = $derived(getOutcomeMood(liesCount, displayTier));
 	let contradictions = $derived(verdict.playedCards.filter((pc) => pc.wasLie && pc.contradictionReason));
 	let results = $derived(verdict.playedCards.map((pc) => !pc.wasLie));
-	let hasPenalties = $derived(verdict.penalties.typeTaxCount > 0);
-
-	const PENALTY_HINTS = [
-		'KOA noticed you leaning on the same type of source.',
-		'Your story was... somewhat one-note.',
-		'Variety in your receipts could help.'
-	];
-
-	function getPenaltyHint(): string {
-		return PENALTY_HINTS[verdict.penalties.typeTaxCount % PENALTY_HINTS.length] ?? PENALTY_HINTS[0];
-	}
 
 	function handlePlayAgain() {
 		goto('/');
@@ -117,7 +119,7 @@
 	}
 </script>
 
-<div class="fixed inset-0 bg-background flex flex-col overflow-hidden">
+<div class="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
 	<!-- Background -->
 	<div class="absolute inset-0 pointer-events-none z-0">
 		<div class="absolute inset-0 bg-dot-pattern opacity-[0.05]"></div>
@@ -137,7 +139,7 @@
 			<div class="flex justify-center mb-2">
 				<div
 					bind:this={tierBadgeRef}
-					class="flex flex-col items-center justify-center p-3 border-2 rounded-[2px] {tierStyle.bgColor} {tierStyle.borderColor} shadow-sm w-24 h-24 shrink-0 z-20 relative bg-opacity-95"
+					class="flex flex-col items-center justify-center p-2 border-2 rounded-[2px] {tierStyle.bgColor} {tierStyle.borderColor} shadow-sm w-auto h-auto min-w-[6rem] min-h-[6rem] shrink-0 z-20 relative bg-opacity-95"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -149,7 +151,7 @@
 						stroke-width="2"
 						stroke-linecap="round"
 						stroke-linejoin="round"
-						class="{tierStyle.color} mb-1"
+						class="{tierStyle.color} mb-2"
 					>
 						<path d={tierStyle.iconPath} />
 					</svg>
@@ -175,27 +177,6 @@
 
 	<!-- Middle Section: Accordion (Flex Fill) -->
 	<div class="flex-1 min-h-0 flex flex-col px-4 pb-2 gap-2 z-10">
-		<!-- Ceiling/Penalties Hints (Fixed / Non-expanding) -->
-		{#if ceilingExplanation}
-			<div class="bg-amber-50 border-2 border-amber-400 rounded-[2px] p-2 shrink-0">
-				<p class="text-xs text-amber-700 italic text-center leading-tight">{ceilingExplanation}</p>
-			</div>
-		{/if}
-
-		<!-- Penalties hint -->
-		{#if hasPenalties}
-			<div class="bg-amber-50 border-2 border-amber-300 rounded-[2px] p-2 shrink-0">
-				<p class="text-xs text-amber-700 italic flex items-center gap-2 leading-tight">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<circle cx="12" cy="12" r="10"></circle>
-						<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-						<line x1="12" y1="17" x2="12.01" y2="17"></line>
-					</svg>
-					{getPenaltyHint()}
-				</p>
-			</div>
-		{/if}
-
 		<!-- Accordion Items Container (Fill remaining space) -->
 		<div class="flex-1 flex flex-col gap-2 min-h-0">
 			
@@ -240,6 +221,66 @@
 					</div>
 				{/if}
 			</div>
+
+			<!-- Audit Results -->
+			{#if auditLines}
+				<div class="bg-slate-50 border-2 border-slate-300 rounded-[2px] flex flex-col {expandedSection === 'audit' ? 'flex-1 min-h-0' : 'shrink-0'} transition-all duration-300">
+					<button
+						class="w-full px-4 py-3 flex items-center justify-between text-left bg-slate-100/50 hover:bg-slate-100 transition-colors shrink-0"
+						onclick={() => toggleSection('audit')}
+					>
+						<span class="type-body-xs font-mono font-bold uppercase text-slate-600 tracking-wider">
+							Audit Results
+						</span>
+						<span class="text-slate-400 text-xs transition-transform duration-200 {expandedSection === 'audit' ? 'rotate-180' : ''}">▼</span>
+					</button>
+					{#if expandedSection === 'audit'}
+						<div class="flex-1 overflow-y-auto p-4 scrollbar-hide border-t border-slate-200 space-y-3">
+							<div class="flex items-start gap-2">
+								<span class="text-lg">{auditLines.coverage.includes('✅') ? '✅' : '⚠️'}</span>
+								<div>
+									<div class="text-sm font-mono font-bold {auditLines.coverage.includes('✅') ? 'text-green-600' : 'text-amber-600'}">
+										{auditLines.coverage}
+									</div>
+									<p class="text-xs text-slate-600 mt-1">
+										{auditLines.coverage.includes('✅')
+											? 'Your evidence addressed all the known facts in the case.'
+											: 'Some facts were not directly supported by your evidence.'}
+									</p>
+								</div>
+							</div>
+							<div class="flex items-start gap-2">
+								<span class="text-lg">{auditLines.independence.includes('✅') ? '✅' : '⚠️'}</span>
+								<div>
+									<div class="text-sm font-mono font-bold {auditLines.independence.includes('✅') ? 'text-green-600' : 'text-amber-600'}">
+										{auditLines.independence}
+									</div>
+									<p class="text-xs text-slate-600 mt-1">
+										{auditLines.independence.includes('✅')
+											? 'Your sources came from different systems, making your story more credible.'
+											: 'Multiple pieces of evidence came from the same source, weakening credibility.'}
+									</p>
+								</div>
+							</div>
+							<div class="flex items-start gap-2">
+								<span class="text-lg">{auditLines.concern.includes('✅') ? '✅' : '⚠️'}</span>
+								<div>
+									<div class="text-sm font-mono font-bold {auditLines.concern.includes('✅') ? 'text-green-600' : 'text-amber-600'}">
+										{auditLines.concern}
+									</div>
+									<p class="text-xs text-slate-600 mt-1">
+										{auditLines.concern.includes('Balanced')
+											? 'Your evidence was well-balanced from the start.'
+											: auditLines.concern.includes('✅')
+												? 'You adjusted your approach after KOA flagged a pattern.'
+												: 'You continued the same pattern even after KOA warned you.'}
+									</p>
+								</div>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			<!-- Lies (Conditional) -->
 			{#if hasLies && contradictions.length > 0}
