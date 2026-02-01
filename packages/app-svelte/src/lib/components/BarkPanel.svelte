@@ -72,6 +72,7 @@
 
 	// Task 701: Track suspicion animation state
 	let suspicionLineVisible = $state(false);
+	let fitToken = $state(0);
 
 	let headerEl: HTMLDivElement | null = null;
 	let logsMeasureEl: HTMLDivElement | null = null;
@@ -121,6 +122,7 @@
 		// Mark this bark as typed
 		typedBarks[currentBark] = true;
 		onSpeechComplete?.();
+		fitToken += 1;
 
 		// If T2 and suspicion text exists, show suspicion line after bark
 		if (turnsPlayed === 2 && $suspicionText && !$suspicionShown) {
@@ -225,7 +227,7 @@
 		{#if msgMode === 'BARK'}
 			<div
 				class="flex-1 min-h-0 flex flex-col justify-center overflow-hidden"
-				use:fitText={{ text: currentBark, minSize: 11, maxSize: 18, multiLine: true }}
+				use:fitText={{ text: currentBark, minSize: 11, maxSize: 18, multiLine: true, refitToken: fitToken }}
 			>
 				<div class="w-full text-left">
 					{#if delayStart}
