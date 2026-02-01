@@ -30,6 +30,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set base path
+        run: |
+          if [ -z "${BASE_PATH:-}" ]; then
+            REPO="${{ github.event.repository.name }}"
+            OWNER="${{ github.repository_owner }}"
+            if [ "$REPO" = "${OWNER}.github.io" ]; then
+              echo "BASE_PATH=" >> $GITHUB_ENV
+            else
+              echo "BASE_PATH=/$REPO" >> $GITHUB_ENV
+            fi
+          else
+            echo "BASE_PATH=$BASE_PATH" >> $GITHUB_ENV
+          fi
+
       - name: Build engine-core
         run: npm run build -w @hsh/engine-core
 
