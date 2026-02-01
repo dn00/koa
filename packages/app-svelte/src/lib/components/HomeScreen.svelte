@@ -109,7 +109,7 @@
 								{difficulty}
 							</span>
 						</div>
-						<p class="text-xs leading-relaxed line-clamp-2 text-muted-foreground">
+						<p class="text-xs leading-relaxed text-muted-foreground">
 							{puzzle.scenario}
 						</p>
 						{#if selectedPuzzleSlug === puzzle.slug}

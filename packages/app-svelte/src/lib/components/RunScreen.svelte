@@ -455,7 +455,7 @@
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 					</svg>
-					RECEIPT_ANALYSIS
+					EVIDENCE_ANALYSIS
 				</div>
 			{:else}
 				<div class="text-[10px] font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider">

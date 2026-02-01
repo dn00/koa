@@ -57,13 +57,13 @@
 
 <div class="h-12 border-b border-foreground/10 flex items-center justify-between px-4 bg-muted/5">
 	<span class="text-[10px] font-mono font-bold uppercase text-muted-foreground tracking-wider">
-		AVAILABLE RECEIPTS
+		EVIDENCE
 	</span>
 
 	<div class="flex items-center gap-2">
 		<button
 			onclick={handleToggle}
-			class="h-8 px-3 text-xs font-mono font-bold uppercase rounded-[2px] border bg-surface text-foreground hover:bg-white hover:shadow-sm transition-all flex items-center gap-2
+			class="h-8 px-3 text-xs font-mono font-bold uppercase rounded-[2px] border bg-surface text-foreground hover:bg-white hover:shadow-sm transition-all flex items-center gap-2 whitespace-nowrap shrink-0
 				{isFlashing && msgMode === 'BARK' ? 'border-primary shadow-[0_0_15px_rgba(224,122,95,0.6)] animate-pulse' : 'border-foreground/20'}"
 		>
 			{#if msgMode === 'LOGS'}
@@ -119,4 +119,3 @@
 		</button>
 	</div>
 </div>
-
