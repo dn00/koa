@@ -24,12 +24,18 @@ import { PUZZLE_BIDET } from './bidet-puzzle.js';
 import { PUZZLE_BEAN_BONANZA } from './bean-bonanza-puzzle.js';
 import { PUZZLE_TAP_OUT } from './tap-out-puzzle.js';
 import { PUZZLE_SMEAR_CAMPAIGN } from './smear-campaign-puzzle.js';
+import { PUZZLE_RACCOON_RAID } from './raccoon-raid-puzzle.js';
+import { PUZZLE_MILKY_WAY } from './milky-way-puzzle.js';
+import { PUZZLE_BEAN_THERE } from './bean-there-puzzle.js';
 
 /**
  * All V5 puzzles for the builtin pack.
  * Only v1 Lite puzzles with complete axis fields.
  */
 const V5_PUZZLES: readonly V5Puzzle[] = [
+  PUZZLE_MILKY_WAY,
+  PUZZLE_RACCOON_RAID,
+  PUZZLE_BEAN_THERE,
   PUZZLE_BIDET,
   PUZZLE_BEAN_BONANZA,
   PUZZLE_TAP_OUT,

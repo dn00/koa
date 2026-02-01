@@ -1454,6 +1454,88 @@ export function formatPuzzleStats(stats: V1LitePuzzleStats, target: number = 57)
 }
 
 // ============================================================================
+// Task 408b: Duplicate Key Detection (V28)
+// ============================================================================
+
+/**
+ * V28: Check for duplicate keys in koaBarks objects.
+ * Since JS objects can't have duplicate keys at runtime (later values overwrite earlier ones),
+ * we detect duplicates by comparing actual key count vs expected count.
+ */
+export function checkNoDuplicateKeys(
+  cards: readonly V1LiteCard[],
+  lies: readonly V1LiteLieInfo[],
+  barks: V1LiteKoaBarks | undefined
+): V1LiteCheck {
+  if (!barks) {
+    return {
+      id: 'V28',
+      label: 'No duplicate keys',
+      passed: true,
+      detail: 'no barks to check',
+      severity: 'error',
+    };
+  }
+
+  const issues: string[] = [];
+  const cardIds = cards.map((c) => c.id);
+
+  // Check sequences: should have exactly 30 keys (6 * 5 ordered pairs)
+  if (barks.sequences) {
+    const actualCount = Object.keys(barks.sequences).length;
+    const expectedCount = cardIds.length * (cardIds.length - 1); // 6 * 5 = 30
+    if (actualCount < expectedCount) {
+      issues.push(`sequences has ${actualCount} keys, expected ${expectedCount} (possible duplicates)`);
+    }
+  }
+
+  // Check cardPlayed: should have exactly 6 keys
+  if (barks.cardPlayed) {
+    const actualCount = Object.keys(barks.cardPlayed).length;
+    const expectedCount = cardIds.length; // 6
+    if (actualCount < expectedCount) {
+      issues.push(`cardPlayed has ${actualCount} keys, expected ${expectedCount} (possible duplicates)`);
+    }
+  }
+
+  // Check objectionPrompt: should have exactly 6 keys
+  if (barks.objectionPrompt) {
+    const actualCount = Object.keys(barks.objectionPrompt).length;
+    const expectedCount = cardIds.length; // 6
+    if (actualCount < expectedCount) {
+      issues.push(`objectionPrompt has ${actualCount} keys, expected ${expectedCount} (possible duplicates)`);
+    }
+  }
+
+  // Check liesRevealed: should have lie count + 2 keys (each lie + 'multiple' + 'all')
+  if (barks.liesRevealed) {
+    const actualCount = Object.keys(barks.liesRevealed).length;
+    const expectedCount = lies.length + 2; // 3 lies + 'multiple' + 'all' = 5
+    if (actualCount < expectedCount) {
+      issues.push(`liesRevealed has ${actualCount} keys, expected ${expectedCount} (possible duplicates)`);
+    }
+  }
+
+  if (issues.length === 0) {
+    return {
+      id: 'V28',
+      label: 'No duplicate keys',
+      passed: true,
+      detail: 'all bark objects have expected key counts',
+      severity: 'error',
+    };
+  }
+
+  return {
+    id: 'V28',
+    label: 'No duplicate keys',
+    passed: false,
+    detail: issues.join('; '),
+    severity: 'error',
+  };
+}
+
+// ============================================================================
 // Task 409: Puzzle Structure Checks (V26)
 // ============================================================================
 
@@ -1571,6 +1653,7 @@ export function validateV1Lite(
     checks.push(checkCardPlayedBarkCompleteness(cards, koaBarks));
     checks.push(checkStoryAndLiesBarks(lies, koaBarks));
     checks.push(checkDialogueSafety(dialogue, koaBarks));
+    checks.push(checkNoDuplicateKeys(cards, lies, koaBarks));
   }
 
   // Task 409: Puzzle Structure Checks (only if puzzle provided)

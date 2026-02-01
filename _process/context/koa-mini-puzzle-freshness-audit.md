@@ -17,7 +17,7 @@ Sort puzzle files by modification date and read the 3 most recent (excluding the
 ls -t packages/engine-core/src/packs/*-puzzle.ts | head -4
 ```
 
-Read those 3 puzzles and note their voice patterns before auditing the new puzzle.
+Read those 3 puzzles fully and note their voice patterns before auditing the new puzzle.
 
 ## Step 2: Build Voice Profiles
 
@@ -25,6 +25,7 @@ For each of the 3 recent puzzles, identify:
 - **Voice style** (deadpan, technical, absurdist, etc.)
 - **Signature phrases** (recurring patterns in their barks)
 - **Humor angle** (what makes it funny)
+- **time of scenario** (3:14 AM, etc)
 
 The new puzzle must feel distinct from these 3.
 
@@ -49,7 +50,7 @@ If you read the 4 puzzles back-to-back, would a player notice they have differen
 
 **Red flags:**
 - Same device as another puzzle (vacuum, thermostat, etc.)
-- Same time-of-day hook
+- Relies on specific time (3 AM, midnight) as main hook
 - Same "someone else did it" structure
 
 ### 2. Voice Differentiation

@@ -90,8 +90,9 @@ Reserved for time-based puzzles in Advanced mode. Not currently used.
 
 Vary the hook. Not every puzzle needs to be "suspicious activity at 2am."
 
-### Suspicious Time (default, use sparingly)
+### Suspicious Time (DEPRECATED)
 Something happened at an odd hour.
+**Avoid using this archetype unless necessary.** Time-based puzzles are overused.
 - "Garage door opened at 2:17 AM"
 - "Printer ran 16 pages at 3 AM"
 - "Thermostat changed at midnight"
