@@ -17,6 +17,11 @@
 	--color-border: #E5E7EB;
 }
 
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+
 body {
 	background-color: #F9FAFB;
 	color: #2D3142;
@@ -380,4 +385,3 @@ body {
 .pb-safe-bottom {
 	padding-bottom: env(safe-area-inset-bottom, 20px);
 }
-

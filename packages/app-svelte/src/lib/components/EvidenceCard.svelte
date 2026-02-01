@@ -106,6 +106,14 @@
 			onBlur?.({ delayMs: 0 });
 		}
 	}
+
+	function handleContextMenu(e: MouseEvent) {
+		e.preventDefault();
+	}
+
+	function handleDragStart(e: DragEvent) {
+		e.preventDefault();
+	}
 </script>
 
 {#if variant === 'icon'}
@@ -125,8 +133,8 @@
 		onpointerdown={handlePointerDown}
 		onpointerup={handlePointerUp}
 		onpointercancel={handlePointerCancel}
-		oncontextmenu|preventDefault
-		ondragstart|preventDefault
+		oncontextmenu={handleContextMenu}
+		ondragstart={handleDragStart}
 		onkeydown={(e) => e.key === 'Enter' && handleClick()}
 	>
 		{#if isSelected}
@@ -182,9 +190,12 @@
 {:else}
 	<!-- Details variant for preview -->
 	<div
-		class="bg-white border-2 border-foreground shadow-brutal p-4 rounded-[2px]
+		class="bg-white border-2 border-foreground shadow-brutal p-4 rounded-[2px] relative
 			{disabled ? 'opacity-50 grayscale' : ''}"
 	>
+		<div class="absolute top-2 right-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground bg-surface/80 border border-foreground/20 px-1.5 py-0.5 rounded-[2px]">
+			Tap to close
+		</div>
 		<!-- Header: Type + Time (time only in Advanced mode) -->
 		<div class="flex justify-between mb-2">
 			<span class="text-sm font-mono font-bold uppercase px-2 py-1 rounded-[2px] {typeColor}">

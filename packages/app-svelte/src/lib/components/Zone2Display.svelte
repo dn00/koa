@@ -39,6 +39,9 @@
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={() => {}}
 		>
+			<div class="absolute -top-6 right-1 text-[8px] font-mono uppercase tracking-widest text-muted-foreground bg-white/90 border border-foreground/20 px-1.5 py-0.5 rounded-[2px] shadow-sm">
+				Tap to close
+			</div>
 			<CardPreviewPanel card={focusedCard} />
 		</div>
 	{:else}

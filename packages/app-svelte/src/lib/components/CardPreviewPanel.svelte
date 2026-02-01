@@ -39,6 +39,7 @@
 	<div
 		class="flex-1 bg-surface border border-foreground/20 p-2 shadow-sm flex flex-col overflow-hidden relative"
 	>
+
 		<!-- Decorative Corner -->
 		<div
 			class="absolute w-2 h-2 border-t border-l border-foreground/20 top-1 left-1 pointer-events-none"
@@ -71,4 +72,3 @@
 		</div>
 	</div>
 </div>
-
