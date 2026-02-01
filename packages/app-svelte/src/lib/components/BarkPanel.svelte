@@ -311,13 +311,13 @@
 
 	<!-- Content Body -->
 	<div
-		class="flex-1 flex flex-col pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground scrollbar-hide min-h-0 overflow-hidden"
+		class="flex-1 flex flex-col pl-6 pr-4 pt-0 pb-10 leading-relaxed text-foreground scrollbar-hide min-h-0 overflow-hidden"
 		data-panel-content
 	>
 		{#if msgMode === 'BARK'}
 			<div class="flex-1 min-h-0 relative">
 				<div
-					class="h-full overflow-y-auto pr-6 pt-4 pb-4 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
+					class="h-full overflow-y-auto pr-6 pt-0 pb-2 scrollbar-hide flex flex-col overscroll-contain touch-pan-y"
 					style="-webkit-overflow-scrolling: touch;"
 					bind:this={barkScrollEl}
 				>
