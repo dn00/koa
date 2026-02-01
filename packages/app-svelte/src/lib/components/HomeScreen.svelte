@@ -7,6 +7,7 @@
 	 */
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import type { V5Puzzle } from '@hsh/engine-core';
 	import { startGame } from '$lib/stores/game';
 
@@ -50,7 +51,7 @@
 		startGame(selectedPuzzle, Date.now());
 
 		// Navigate to run screen
-		goto(`/run/${selectedPuzzle.slug}`);
+		goto(`${base}/run/${selectedPuzzle.slug}`);
 	}
 
 	function dismissTutorial() {
@@ -221,4 +222,3 @@
 		</div>
 	{/if}
 </div>
-
