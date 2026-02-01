@@ -27,6 +27,8 @@
 		msgMode: 'BARK' | 'LOGS';
 		/** Current turn number (1, 2, or 3) */
 		turnsPlayed?: number;
+		/** Delay before typewriter starts */
+		delayStart?: boolean;
 		/** Called when typewriter starts */
 		onSpeechStart?: () => void;
 		/** Called when typewriter completes */
@@ -40,6 +42,7 @@
 		scenario,
 		msgMode,
 		turnsPlayed = 0,
+		delayStart = false,
 		onSpeechStart,
 		onSpeechComplete,
 		onModeChange
@@ -51,8 +54,8 @@
 	// Track previous bark to detect changes
 	let previousBark = $state<string | undefined>(undefined);
 
-	// Track barks that have already been typed out
-	let typedBarks = $state(new Set<string>());
+	// Track barks that have already been typed out (use object for Svelte 5 reactivity)
+	let typedBarks = $state<Record<string, boolean>>({});
 
 	// Auto-switch to BARK when bark changes
 	$effect(() => {
@@ -68,7 +71,7 @@
 	// Task 701: Handle bark completion and trigger suspicion animation
 	function handleBarkComplete() {
 		// Mark this bark as typed
-		typedBarks = new Set([...typedBarks, currentBark]);
+		typedBarks[currentBark] = true;
 		onSpeechComplete?.();
 
 		// If T2 and suspicion text exists, show suspicion line after bark
@@ -163,7 +166,7 @@
 
 	<!-- Content Body -->
 	<div
-		class="flex-1 flex flex-col px-4 py-3 leading-relaxed text-foreground scrollbar-hide min-h-0 overflow-hidden"
+		class="flex-1 flex flex-col pl-6 pr-4 pt-6 pb-14 leading-relaxed text-foreground scrollbar-hide min-h-0 overflow-hidden"
 		data-panel-content
 	>
 		{#if msgMode === 'BARK'}
@@ -172,13 +175,15 @@
 				use:fitText={{ text: currentBark, minSize: 11, maxSize: 18, multiLine: true }}
 			>
 				<div class="w-full text-left">
-					<Typewriter
-						text={currentBark}
-						speed={30}
-						skipAnimation={typedBarks.has(currentBark)}
-						onStart={onSpeechStart}
-						onComplete={handleBarkComplete}
-					/>
+					{#if !delayStart}
+						<Typewriter
+							text={currentBark}
+							speed={30}
+							skipAnimation={!!typedBarks[currentBark]}
+							onStart={onSpeechStart}
+							onComplete={handleBarkComplete}
+						/>
+					{/if}
 				</div>
 
 				<!-- Task 701: T2 Suspicion Display -->
@@ -194,7 +199,7 @@
 			</div>
 		{:else}
 			<div
-				class="animate-in fade-in slide-in-from-right-2 duration-200 flex-1 min-h-0 flex flex-col overflow-hidden"
+				class="flex-1 min-h-0 flex flex-col overflow-hidden"
 				style="font-size: clamp(11px, 2.5vw, 16px);"
 			>
 				<!-- Scenario Header -->

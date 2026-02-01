@@ -218,7 +218,7 @@
 	aria-label="Koa Avatar"
 >
 	<!-- Ground Shadow (Detached) -->
-	<div class="absolute bottom-[10%] w-[40%] h-[4%] bg-[#2D3142] rounded-[100%] opacity-20 blur-[2px] animate-shadow-breathe transition-all duration-300 group-hover:opacity-30"></div>
+	<div class="absolute bottom-[2%] w-[40%] h-[4%] bg-[#2D3142] rounded-[100%] opacity-20 blur-[2px] animate-shadow-breathe transition-all duration-300 group-hover:opacity-30"></div>
 
 	<!-- Floating Wrapper -->
 	<div class="w-full h-full animate-float will-change-transform" style="transform: scale({$scaleSpring})">
@@ -258,7 +258,7 @@
 					<g>
 
 					<!-- Iris tint -->
-					<circle cx="0" cy="0" r={LENS_RADIUS} fill={activeColor} opacity="0.1" class="transition-all duration-300" />
+					<circle cx="0" cy="0" r={LENS_RADIUS} fill={activeColor} opacity="0.3" class="transition-all duration-300" />
 
 					<!-- Pupil & Iris -->
 					{#if isProcessing}

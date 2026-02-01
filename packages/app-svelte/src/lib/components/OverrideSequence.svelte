@@ -29,7 +29,7 @@
 		>
 			{#if card}
 				<div
-					class="flex flex-col items-center justify-center w-full h-full p-1 animate-in zoom-in-90 duration-300 gap-0.5"
+					class="flex flex-col items-center justify-center w-full h-full p-1 gap-0.5"
 				>
 					<div class="w-full flex justify-center items-center">
 						<span

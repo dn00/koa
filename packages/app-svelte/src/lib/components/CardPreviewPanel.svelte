@@ -8,6 +8,7 @@
 
 	import type { UICard } from '$lib/stores/game';
 	import { getEvidenceTypeLabel, getEvidenceTypeColor } from '$lib/utils/evidenceTypes';
+	import { fitText } from '$lib/actions/fitText';
 
 	interface Props {
 		/** The card to preview */
@@ -23,7 +24,7 @@
 	let displayLocation = $derived(card.location || 'Unknown Location');
 </script>
 
-<div class="flex gap-3 h-full animate-in">
+<div class="flex gap-3 h-full">
 	<!-- Icon Box -->
 	<div
 		class="h-full aspect-square bg-surface border-2 border-primary flex flex-col items-center justify-center shadow-sm shrink-0"
@@ -61,9 +62,10 @@
 
 		<!-- Description (Claim) -->
 		<div
-			class="flex-1 overflow-y-auto scrollbar-hide border-t border-foreground/10 pt-1 min-h-0"
+			class="flex-1 border-t border-foreground/10 pt-1 min-h-0 flex flex-col justify-center overflow-hidden"
+			use:fitText={{ text: card.claim, minSize: 10, maxSize: 14, multiLine: true }}
 		>
-			<p class="type-body-xs text-foreground/90 leading-snug">
+			<p class="text-foreground/90 leading-snug">
 				{card.claim}
 			</p>
 		</div>

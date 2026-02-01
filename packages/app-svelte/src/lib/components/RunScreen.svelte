@@ -47,7 +47,8 @@
 		energyFill: 800, // Energy fill animation duration (matches gsap.ts)
 		koaThinking: 400, // KOA processing after receiving data
 		koaThinkingFinal: 800, // Longer thinking on final turn (dramatic)
-		verdictTransition: 1200 // Pause before navigating to verdict
+		verdictTransition: 1200, // Pause before navigating to verdict
+		initialDelay: 1000 // Pause before opening bark starts
 	};
 
 	// Local UI state
@@ -57,6 +58,15 @@
 	let currentBark = $state(defaultBark);
 	let isProcessing = $state(false);
 	let msgMode = $state<'BARK' | 'LOGS'>('BARK');
+	let isInitializing = $state(true); // Initial delay before bark starts
+
+	// Start initial delay timer on mount
+	$effect(() => {
+		const timer = setTimeout(() => {
+			isInitializing = false;
+		}, TIMING.initialDelay);
+		return () => clearTimeout(timer);
+	});
 
 	// Task 022: KOA mood override during processing
 	let moodOverride = $state<KoaMood | null>(null);
@@ -319,31 +329,20 @@
 		</button>
 	</div>
 
-	<!-- Zone 1: KOA Hero (Avatar + Bark Panel) -->
+	<!-- Zone 1: Bark Panel with floating avatar -->
 	<div
-		class="flex-1 min-h-0 bg-background/50 flex flex-row items-center relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 pl-0 pr-4 py-4 gap-0 overflow-hidden"
+		class="flex-1 min-h-0 bg-background/50 flex flex-col relative shadow-[0_5px_15px_rgba(0,0,0,0.05)] z-20 px-3 py-3 overflow-visible"
 		data-zone="hero"
 	>
 		<!-- Background Effects -->
-		<div class="absolute inset-0 pointer-events-none z-0">
+		<div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
 			<div class="absolute inset-0 bg-dot-pattern opacity-[0.15]"></div>
 			<div class="absolute inset-0 scanlines opacity-20"></div>
 		</div>
 
-		<!-- Device Frame Decoration -->
-		<div class="absolute inset-0 border-[6px] border-foreground/5 pointer-events-none z-10"></div>
-
-		<!-- Avatar Container -->
-		<div
-			class="w-[160px] xs:w-[180px] md:w-[240px] aspect-[1/1] relative shrink-0 z-10 -ml-2 flex items-center justify-center"
-			data-zone="avatar"
-		>
-			<KoaAvatar mood={koaMood} {isSpeaking} />
-		</div>
-
 		<!-- Bark Panel Container -->
 		<div
-			class="flex-1 min-w-0 flex flex-col justify-center h-full z-10 -ml-8 md:-ml-12 relative"
+			class="flex-1 pl-14 pt-10 pb-5 min-h-0 flex flex-col z-10 relative"
 			data-zone="bark-panel"
 		>
 			<BarkPanel
@@ -351,10 +350,19 @@
 				{scenario}
 				{msgMode}
 				turnsPlayed={$gameState?.turnsPlayed ?? 0}
+				delayStart={isInitializing}
 				onSpeechStart={handleSpeechStart}
 				onSpeechComplete={handleSpeechComplete}
 				onModeChange={(m) => (msgMode = m)}
 			/>
+		</div>
+
+		<!-- Floating Avatar (overlaps bottom-left corner of panel) -->
+		<div
+			class="absolute bottom-0 left-0 w-[190px] h-[190px] md:w-[240px] md:h-[240px] z-40 pointer-events-none translate-y-[20%] -translate-x-[15%]"
+			data-zone="avatar"
+		>
+			<KoaAvatar mood={koaMood} {isSpeaking} />
 		</div>
 	</div>
 
@@ -368,14 +376,14 @@
 		<div class="flex items-center justify-between mb-2 h-5">
 			{#if focusedCard}
 				<!-- Existing preview code... -->
-				<div class="text-[10px] font-mono font-bold uppercase text-primary flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
+				<div class="text-[10px] font-mono font-bold uppercase text-primary flex items-center gap-1.5 tracking-wider">
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 					</svg>
 					DATA_ANALYSIS_PREVIEW
 				</div>
 			{:else}
-				<div class="text-[10px] font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider animate-in slide-in-from-left-2 fade-in duration-300">
+				<div class="text-[10px] font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5 tracking-wider">
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
 						<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -397,7 +405,7 @@
 		<!-- Action Bar -->
 		<div data-zone="action-bar">
 			<ActionBar
-				selectedCardId={isProcessing ? null : selectedCardId}
+				selectedCardId={isProcessing || isInitializing ? null : selectedCardId}
 				{msgMode}
 				onTransmit={handleTransmit}
 				onToggleMode={() => (msgMode = msgMode === 'LOGS' ? 'BARK' : 'LOGS')}
