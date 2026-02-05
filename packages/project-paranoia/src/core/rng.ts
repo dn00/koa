@@ -18,6 +18,14 @@ export class RNG {
     pick<T>(arr: T[]): T {
         return arr[this.nextInt(arr.length)];
     }
+
+    getState(): number {
+        return this.state;
+    }
+
+    setState(state: number) {
+        this.state = state >>> 0;
+    }
 }
 
 export function createRng(seed: number): RNG {

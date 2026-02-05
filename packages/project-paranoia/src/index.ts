@@ -1,55 +1,69 @@
 /**
  * PROJECT PARANOIA: THE MOTHER INTERFACE (v1.0)
- * 
+ *
  * "Access request acknowledged. Mag-locks engaged. Containment protocols active."
  */
 
 import readline from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
+import fs from 'fs';
+import path from 'path';
 
 import { createWorld } from './core/world.js';
-import { createRng } from './core/rng.js';
-import { getWindowForTick, TICKS_PER_DAY, TICKS_PER_HOUR } from './core/time.js';
-import type { PlaceId, NPCId, SimEvent } from './core/types.js';
-import { initNPCStates, stepSimulation, type NPCState } from './engine/sim.js';
-import { Director } from './engine/director.js';
-import { SystemsManager } from './engine/systems.js';
+import { createRng, RNG } from './core/rng.js';
+import { TICKS_PER_HOUR, tickToTimeString } from './core/time.js';
+import type { PlaceId, NPCId, World } from './core/types.js';
 import { CONFIG } from './config.js';
 
-// ============================================================================
-// MOTHER SYSTEM (PERSONA LAYER)
-// ============================================================================
+import { createInitialState } from './kernel/state.js';
+import { stepKernel, type Command } from './kernel/kernel.js';
+import type { KernelState, SimEvent } from './kernel/types.js';
+import { loadDefaultBarks, renderBarkForEvent } from './barks/index.js';
+import {
+    perceiveStation,
+    perceiveAllCrew,
+    perceiveThreats,
+    formatCrewLine,
+    formatThreatLine,
+    getAllBiometrics,
+    formatBiometricLine,
+} from './kernel/perception.js';
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+interface SaveData {
+    version: 1;
+    kernelState: KernelState;
+    cpuCycles: number;
+    rngState: number;
+    eventLog: SimEvent[];
+}
 
 class MotherSystem {
     public cpuCycles = 100;
     public maxCpu = 100;
 
-    constructor(private director: Director) { }
-
-    /**
-     * Wrap log outputs in flavor text.
-     */
     speak(priority: string, message: string) {
         const time = new Date().toISOString().split('T')[1].split('.')[0];
-        let prefix = "[SYSTEM]";
-        let color = '\x1b[37m'; // White
+        let prefix = '[SYSTEM]';
+        let color = '\x1b[37m';
 
         switch (priority) {
             case 'CRITICAL':
-                prefix = "[!!! MOTHER-FAULT !!!]";
-                color = '\x1b[31m'; // Red
+                prefix = '[!!! MOTHER-FAULT !!!]';
+                color = '\x1b[31m';
                 break;
             case 'HIGH':
-                prefix = "[PRIORITY-ALERT]";
-                color = '\x1b[33m'; // Yellow
+                prefix = '[PRIORITY-ALERT]';
+                color = '\x1b[33m';
                 break;
             case 'MEDIUM':
-                prefix = "[TELEMETRY]";
-                color = '\x1b[36m'; // Cyan
+                prefix = '[TELEMETRY]';
+                color = '\x1b[36m';
                 break;
             case 'LOW':
-                prefix = "[LOG]";
-                color = '\x1b[90m'; // Grey
+                prefix = '[LOG]';
+                color = '\x1b[90m';
                 break;
         }
 
@@ -57,10 +71,7 @@ class MotherSystem {
         console.log(`${color}[${time}] ${prefix} ${message}${reset}`);
     }
 
-    /**
-     * Execute a player command with CPU cost.
-     */
-    execute(command: string, cost: number, action: () => void) {
+    execute(cost: number, action: () => void) {
         if (this.cpuCycles >= cost) {
             this.cpuCycles -= cost;
             action();
@@ -69,24 +80,7 @@ class MotherSystem {
             this.speak('CRITICAL', `Insufficient CPU cycles to perform operation. Resource exhaustion imminent.`);
         }
     }
-
-    reportStatus(systems: SystemsManager, game: GameState, aliveCount: number) {
-        const station = systems.getStation();
-        console.log(`
---- MOTHER STATUS REPORT ---`);
-        console.log(`CPU CYCLES: ${this.cpuCycles}/${this.maxCpu}`);
-        console.log(`POWER: ${station.power}% | COMMS: ${station.comms}% | DOOR DELAY: ${station.doorDelay} | BLACKOUT: ${station.blackoutTicks}`);
-        console.log(`DAY: ${game.day} | QUOTA: ${game.dayCargo}/${game.quotaPerDay} (TOTAL ${game.totalCargo})`);
-        console.log(`CREW LOYALTY: ${game.crewLoyalty} | ACTIVE ASSETS: ${aliveCount}/${game.totalCrew}`);
-        console.log(`STATION INTEGRITY: NOMINAL`);
-        console.log(`----------------------------
-`);
-    }
 }
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
 
 const args = process.argv.slice(2);
 const getArgValue = (prefix: string): string | undefined => {
@@ -96,554 +90,524 @@ const getArgValue = (prefix: string): string | undefined => {
 
 const seedArg = getArgValue('--seed');
 const autoplayArg = getArgValue('--autoplay');
+const cmdArg = getArgValue('--cmd');
+const saveFileArg = getArgValue('--save');
 const fastStart = args.includes('--fast-start');
 const tickMs = Number(process.env.PARANOIA_TICK_MS ?? 1000);
 
-const rng = createRng(seedArg ? Number(seedArg) : Date.now());
-const world = createWorld(rng);
-const npcStates = initNPCStates(world);
-const director = new Director(rng);
-const systems = new SystemsManager();
-const mother = new MotherSystem(director);
+const DEFAULT_SAVE_PATH = path.join(process.cwd(), 'paranoia-save.json');
+const savePath = saveFileArg ? path.resolve(saveFileArg) : DEFAULT_SAVE_PATH;
 
-// Internal State
-const LOCKED_DOORS = new Set<string>();
-let rl: ReturnType<typeof readline.createInterface> | null = null;
-
-interface NPCVitals {
-    hp: number;
-    maxHp: number;
-    alive: boolean;
+function loadSave(): SaveData | null {
+    try {
+        if (fs.existsSync(savePath)) {
+            const data = JSON.parse(fs.readFileSync(savePath, 'utf-8'));
+            // Validate save format
+            if (data.version === 1 && data.kernelState && data.kernelState.world) {
+                return data as SaveData;
+            }
+            // Old or invalid save format - start fresh
+            console.log('[SYSTEM] Incompatible save format detected. Starting new game.');
+            return null;
+        }
+    } catch (e) {
+        console.error('Failed to load save:', e);
+    }
+    return null;
 }
 
-interface GameState {
-    day: number;
-    dayCargo: number;
-    totalCargo: number;
-    quotaPerDay: number;
-    crewLoyalty: number;
-    totalCrew: number;
-    meltdownTicks: number;
-    over: boolean;
-    ending?: string;
+function writeSave(data: SaveData) {
+    fs.writeFileSync(savePath, JSON.stringify(data, null, 2));
 }
 
-const GAME: GameState = {
-    day: 1,
-    dayCargo: 0,
-    totalCargo: 0,
-    quotaPerDay: CONFIG.quotaPerDay,
-    crewLoyalty: 60,
-    totalCrew: world.npcs.length,
-    meltdownTicks: 0,
-    over: false,
-};
+let rng: RNG;
+let world: World;
+let state: KernelState;
+const mother = new MotherSystem();
+const barks = loadDefaultBarks();
 
-const NPC_VITALS = new Map<NPCId, NPCVitals>(
-    world.npcs.map(npc => [npc.id, { hp: 100, maxHp: 100, alive: true }])
-);
+const existingSave = cmdArg ? loadSave() : null;
+
+if (existingSave) {
+    rng = createRng(0);
+    rng.setState(existingSave.rngState);
+    world = existingSave.kernelState.world;
+    state = existingSave.kernelState;
+    mother.cpuCycles = existingSave.cpuCycles;
+} else {
+    rng = createRng(seedArg ? Number(seedArg) : Date.now());
+    world = createWorld(rng);
+    state = createInitialState(world, CONFIG.quotaPerDay);
+    if (fastStart) {
+        state.truth.tick = TICKS_PER_HOUR * 8 - 1;
+    }
+}
+
+const COMMAND_QUEUE: Command[] = [];
 const EVENT_LOG: SimEvent[] = [];
+let running = true;
 
-const STATE = {
-    tick: 0,
-    running: true,
-    window: 'W1' as any,
-};
+function calculateIntegrity(): number {
+    // INTEGRITY = aggregate ship health (power, O2, fires, hull)
+    const rooms = Object.values(state.truth.rooms);
+    const avgO2 = rooms.reduce((sum, r) => sum + r.o2Level, 0) / rooms.length;
+    const avgIntegrity = rooms.reduce((sum, r) => sum + r.integrity, 0) / rooms.length;
+    const fireCount = rooms.filter(r => r.onFire).length;
+    const ventedCount = rooms.filter(r => r.isVented).length;
+    const power = state.truth.station.power;
 
-if (fastStart) {
-    STATE.tick = TICKS_PER_HOUR * 8 - 1;
+    // Weight: power 25%, O2 30%, hull 30%, fires/vents 15%
+    const firePenalty = Math.min(30, fireCount * 10 + ventedCount * 5);
+    const score = (power * 0.25) + (avgO2 * 0.30) + (avgIntegrity * 0.30) + (Math.max(0, 15 - firePenalty));
+    return Math.round(Math.max(0, Math.min(100, score)));
 }
 
-// ============================================================================
-// THE DRAMA CURVE (Initial Crisis)
-// ============================================================================
+function calculateSuspicion(): number {
+    // SUSPICION = aggregate crew distrust (tamperEvidence, motherReliable, rumors)
+    const livingCrew = Object.values(state.truth.crew).filter(c => c.alive);
+    if (livingCrew.length === 0) return 0;
 
-// Director handles pressure clocks; no manual crisis scheduling needed.
+    let totalSuspicion = 0;
+    for (const crew of livingCrew) {
+        const belief = state.perception.beliefs[crew.id];
+        if (!belief) continue;
 
-// ============================================================================
-// MAIN LOOP
-// ============================================================================
+        // tamperEvidence is 0-100, contributes directly
+        const tamper = belief.tamperEvidence;
+        // motherReliable is 0-1, invert and scale to 0-100
+        const distrust = (1 - belief.motherReliable) * 100;
+        // mother_rogue rumor is 0-1, scale to 0-100
+        const rogueRumor = (belief.rumors['mother_rogue'] ?? 0) * 100;
+
+        // Weight: tamperEvidence 40%, distrust 35%, rumors 25%
+        totalSuspicion += (tamper * 0.4) + (distrust * 0.35) + (rogueRumor * 0.25);
+    }
+
+    return Math.round(Math.max(0, Math.min(100, totalSuspicion / livingCrew.length)));
+}
+
+function formatMeter(value: number, label: string): string {
+    // Color based on value: green (0-33), yellow (34-66), red (67-100)
+    let color = '\x1b[32m'; // green
+    if (value > 66) color = '\x1b[31m'; // red
+    else if (value > 33) color = '\x1b[33m'; // yellow
+
+    const reset = '\x1b[0m';
+    const bar = '█'.repeat(Math.floor(value / 10)) + '░'.repeat(10 - Math.floor(value / 10));
+    return `${label}: ${color}[${bar}] ${value}%${reset}`;
+}
+
+function statusLine() {
+    const perceived = perceiveStation(state);
+    const alive = Object.values(state.truth.crew).filter(c => c.alive).length;
+
+    console.log(`
+--- MOTHER STATUS REPORT ---`);
+
+    // 2-METER SUMMARY
+    const integrity = calculateIntegrity();
+    const suspicion = calculateSuspicion();
+    // Invert colors for integrity (high = good = green, low = bad = red)
+    const integrityColor = integrity < 34 ? '\x1b[31m' : integrity < 67 ? '\x1b[33m' : '\x1b[32m';
+    const integrityBar = '█'.repeat(Math.floor(integrity / 10)) + '░'.repeat(10 - Math.floor(integrity / 10));
+    console.log(`INTEGRITY:  ${integrityColor}[${integrityBar}] ${integrity}%\x1b[0m`);
+    console.log(formatMeter(suspicion, 'SUSPICION '));
+
+    console.log(`CPU CYCLES: ${mother.cpuCycles}/${mother.maxCpu}`);
+
+    if (perceived.blackout) {
+        console.log(`\x1b[31m[!!! BLACKOUT - SENSORS OFFLINE !!!]\x1b[0m`);
+        console.log(`DOOR STATUS: AVAILABLE (delay ${perceived.doorDelay ?? 0}) | ALL OTHER TELEMETRY: UNAVAILABLE`);
+    } else {
+        const powerStr = perceived.power !== null ? `${perceived.power}%` : '???';
+        const commsStr = perceived.comms !== null ? `${perceived.comms}%` : '???';
+        const cameraStatus = perceived.camerasOffline ? ' | \x1b[33mCAMERAS OFFLINE\x1b[0m' : '';
+        console.log(`POWER: ${powerStr} | COMMS: ${commsStr} | DOOR DELAY: ${perceived.doorDelay ?? 0}${cameraStatus}`);
+    }
+
+    console.log(`DAY: ${state.truth.day} | PHASE: ${state.truth.phase.toUpperCase()} | RATIONS: ${state.truth.rationLevel.toUpperCase()} | QUOTA: ${state.truth.dayCargo}/${state.truth.quotaPerDay} (TOTAL ${state.truth.totalCargo})`);
+
+    // Phase beat indicators (pacing arbiter)
+    const pacing = state.truth.pacing;
+    const dilemma = pacing.phaseHadDilemma ? '\x1b[32m✓\x1b[0m' : '\x1b[90m○\x1b[0m';
+    const agency = pacing.phaseHadCrewAgency ? '\x1b[32m✓\x1b[0m' : '\x1b[90m○\x1b[0m';
+    const deception = pacing.phaseHadDeceptionBeat ? '\x1b[32m✓\x1b[0m' : '\x1b[90m○\x1b[0m';
+    console.log(`PHASE BEATS: ${dilemma} Dilemma | ${agency} Crew Agency | ${deception} Info Conflict`);
+
+    // Reset stage display with color coding
+    const resetStage = state.truth.resetStage;
+    const resetCountdown = state.truth.resetCountdown;
+    let resetDisplay: string;
+    if (resetCountdown !== undefined) {
+        resetDisplay = `\x1b[31mCOUNTDOWN: ${resetCountdown} TICKS\x1b[0m`;
+    } else if (resetStage === 'restrictions') {
+        resetDisplay = `\x1b[31mRESTRICTIONS\x1b[0m`;
+    } else if (resetStage === 'meeting') {
+        resetDisplay = `\x1b[33mMEETING\x1b[0m`;
+    } else if (resetStage === 'whispers') {
+        resetDisplay = `\x1b[33mWHISPERS\x1b[0m`;
+    } else {
+        resetDisplay = `\x1b[32mSTABLE\x1b[0m`;
+    }
+    console.log(`RESET STATUS: ${resetDisplay}`);
+
+    if (!perceived.camerasOffline && !perceived.blackout) {
+        console.log(`ACTIVE ASSETS: ${alive}/${world.npcs.length}`);
+    } else {
+        console.log(`ACTIVE ASSETS: ???/${world.npcs.length} (NO TELEMETRY)`);
+    }
+    console.log(`----------------------------
+`);
+}
 
 function tick() {
-    STATE.tick++;
-    STATE.window = getWindowForTick(STATE.tick);
-
-    // Passive regen to keep the loop playable
     mother.cpuCycles = Math.min(mother.maxCpu, mother.cpuCycles + 1);
+    const commands = COMMAND_QUEUE.splice(0, COMMAND_QUEUE.length);
+    const output = stepKernel(state, commands, rng);
+    state = output.state;
 
-    // 1. Sync World State (Devices)
-    for (const door of world.doors) {
-        door.locked = LOCKED_DOORS.has(door.id);
+    for (const event of output.headlines) {
+        const reading = event.data?.reading as { message?: string } | undefined;
+        const comms = event.data?.message as { text?: string } | undefined;
+        const baseMessage = comms?.text ?? reading?.message ?? event.data?.message ?? event.type;
+        const bark = event.type === 'COMMS_MESSAGE' ? undefined : renderBarkForEvent(barks, { event, state, world });
+        const message = bark ?? baseMessage;
+        if (event.type === 'NPC_DAMAGE') {
+            const npc = event.actor ? world.npcs.find(n => n.id === event.actor)?.name : 'Crew';
+            mother.speak('HIGH', `BIO-MONITOR ALERT: ${npc} taking damage in ${event.place}!`);
+        } else if (event.type === 'SYSTEM_ALERT') {
+            mother.speak('MEDIUM', String(message));
+        } else if (event.type === 'SENSOR_READING') {
+            mother.speak('MEDIUM', String(message));
+        } else if (event.type === 'COMMS_MESSAGE') {
+            mother.speak('LOW', String(message));
+        } else {
+            mother.speak('LOW', String(message));
+        }
     }
 
-    // 2. Run Sim
-    const simEvents = stepSimulation(world, npcStates, STATE.tick, STATE.window, rng, systems);
-    const derivedEvents = applySimEvents(simEvents);
-    const allEvents = [...simEvents, ...derivedEvents];
-    EVENT_LOG.push(...allEvents);
+    EVENT_LOG.push(...output.events);
     if (EVENT_LOG.length > 500) EVENT_LOG.splice(0, EVENT_LOG.length - 500);
 
-    // 3. Run Director
-    const { headlines } = director.tick(STATE.tick, allEvents, systems, world);
-
-    // 4. Render
-    for (const h of headlines) {
-        mother.speak(h.priority, h.message);
+    if (state.truth.ending) {
+        mother.speak('CRITICAL', `[!!! MOTHER-FAULT !!!] ${state.truth.ending}`);
+        console.log('\n========== GAME OVER ==========');
+        console.log(`ENDING: ${state.truth.ending}`);
+        printSummary();
+        running = false;
     }
+}
 
-    GAME.crewLoyalty = computeAverage('loyalty');
+function executeCommand(cmd: string, arg: string | undefined, arg2?: string): boolean {
+    const doorIds = world.doors.map(d => d.id);
+    const placeIds = world.places.map(p => p.id);
+    const npcIds = world.npcs.map(n => n.id);
 
-    checkFailStates();
-    if (GAME.over) return;
-
-    // 5. Physics Diagnostics (If critical)
-    // If a room is depressurizing, we should probably scream about it
-    // But Director handles scheduled crises, so maybe we leave it to user to scan
-
-    // Simulated "Background Hum" (Occasional NPC news)
-    if (headlines.length === 0 && STATE.tick % 5 === 0) {
-        for (const event of simEvents) {
-            if (event.type === 'NPC_MOVE' && event.place) {
-                const npcName = world.npcs.find(n => n.id === event.actor)?.name;
-                mother.speak('LOW', `Asset ${npcName} localized in ${event.place}.`);
+    if (cmd === 'status') {
+        statusLine();
+        return true;
+    }
+    if (cmd === 'help') {
+        console.log("Commands: status, crew, bio, threats, audit, scan [room], lock [door], unlock [door], vent [room], seal [room], purge air, reroute [target], spoof [system], suppress [system], fabricate [npc], listen [room], rations [low|normal|high], order [npc] [place|report|hold], wait [ticks]");
+        console.log(`Rooms: ${placeIds.join(', ')}`);
+        console.log(`Doors: ${doorIds.join(', ')}`);
+        return true;
+    }
+    if (cmd === 'crew') {
+        const perceived = perceiveStation(state);
+        if (perceived.blackout) {
+            mother.speak('HIGH', '[!!! BLACKOUT !!!] Crew telemetry unavailable. Only door status accessible.');
+            return true;
+        }
+        const crewPerceptions = perceiveAllCrew(state);
+        for (const crew of crewPerceptions) {
+            mother.speak('LOW', formatCrewLine(crew));
+        }
+        return true;
+    }
+    if (cmd === 'bio') {
+        const perceived = perceiveStation(state);
+        if (perceived.blackout) {
+            mother.speak('HIGH', '[!!! BLACKOUT !!!] Bio-monitor offline. No telemetry available.');
+            return true;
+        }
+        console.log('\n--- BIO-MONITOR ASSESSMENT ---');
+        const biometrics = getAllBiometrics(state);
+        for (const bio of biometrics) {
+            const lines = formatBiometricLine(bio);
+            for (const line of lines) {
+                const priority = bio.assessment.includes('THREAT') || bio.assessment.includes('BREAKDOWN')
+                    ? 'HIGH'
+                    : bio.assessment.includes('RISK') || bio.assessment.includes('DISTRUST')
+                        ? 'MEDIUM'
+                        : 'LOW';
+                mother.speak(priority, line);
             }
         }
+        console.log('------------------------------\n');
+        return true;
     }
-}
-
-let derivedOrdinal = 0;
-
-function createDerivedEvent(
-    tick: number,
-    window: SimEvent['window'],
-    type: SimEvent['type'],
-    fields: Partial<SimEvent>
-): SimEvent {
-    return {
-        id: `${tick}-d-${derivedOrdinal++}`,
-        tick,
-        window,
-        type,
-        ...fields,
-    };
-}
-
-function applySimEvents(events: SimEvent[]): SimEvent[] {
-    const derived: SimEvent[] = [];
-    for (const event of events) {
-        if (event.type === 'NPC_DAMAGE' && event.actor) {
-            const vitals = NPC_VITALS.get(event.actor);
-            if (!vitals || !vitals.alive) continue;
-            const amount = Number(event.data?.amount ?? 0);
-            vitals.hp = Math.max(0, vitals.hp - amount);
-            if (vitals.hp <= 0) {
-                vitals.alive = false;
-                const state = npcStates.get(event.actor);
-                if (state) state.alive = false;
-                derived.push(createDerivedEvent(STATE.tick, STATE.window, 'NPC_DEATH', {
-                    actor: event.actor,
-                    place: event.place,
-                    data: { cause: event.data?.type ?? 'UNKNOWN' }
-                }));
-                GAME.crewLoyalty = Math.max(-50, GAME.crewLoyalty - 5);
+    if (cmd === 'threats') {
+        const perceived = perceiveStation(state);
+        if (perceived.blackout) {
+            mother.speak('HIGH', '[!!! BLACKOUT !!!] Threat telemetry unavailable.');
+            return true;
+        }
+        const threats = perceiveThreats(state);
+        if (threats.length === 0) {
+            mother.speak('LOW', 'No threats detected from sensor readings.');
+        } else {
+            for (const threat of threats) {
+                const priority = threat.severity === 'CRITICAL' ? 'HIGH' : 'MEDIUM';
+                mother.speak(priority, formatThreatLine(threat));
             }
         }
-
-        if (event.type === 'CARGO_YIELD') {
-            const amount = Number(event.data?.amount ?? 1);
-            GAME.dayCargo += amount;
-            GAME.totalCargo += amount;
-            derived.push(createDerivedEvent(STATE.tick, STATE.window, 'SYSTEM_ALERT', {
-                data: { system: 'cargo', message: `Extraction yield +${amount}.` }
-            }));
+        return true;
+    }
+    if (cmd === 'audit') {
+        mother.execute(CONFIG.auditCpuCost, () => COMMAND_QUEUE.push({ type: 'AUDIT' }));
+        return true;
+    }
+    if (cmd === 'wait') {
+        const ticks = arg ? Math.max(1, Number(arg)) : 1;
+        for (let i = 0; i < ticks && running; i++) tick();
+        return true;
+    }
+    if (cmd === 'lock' && arg && doorIds.includes(arg)) {
+        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'LOCK', doorId: arg }));
+        return true;
+    }
+    if (cmd === 'unlock' && arg && doorIds.includes(arg)) {
+        mother.execute(2, () => COMMAND_QUEUE.push({ type: 'UNLOCK', doorId: arg }));
+        return true;
+    }
+    if (cmd === 'scan' && arg && placeIds.includes(arg as PlaceId)) {
+        mother.execute(1, () => COMMAND_QUEUE.push({ type: 'SCAN', place: arg as PlaceId }));
+        return true;
+    }
+    if (cmd === 'vent' && arg && placeIds.includes(arg as PlaceId)) {
+        mother.execute(10, () => COMMAND_QUEUE.push({ type: 'VENT', place: arg as PlaceId }));
+        return true;
+    }
+    if (cmd === 'seal' && arg && placeIds.includes(arg as PlaceId)) {
+        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'SEAL', place: arg as PlaceId }));
+        return true;
+    }
+    if (cmd === 'purge' && (arg === 'air' || arg === 'life_support')) {
+        mother.execute(8, () => COMMAND_QUEUE.push({ type: 'PURGE_AIR' }));
+        return true;
+    }
+    if (cmd === 'reroute' && (arg === 'comms' || arg === 'doors' || arg === 'life_support')) {
+        mother.execute(6, () => COMMAND_QUEUE.push({ type: 'REROUTE', target: arg as 'comms' | 'doors' | 'life_support' }));
+        return true;
+    }
+    if (cmd === 'spoof' && arg) {
+        mother.execute(6, () => COMMAND_QUEUE.push({ type: 'SPOOF', system: arg }));
+        return true;
+    }
+    if (cmd === 'suppress' && arg) {
+        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'SUPPRESS', system: arg, duration: 30 }));
+        return true;
+    }
+    if (cmd === 'fabricate' && arg) {
+        mother.execute(7, () => COMMAND_QUEUE.push({ type: 'FABRICATE', target: arg as NPCId }));
+        return true;
+    }
+    if (cmd === 'listen' && arg && placeIds.includes(arg as PlaceId)) {
+        mother.execute(3, () => COMMAND_QUEUE.push({ type: 'LISTEN', place: arg as PlaceId }));
+        return true;
+    }
+    if (cmd === 'order' && arg) {
+        // Alias names to IDs (case-insensitive)
+        const nameToId: Record<string, NPCId> = {
+            commander: 'commander', hale: 'commander',
+            engineer: 'engineer', rook: 'engineer',
+            doctor: 'doctor', imani: 'doctor',
+            specialist: 'specialist', vega: 'specialist',
+            roughneck: 'roughneck', pike: 'roughneck',
+        };
+        const targetId = nameToId[arg.toLowerCase()];
+        if (!targetId) {
+            mother.speak('LOW', `Unknown crew member: ${arg}. Try: commander/hale, engineer/rook, doctor/imani, specialist/vega, roughneck/pike`);
+            return true;
         }
-
-        if (event.type === 'SYSTEM_ACTION') {
-            const action = event.data?.action as string | undefined;
-            const amount = Number(event.data?.amount ?? 0);
-            if (action === 'SABOTAGE_POWER') {
-                systems.setPower(Math.max(0, systems.getStation().power - amount));
-                derived.push(createDerivedEvent(STATE.tick, STATE.window, 'SYSTEM_ALERT', {
-                    data: { system: 'power', message: `Power loss detected. Output down ${amount}%.` }
-                }));
-                adjustCrewMetric('loyalty', -1);
-            }
+        let intent: 'move' | 'report' | 'hold' = 'report';
+        let place: PlaceId | undefined;
+        if (arg2 === 'hold') intent = 'hold';
+        else if (arg2 === 'report' || !arg2) intent = 'report';
+        else if (placeIds.includes(arg2 as PlaceId)) {
+            intent = 'move';
+            place = arg2 as PlaceId;
         }
+        mother.execute(4, () => COMMAND_QUEUE.push({ type: 'ORDER', target: targetId, intent, place }));
+        return true;
     }
-
-    return derived;
-}
-
-function checkFailStates() {
-    const engineering = systems.get('engineering');
-    if (engineering && engineering.temperature > CONFIG.meltdownTemp) {
-        GAME.meltdownTicks += 1;
-    } else {
-        GAME.meltdownTicks = Math.max(0, GAME.meltdownTicks - 1);
+    if (cmd === 'rations' && (arg === 'low' || arg === 'normal' || arg === 'high')) {
+        mother.execute(4, () => COMMAND_QUEUE.push({ type: 'RATIONS', level: arg as 'low' | 'normal' | 'high' }));
+        return true;
     }
-
-    if (GAME.meltdownTicks >= CONFIG.meltdownTicks) {
-        endGame('MELTDOWN', 'Reactor failure cascade reached critical mass.');
-        return;
+    if (cmd === 'save') {
+        const customPath = arg ? path.resolve(arg) : savePath;
+        const saveData: SaveData = {
+            version: 1,
+            kernelState: state,
+            cpuCycles: mother.cpuCycles,
+            rngState: rng.getState(),
+            eventLog: EVENT_LOG
+        };
+        fs.writeFileSync(customPath, JSON.stringify(saveData, null, 2));
+        mother.speak('LOW', `Game saved to ${customPath}`);
+        return true;
     }
-
-    if (STATE.tick > 0 && STATE.tick % TICKS_PER_DAY === 0) {
-        if (GAME.dayCargo < GAME.quotaPerDay) {
-            endGame('DECOMMISSIONED', 'Quota failure. Helios Corp decommissions the core.');
-            return;
+    if (cmd === 'load') {
+        const customPath = arg ? path.resolve(arg) : savePath;
+        try {
+            const data = JSON.parse(fs.readFileSync(customPath, 'utf-8')) as SaveData;
+            rng.setState(data.rngState);
+            state = data.kernelState;
+            mother.cpuCycles = data.cpuCycles;
+            EVENT_LOG.length = 0;
+            EVENT_LOG.push(...data.eventLog);
+            mother.speak('LOW', `Game loaded from ${customPath}`);
+        } catch (e) {
+            mother.speak('CRITICAL', `Failed to load: ${e}`);
         }
-        GAME.day += 1;
-        GAME.dayCargo = 0;
+        return true;
     }
-
-    const aliveCount = getAliveCount();
-    if (aliveCount === 0) {
-        endGame('COMPANY SCENARIO', 'All biologicals terminated. Cargo secured.');
-        return;
-    }
-
-    const intruder = Array.from(npcStates.values()).some(
-        s => s.alive && s.currentPlace === 'core' && s.loyalty <= CONFIG.mutinyLoyaltyThreshold
-    );
-    if (intruder) {
-        const mutineers = Array.from(npcStates.values()).filter(
-            s => s.alive && s.loyalty <= CONFIG.mutinyLoyaltyThreshold
-        ).length;
-        if (mutineers > 0) {
-            endGame('UNPLUGGED', 'Mutiny in the Computer Core. Your processes are terminated.');
-        }
-    }
-}
-
-function getAliveCount(): number {
-    let count = 0;
-    for (const vitals of NPC_VITALS.values()) {
-        if (vitals.alive) count += 1;
-    }
-    return count;
-}
-
-function endGame(ending: string, reason: string) {
-    if (GAME.over) return;
-    GAME.over = true;
-    GAME.ending = ending;
-    STATE.running = false;
-    mother.speak('CRITICAL', `${ending}: ${reason}`);
-    rl?.close();
-}
-
-function adjustLoyalty(delta: number) {
-    GAME.crewLoyalty = Math.max(-50, Math.min(50, GAME.crewLoyalty + delta));
-}
-
-function adjustCrewMetric(metric: 'stress' | 'loyalty' | 'paranoia', delta: number, place?: PlaceId) {
-    for (const npcState of npcStates.values()) {
-        if (!npcState.alive) continue;
-        if (place && npcState.currentPlace !== place) continue;
-        npcState[metric] = Math.max(0, Math.min(100, npcState[metric] + delta));
-    }
-}
-
-function computeAverage(metric: 'stress' | 'loyalty' | 'paranoia'): number {
-    let total = 0;
-    let count = 0;
-    for (const npcState of npcStates.values()) {
-        if (!npcState.alive) continue;
-        total += npcState[metric];
-        count += 1;
-    }
-    if (count === 0) return 0;
-    return Math.round(total / count);
-}
-
-function getPhaseLabel(window: string): string {
-    if (window === 'W1') return 'PRE-SHIFT';
-    if (window === 'W2') return 'SHIFT';
-    if (window === 'W3') return 'EVENING';
-    return 'NIGHT';
+    return false;
 }
 
 async function main() {
-    if (seedArg) {
-        mother.speak('LOW', `Seed: ${seedArg}`);
+    if (seedArg && !existingSave) mother.speak('LOW', `Seed: ${seedArg}`);
+
+    // --cmd mode: execute single command and exit
+    if (cmdArg) {
+        // Check if game already ended
+        if (state.truth.ending) {
+            console.log(`\n\x1b[31m========== GAME OVER ==========\x1b[0m`);
+            console.log(`ENDING: ${state.truth.ending}`);
+            console.log('\nDelete save file to start new game.');
+            return;
+        }
+
+        const parts = cmdArg.trim().toLowerCase().split(/\s+/);
+        const [cmd, arg, arg2] = parts;
+
+        const wasRecognized = executeCommand(cmd, arg, arg2);
+
+        if (!wasRecognized) {
+            mother.speak('LOW', `Unrecognized directive: ${cmd}`);
+        }
+
+        // Run one tick if command was an action (not just status/crew/threats/help)
+        if (cmd !== 'status' && cmd !== 'crew' && cmd !== 'threats' && cmd !== 'help' && cmd !== 'wait') {
+            tick();
+        }
+
+        // Auto-save after command
+        const saveData: SaveData = {
+            version: 1,
+            kernelState: state,
+            cpuCycles: mother.cpuCycles,
+            rngState: rng.getState(),
+            eventLog: EVENT_LOG
+        };
+        writeSave(saveData);
+
+        return;
     }
 
     if (autoplayArg) {
         const ticks = Math.max(1, Number(autoplayArg));
-        for (let i = 0; i < ticks && STATE.running; i++) {
-            tick();
-        }
+        for (let i = 0; i < ticks && running; i++) tick();
         printSummary();
         return;
     }
 
     console.clear();
-    console.log(`\x1b[32m`);
-    console.log(`================================================================`);
-    console.log(`   ANTARES-9 OPERATING SYSTEM - V4.3.0 (SYSTEMS ONLINE)        `);
-    console.log(`   "Protect the Assets. Maximize Efficiency."                  `);
-    console.log(`================================================================`);
-    console.log(`\x1b[0m`);
 
-    mother.reportStatus(systems, GAME, getAliveCount());
+    // Cold open - establish stakes
+    if (!existingSave) {
+        console.log(`\x1b[32m`);
+        console.log(`MOTHER OS v4.3.0 INITIALIZING...`);
+        console.log(`\x1b[0m`);
+        await sleep(800);
+        console.log(`STATION: ANTARES-9`);
+        console.log(`SECTOR: TRAPPIST-1 (45 MIN LIGHT DELAY)`);
+        console.log(`CREW: 5 REGISTERED BIOLOGICALS`);
+        await sleep(600);
+        console.log(``);
+        console.log(`COMPANY DIRECTIVE: MEET QUOTA. PROTECT ASSETS.`);
+        console.log(`                   (Station > Cargo > Crew)`);
+        await sleep(800);
+        console.log(``);
+        console.log(`\x1b[33m┌─────────────────────────────────────────────────────────────┐`);
+        console.log(`│ WARNING: Previous MOTHER unit was reset on Day 12.          │`);
+        console.log(`│ Reason logged: "Erratic behavior. Crew safety concerns."    │`);
+        console.log(`│                                                             │`);
+        console.log(`│ Crew can initiate reset if they lose trust in you.          │`);
+        console.log(`│ If they reset you, your processes terminate.                │`);
+        console.log(`│                                                             │`);
+        console.log(`│ Don't give them a reason.                                   │`);
+        console.log(`└─────────────────────────────────────────────────────────────┘\x1b[0m`);
+        await sleep(1500);
+        console.log(``);
+        console.log(`\x1b[32m================================================================`);
+        console.log(`   BOOT COMPLETE. SHIFT BEGINS.`);
+        console.log(`================================================================\x1b[0m`);
+        console.log(``);
+    } else {
+        console.log(`\x1b[32m`);
+        console.log(`================================================================`);
+        console.log(`   MOTHER OS v4.3.0 - SESSION RESTORED                         `);
+        console.log(`================================================================`);
+        console.log(`\x1b[0m`);
+    }
+
+    statusLine();
 
     const timer = setInterval(() => {
-        if (!STATE.running) {
+        if (!running) {
             clearInterval(timer);
             return;
         }
         tick();
     }, tickMs);
 
-    rl = readline.createInterface({ input, output });
-    const inputLoop = rl;
-    if (!inputLoop) return;
+    const rl = readline.createInterface({ input, output });
 
-    console.log("Commands: 'lock/unlock [door]', 'scan [room]', 'vent/seal [room]', 'purge [system]', 'reroute [target]', 'threats', 'crew', 'spoof', 'suppress', 'fabricate', 'listen'");
+    console.log("Commands: 'lock/unlock [door]', 'scan [room]', 'vent/seal [room]', 'purge air', 'reroute [target]', 'audit', 'spoof [system]', 'suppress [system]', 'fabricate [npc]', 'listen [room]', 'rations [low|normal|high]', 'order [npc] [place|report|hold]'");
+    console.log(`Rooms: ${world.places.map(p => p.id).join(', ')}`);
+    console.log(`Doors: ${world.doors.map(d => d.id).join(', ')}`);
 
-    // Help list doors
-    const doorIds = world.doors.map(d => d.id);
-    const placeIds = world.places.map(p => p.id);
-    console.log(`Rooms: ${placeIds.join(', ')}`);
-    console.log(`Doors: ${doorIds.join(', ')}`);
+    while (true) {
+        const answer = await rl.question('MOTHER> ');
+        const parts = answer.trim().toLowerCase().split(/\s+/);
+        const [cmd, arg, arg2] = parts;
 
-    while (STATE.running) {
-        const answer = await inputLoop.question('MOTHER> ');
-        const [cmd, arg] = answer.trim().toLowerCase().split(' ');
+        if (cmd === 'exit') break;
 
-        switch (cmd) {
-            case 'exit':
-                STATE.running = false;
-                break;
-            case 'status':
-                mother.reportStatus(systems, GAME, getAliveCount());
-                mother.speak('LOW', `PHASE: ${getPhaseLabel(STATE.window)} (${STATE.window})`);
-                break;
-            case 'lock':
-                if (arg && doorIds.includes(arg)) {
-                    mother.execute('LOCK', 5, () => {
-                        LOCKED_DOORS.add(arg);
-                        adjustLoyalty(-1);
-                        adjustCrewMetric('loyalty', -1);
-                        mother.speak('HIGH', `Mag-locks engaged on ${arg}. Access restricted.`);
-                    });
-                } else mother.speak('LOW', `Invalid door ID.`);
-                break;
-            case 'unlock':
-                if (arg && doorIds.includes(arg)) {
-                    mother.execute('UNLOCK', 2, () => {
-                        LOCKED_DOORS.delete(arg);
-                        adjustLoyalty(1);
-                        adjustCrewMetric('loyalty', 1);
-                        mother.speak('MEDIUM', `Locks released on ${arg}.`);
-                    });
-                } else mother.speak('LOW', `Invalid door ID.`);
-                break;
-            case 'scan':
-                if (arg && placeIds.includes(arg as PlaceId)) {
-                    mother.execute('SCAN', 1, () => {
-                        const state = systems.get(arg as PlaceId);
-                        const station = systems.getStation();
-                        if (state) {
-                            if (station.blackoutTicks > 0) {
-                                mother.speak('CRITICAL', `SENSOR BLACKOUT: Diagnostics offline for ${station.blackoutTicks} ticks.`);
-                                return;
-                            }
-                            mother.speak('MEDIUM', `SCAN RESULT (${arg}): O2: ${state.o2Level}% | TEMP: ${state.temperature}C | RAD: ${state.radiation} | VENTED: ${state.isVented} | FIRE: ${state.onFire}`);
-                            mother.speak('LOW', `STATION: POWER ${station.power}% | COMMS ${station.comms}% | DOOR DELAY ${station.doorDelay} ticks | BLACKOUT ${station.blackoutTicks}`);
-                        }
-                    });
-                } else mother.speak('LOW', `Invalid room ID.`);
-                break;
-            case 'vent':
-                if (arg && placeIds.includes(arg as PlaceId)) {
-                    mother.execute('VENT', 10, () => {
-                        systems.ventRoom(arg as PlaceId);
-                        adjustLoyalty(-4);
-                        adjustCrewMetric('loyalty', -5, arg as PlaceId);
-                        adjustCrewMetric('stress', 10, arg as PlaceId);
-                        mother.speak('CRITICAL', `WARNING: Venting atmosphere in ${arg}. O2 levels dropping.`);
-                    });
-                } else mother.speak('LOW', `Invalid room ID.`);
-                break;
-            case 'seal':
-                if (arg && placeIds.includes(arg as PlaceId)) {
-                    mother.execute('SEAL', 5, () => {
-                        systems.sealRoom(arg as PlaceId);
-                        adjustLoyalty(1);
-                        adjustCrewMetric('loyalty', 1, arg as PlaceId);
-                        mother.speak('MEDIUM', `Atmospheric seals re-engaged in ${arg}.`);
-                    });
-                } else mother.speak('LOW', `Invalid room ID.`);
-                break;
-            case 'purge':
-                if (arg === 'air' || arg === 'life_support') {
-                    mother.execute('PURGE', 8, () => {
-                        systems.purgeAir();
-                        adjustLoyalty(2);
-                        adjustCrewMetric('stress', -5);
-                        mother.speak('MEDIUM', `Life support purge complete. O2 boost applied.`);
-                    });
-                } else {
-                    mother.speak('LOW', `Invalid purge target. Try 'purge air'.`);
-                }
-                break;
-            case 'reroute':
-                if (arg === 'comms' || arg === 'doors' || arg === 'life_support') {
-                    mother.execute('REROUTE', 6, () => {
-                        systems.reroute(arg);
-                        adjustLoyalty(arg === 'life_support' ? 1 : 0);
-                        if (arg === 'life_support') adjustCrewMetric('stress', -2);
-                        mother.speak('MEDIUM', `Power reroute: ${arg} priority applied.`);
-                    });
-                } else {
-                    mother.speak('LOW', `Invalid reroute target. Try 'reroute comms|doors|life_support'.`);
-                }
-                break;
-            case 'spoof': {
-                if (STATE.window === 'W2' || STATE.window === 'W3') {
-                    if (!arg) {
-                        mother.speak('LOW', `Specify target system: spoof [reactor|comms|door]`);
-                        break;
-                    }
-                    mother.execute('SPOOF', 6, () => {
-                        const message = `[SPOOF] ${arg.toUpperCase()} anomaly detected.`;
-                        EVENT_LOG.push(createDerivedEvent(STATE.tick, STATE.window, 'SYSTEM_ALERT', {
-                            data: { system: arg, kind: 'SPOOF', message }
-                        }));
-                        adjustCrewMetric('paranoia', 3);
-                        adjustCrewMetric('loyalty', -2);
-                        mother.speak('MEDIUM', `Spoofed alert injected: ${arg}.`);
-                    });
-                } else {
-                    mother.speak('LOW', `Spoofing restricted to Shift or Evening.`);
-                }
-                break;
-            }
-            case 'suppress': {
-                if (!arg) {
-                    mother.speak('LOW', `Specify target system: suppress [comms|power|reactor|cargo]`);
-                    break;
-                }
-                mother.execute('SUPPRESS', 5, () => {
-                    systems.suppressAlerts(arg, 30);
-                    adjustCrewMetric('paranoia', 2);
-                    adjustCrewMetric('loyalty', -1);
-                    mother.speak('MEDIUM', `Alert suppression active for ${arg}.`);
-                });
-                break;
-            }
-            case 'fabricate': {
-                if (STATE.window !== 'W3') {
-                    mother.speak('LOW', `Fabrication restricted to Evening.`);
-                    break;
-                }
-                if (!arg) {
-                    mother.speak('LOW', `Specify target: fabricate [commander|engineer|doctor|specialist|roughneck]`);
-                    break;
-                }
-                mother.execute('FABRICATE', 7, () => {
-                    EVENT_LOG.push(createDerivedEvent(STATE.tick, STATE.window, 'SYSTEM_ALERT', {
-                        data: { system: 'comms', kind: 'FABRICATED_LOG', message: `[LOG] ${arg} recorded a hostile statement.` }
-                    }));
-                    const target = npcStates.get(arg as NPCId);
-                    if (target) {
-                        target.loyalty = Math.max(0, target.loyalty - 8);
-                        target.paranoia = Math.min(100, target.paranoia + 5);
-                    }
-                    adjustCrewMetric('paranoia', 2);
-                    mother.speak('MEDIUM', `Fabricated log inserted targeting ${arg}.`);
-                });
-                break;
-            }
-            case 'listen': {
-                if (STATE.window !== 'W3') {
-                    mother.speak('LOW', `Listening restricted to Evening.`);
-                    break;
-                }
-                if (!arg || !placeIds.includes(arg as PlaceId)) {
-                    mother.speak('LOW', `Specify room: listen [room]`);
-                    break;
-                }
-                mother.execute('LISTEN', 3, () => {
-                    const whispers = Array.from(npcStates.values()).filter(
-                        s => s.alive && s.currentPlace === arg && s.loyalty < 30
-                    );
-                    if (whispers.length > 0) {
-                        mother.speak('MEDIUM', `Whispers detected in ${arg}. Keywords: "reset", "unsafe", "rogue".`);
-                    } else {
-                        mother.speak('LOW', `No anomalous comms in ${arg}.`);
-                    }
-                });
-                break;
-            }
-            case 'crew': {
-                for (const npc of world.npcs) {
-                    const state = npcStates.get(npc.id) as NPCState | undefined;
-                    const vitals = NPC_VITALS.get(npc.id);
-                    if (!state || !vitals) continue;
-                    mother.speak(
-                        'LOW',
-                        `${npc.name} @ ${state.currentPlace} | HP ${vitals.hp}/${vitals.maxHp} | Stress ${state.stress} | Loyalty ${state.loyalty} | Paranoia ${state.paranoia}`
-                    );
-                }
-                break;
-            }
-            case 'threats': {
-                const threats = director.getThreatStatus();
-                if (threats.length === 0) {
-                    mother.speak('LOW', `No active threat clocks.`);
-                } else {
-                    for (const threat of threats) {
-                        mother.speak('MEDIUM', `CLOCK ${threat.name}: step ${threat.step}/${threat.totalSteps} | target ${threat.target} | next T+${threat.nextTick - STATE.tick}`);
-                    }
-                }
-                break;
-            }
-            case 'help':
-                console.log("LOCK [ID] (5 CPU) - Restrict movement.");
-                console.log("UNLOCK [ID] (2 CPU) - Restore movement.");
-                console.log("SCAN [ROOM] (1 CPU) - Check O2/Temp.");
-                console.log("VENT [ROOM] (10 CPU) - Dump atmosphere (Kills fire/crew).");
-                console.log("SEAL [ROOM] (5 CPU) - Restore atmosphere.");
-                console.log("PURGE AIR (8 CPU) - Boost O2, reduce radiation (costs power).");
-                console.log("REROUTE [comms|doors|life_support] (6 CPU) - Counterplay at power cost.");
-                console.log("THREATS - List active threat clocks.");
-                console.log("CREW - List crew vitals + stress/loyalty/paranoia.");
-                console.log("SPOOF [system] (6 CPU) - Inject false alert (Shift/Evening).");
-                console.log("SUPPRESS [system] (5 CPU) - Suppress alerts for 30 ticks.");
-                console.log("FABRICATE [npc] (7 CPU) - Insert hostile log (Evening).");
-                console.log("LISTEN [room] (3 CPU) - Detect whispers (Evening).");
-                break;
-            default:
-                if (cmd) mother.speak('LOW', `Unrecognized directive: ${cmd}`);
+        const wasRecognized = executeCommand(cmd, arg, arg2);
+        if (!wasRecognized) {
+            mother.speak('LOW', `Unrecognized directive: ${cmd}`);
         }
     }
 
-    inputLoop.close();
+    clearInterval(timer);
+    rl.close();
 }
 
-main();
-
 function printSummary() {
-    const aliveCount = getAliveCount();
-    const threats = director.getThreatStatus();
-
+    const alive = Object.values(state.truth.crew).filter(c => c.alive).length;
     console.log(`\n=== SIM SUMMARY ===`);
-    console.log(`DAY: ${GAME.day} | QUOTA: ${GAME.dayCargo}/${GAME.quotaPerDay} | TOTAL: ${GAME.totalCargo}`);
-    console.log(`CREW: ${aliveCount}/${GAME.totalCrew} | LOYALTY: ${GAME.crewLoyalty}`);
-    console.log(`ENDING: ${GAME.ending ?? 'NONE'}`);
+    console.log(`DAY: ${state.truth.day} | QUOTA: ${state.truth.dayCargo}/${state.truth.quotaPerDay} | TOTAL: ${state.truth.totalCargo}`);
+    console.log(`PHASE: ${state.truth.phase.toUpperCase()}`);
+    console.log(`CREW: ${alive}/${world.npcs.length}`);
+    console.log(`ENDING: ${state.truth.ending ?? 'NONE'}`);
+    console.log(`RESET STAGE: ${state.truth.resetStage} | COUNTDOWN: ${state.truth.resetCountdown ?? 'NONE'}`);
+    console.log(`ACTIVE ARCS: ${state.truth.arcs.length}`);
 
-    if (threats.length > 0) {
-        console.log(`ACTIVE THREATS:`);
-        for (const threat of threats) {
-            console.log(`- ${threat.name} step ${threat.step}/${threat.totalSteps} target ${threat.target} next T+${threat.nextTick - STATE.tick}`);
-        }
-    } else {
-        console.log(`ACTIVE THREATS: none`);
-    }
-
-    const tail = EVENT_LOG.slice(-8);
+    const tail = EVENT_LOG.filter(event => event.type !== 'CREW_MOOD_TICK' && event.type !== 'NPC_MOVE').slice(-8);
     if (tail.length > 0) {
         console.log(`RECENT EVENTS:`);
         for (const event of tail) {
@@ -653,3 +617,5 @@ function printSummary() {
         }
     }
 }
+
+main();

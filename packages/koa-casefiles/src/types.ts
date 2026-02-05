@@ -128,7 +128,7 @@ export interface Place {
 // World - Devices
 // ============================================================================
 
-export type DeviceType = 'door_sensor' | 'motion_sensor' | 'wifi_presence';
+export type DeviceType = 'door_sensor' | 'motion_sensor' | 'wifi_presence' | 'camera';
 
 export interface Device {
     id: DeviceId;
@@ -174,6 +174,7 @@ export type EventType =
     | 'DOOR_OPENED'
     | 'DOOR_CLOSED'
     | 'MOTION_DETECTED'
+    | 'CAMERA_SNAPSHOT'    // Camera captured someone (ambiguous description)
     | 'ITEM_TAKEN'
     | 'ITEM_HIDDEN'
     | 'ITEM_SWAPPED'       // Replaced with decoy
@@ -253,12 +254,12 @@ export interface CaseConfig {
     crimeMethod: CrimeMethod;       // How they did it
     targetItem: ItemId;
     crimeWindow: WindowId;
-    crimePlace: PlaceId;
-    hiddenPlace: PlaceId;           // Where item was hidden/moved
+    crimePlace: PlaceId;            // Where the crime occurred (item taken from)
+    hiddenPlace: PlaceId;           // Where the item was hidden/moved to
     motive: Motive;                 // Why they did it
     twist?: TwistRule;              // Optional complexity
     suspiciousActs: SuspiciousAct[]; // Red herring behaviors
-    distractedWitness?: NPCId;      // Someone who was there but didn't notice
+    distractedWitnesses?: NPCId[];  // NPCs who were at crime scene but didn't notice
 }
 
 // ============================================================================
@@ -298,6 +299,8 @@ export interface TestimonyEvidence extends BaseEvidence {
     observable: string;    // "heard footsteps", "saw tall figure"
     confidence: number;    // 0.0 - 1.0
     subjectHint?: string;  // "tall", "wearing red", etc. (NOT NPCId)
+    subject?: NPCId;       // Who was seen (if identifiable)
+    subjectPlace?: PlaceId; // Where the subject was seen (may differ from witness place)
 }
 
 export interface PhysicalEvidence extends BaseEvidence {
@@ -306,6 +309,7 @@ export interface PhysicalEvidence extends BaseEvidence {
     detail: string;        // "Missing from kitchen", "Found in garage"
     place: PlaceId;
     window: WindowId;
+    methodTag?: MethodId;  // Explicit method hint for HOW deduction
     isGated?: boolean;     // If true, requires prerequisites to discover
     discoveryPrerequisites?: Array<{
         type: 'device_log' | 'testimony';

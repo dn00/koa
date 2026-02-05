@@ -1,0 +1,47 @@
+[
+  {
+    "id": "alert_thermal_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "thermal" },
+    "text": "THERMAL WARNING: Heat spike detected in {place}."
+  },
+  {
+    "id": "alert_radiation_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "radiation" },
+    "text": "RADIATION ALERT: Leak registered near {place}."
+  },
+  {
+    "id": "alert_power_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "power" },
+    "text": "POWER INSTABILITY: Harmonization failure at {place}."
+  },
+  {
+    "id": "alert_air_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "air" },
+    "text": "LIFE SUPPORT: Scrubber load rising in {place}."
+  },
+  {
+    "id": "alert_comms_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "comms" },
+    "text": "EVENING PHASE: Comms traffic elevated."
+  },
+  {
+    "id": "alert_cycle_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "cycle" },
+    "text": "NIGHT CYCLE: Lights dimmed. Sensor fidelity reduced."
+  },
+  {
+    "id": "alert_rations_01",
+    "tags": { "event": "SYSTEM_ALERT", "system": "rations" },
+    "text": "Ration protocol updated."
+  },
+  {
+    "id": "sensor_ghost_01",
+    "tags": { "event": "SENSOR_READING", "system": "comms" },
+    "text": "COMMS STATIC: Unattributed signal detected."
+  },
+  {
+    "id": "system_action_01",
+    "tags": { "event": "SYSTEM_ACTION" },
+    "text": "SYSTEM ACTION EXECUTED."
+  }
+]

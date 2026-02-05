@@ -21,29 +21,27 @@ const ticks = Number(getArg('--ticks', '200'));
 const fastStart = args.includes('--fast-start');
 const listOnly = args.includes('--list');
 const maxCases = Number(getArg('--limit', '50'));
+const baselineOnly = args.includes('--baseline');
 
-const candidates: TuneCase[] = buildGrid([
-    {
-        key: 'PARANOIA_MAX_ACTIVE_THREATS',
-        values: ['1', '2'],
-    },
-    {
-        key: 'PARANOIA_MELTDOWN_TICKS',
-        values: ['8', '12'],
-    },
-    {
-        key: 'PARANOIA_DAMAGE_BURN',
-        values: ['8', '10', '12'],
-    },
-    {
-        key: 'PARANOIA_SABOTAGE_CHANCE',
-        values: ['1', '2', '3'],
-    },
-    {
-        key: 'PARANOIA_QUOTA_PER_DAY',
-        values: ['6', '8', '10'],
-    },
-]).slice(0, maxCases);
+const candidates: TuneCase[] = baselineOnly
+    ? [{ name: 'baseline', env: {} }]
+    : buildGrid([
+        // Crisis frequency - main survival lever
+        {
+            key: 'PARANOIA_THREAT_COOLDOWN',
+            values: ['60', '100', '140'],
+        },
+        // Quota difficulty
+        {
+            key: 'PARANOIA_QUOTA_PER_DAY',
+            values: ['6', '8', '10'],
+        },
+        // Radiation decay speed - path blockage duration
+        {
+            key: 'PARANOIA_RADIATION_DECAY_INTERVAL',
+            values: ['1', '2', '4'],
+        },
+    ]).slice(0, maxCases);
 
 if (listOnly) {
     console.log(`Cases: ${candidates.length}`);
@@ -98,7 +96,8 @@ for (const candidate of candidates) {
             continue;
         }
 
-        const cleanStdout = stripAnsi(out.stdout ?? '');
+        const combinedOutput = `${out.stdout ?? ''}\n${out.stderr ?? ''}`;
+        const cleanStdout = stripAnsi(combinedOutput);
         const summary = parseSummary(cleanStdout);
         if (!summary) {
             console.error(`No summary parsed for ${candidate.name} seed=${seed}`);
@@ -173,12 +172,12 @@ function parseSummary(stdout: string): { totalCargo: number; alive: number; endi
     const crewMatch = stdout.match(/CREW:\s+(\d+)\/(\d+)/);
     const endingMatch = stdout.match(/ENDING:\s+([A-Z_]+)/);
 
-    if (!cargoMatch || !crewMatch || !endingMatch) return null;
+    if (!cargoMatch || !crewMatch) return null;
 
     return {
         totalCargo: Number(cargoMatch[1]),
         alive: Number(crewMatch[1]),
-        ending: endingMatch[1],
+        ending: endingMatch ? endingMatch[1] : 'NONE',
     };
 }
 

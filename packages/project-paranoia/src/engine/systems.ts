@@ -223,4 +223,18 @@ export class SystemsManager {
             state.radiation = Math.max(0, state.radiation - 2);
         }
     }
+
+    exportState(): { rooms: RoomSystemState[]; station: StationSystemState } {
+        return {
+            rooms: Array.from(this.states.values()),
+            station: { ...this.station },
+        };
+    }
+
+    importState(state: { rooms: RoomSystemState[]; station: StationSystemState }) {
+        for (const room of state.rooms) {
+            this.states.set(room.id, { ...room });
+        }
+        this.station = { ...state.station };
+    }
 }

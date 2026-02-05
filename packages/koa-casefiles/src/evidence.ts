@@ -20,6 +20,9 @@ import type {
     WindowId,
     MotiveType,
     RelationshipType,
+    NPC,
+    Item,
+    MethodId,
 } from './types.js';
 import { WINDOWS } from './types.js';
 import { sha256 } from './kernel/canonical.js';
@@ -106,10 +109,13 @@ function derivePresence(
 
 /**
  * Derive device log evidence from DOOR and MOTION events.
+ * Door sensors can identify WHO opened them via smart lock integration.
+ * Motion sensors only detect presence, not identity.
  */
 function deriveDeviceLogs(
     world: World,
-    events: SimEvent[]
+    events: SimEvent[],
+    config?: CaseConfig
 ): DeviceLogEvidence[] {
     const evidence: DeviceLogEvidence[] = [];
 
@@ -117,6 +123,19 @@ function deriveDeviceLogs(
         if (event.type === 'DOOR_OPENED' || event.type === 'DOOR_CLOSED') {
             const device = world.devices.find(d => d.id === event.target);
             if (device) {
+                // Door sensors identify WHO opened them (smart lock feature)
+                // Exception: don't directly identify culprit at crime time (anti-anticlimax)
+                const isCrimeEvent = config &&
+                    event.actor === config.culpritId &&
+                    event.window === config.crimeWindow &&
+                    event.place === config.crimePlace;
+
+                const npc = event.actor ? world.npcs.find(n => n.id === event.actor) : undefined;
+                const action = event.type === 'DOOR_OPENED' ? 'opened' : 'closed';
+                const detail = npc && !isCrimeEvent
+                    ? `Door ${action} by ${npc.name}`
+                    : `Door ${action}`;
+
                 evidence.push({
                     id: makeEvidenceId('device'),
                     kind: 'device_log',
@@ -124,7 +143,8 @@ function deriveDeviceLogs(
                     deviceType: device.type,
                     window: event.window,
                     place: event.place ?? device.place,
-                    detail: event.type === 'DOOR_OPENED' ? 'Door opened' : 'Door closed',
+                    detail,
+                    actor: isCrimeEvent ? undefined : event.actor, // Include actor for non-crime events
                     cites: [event.id],
                 });
             }
@@ -141,7 +161,31 @@ function deriveDeviceLogs(
                     window: event.window,
                     place: event.place ?? device.place,
                     detail: 'Motion detected',
-                    // Note: we do NOT include actor here - that would be too easy
+                    // Motion sensors can't identify - they just detect presence
+                    cites: [event.id],
+                });
+            }
+        }
+
+        // Camera snapshots - ambiguous descriptions (anti-anticlimax)
+        // Note: We deliberately do NOT store actor to prevent anti-anticlimax violations.
+        // The ambiguous description is all the player gets.
+        if (event.type === 'CAMERA_SNAPSHOT') {
+            const device = world.devices.find(d => d.id === event.target);
+            if (device && event.actor) {
+                // Get ambiguous description of the person
+                const npc = world.npcs.find(n => n.id === event.actor);
+                const description = getCameraDescription(npc, event.data?.carrying as string | undefined);
+
+                evidence.push({
+                    id: makeEvidenceId('device'),
+                    kind: 'device_log',
+                    device: device.id,
+                    deviceType: 'camera',
+                    window: event.window,
+                    place: event.place ?? device.place,
+                    detail: `Snapshot: ${description}`,
+                    // actor intentionally omitted - camera evidence is ambiguous by design
                     cites: [event.id],
                 });
             }
@@ -149,6 +193,44 @@ function deriveDeviceLogs(
     }
 
     return evidence;
+}
+
+/**
+ * Generate an ambiguous camera description (anti-anticlimax).
+ * Never directly identifies the person.
+ */
+function getCameraDescription(npc: NPC | undefined, carrying?: string): string {
+    if (!npc) return 'figure detected';
+
+    // Vague physical descriptors based on archetype (from role)
+    const descriptors = [
+        'a figure',
+        'someone',
+        'a person',
+        'a silhouette',
+    ];
+
+    // Add vague trait hints
+    const traitHints: string[] = [];
+
+    if (npc.role.includes('tall') || npc.role.includes('sibling')) {
+        traitHints.push('appears tall');
+    }
+    if (npc.role.includes('teenager') || npc.role.includes('teen')) {
+        traitHints.push('younger-looking');
+    }
+    if (npc.role.includes('grandmother') || npc.role.includes('grandma')) {
+        traitHints.push('moving slowly');
+    }
+    // Removed clothing hints (business casual, loungewear) - player can't verify these
+    // Keep only observable traits like movement patterns
+
+    // Build description
+    const base = descriptors[Math.floor(npc.id.charCodeAt(0) % descriptors.length)];
+    const trait = traitHints.length > 0 ? `, ${traitHints[0]}` : '';
+    const item = carrying ? `, carrying something` : '';
+
+    return `${base}${trait}${item}`;
 }
 
 // ============================================================================
@@ -220,50 +302,73 @@ function deriveTestimony(
             let subjectHint: string | undefined;
 
             if (event.type === 'NPC_MOVE') {
+                const actorNpc = world.npcs.find(n => n.id === event.actor);
+                const actorName = actorNpc?.name ?? event.actor;
                 if (isSameRoom) {
-                    observable = 'saw a suspicious figure sneaking in';
-                    confidence = 0.7;
-                    subjectHint = getVagueDescription(event.actor, world);
+                    observable = `saw ${actorName} come in`;
+                    confidence = 0.8;
+                    subjectHint = actorName.toLowerCase();
                 } else {
-                    observable = 'heard ominous footsteps';
-                    confidence = 0.4;
+                    // Adjacent room - can sometimes identify by sound/glimpse
+                    observable = `heard ${actorName} moving around nearby`;
+                    confidence = 0.5;
+                    subjectHint = actorName.toLowerCase();
                 }
             } else if (event.type === 'DOOR_OPENED' || event.type === 'DOOR_CLOSED') {
-                observable = event.type === 'DOOR_OPENED'
-                    ? 'heard a door open'
-                    : 'heard a door close';
-                confidence = 0.5;
+                const actorNpc = world.npcs.find(n => n.id === event.actor);
+                const actorName = actorNpc?.name ?? 'someone';
+                if (isSameRoom || isAdjacent) {
+                    observable = event.type === 'DOOR_OPENED'
+                        ? `heard ${actorName} open a door`
+                        : `heard ${actorName} close a door`;
+                    confidence = 0.6;
+                    subjectHint = actorName.toLowerCase();
+                } else {
+                    observable = event.type === 'DOOR_OPENED'
+                        ? 'heard a door open'
+                        : 'heard a door close';
+                    confidence = 0.4;
+                }
             } else if (event.type === 'ITEM_TAKEN') {
+                const actorNpc = world.npcs.find(n => n.id === event.actor);
+                const actorName = actorNpc?.name ?? 'someone';
                 if (isSameRoom) {
-                    // This would be anti-anticlimax - reduce confidence
+                    // Same room - can see but be vague about crime action
                     const method = (event.data as any)?.method;
                     observable = method
-                        ? `saw someone ${method}` // e.g. "saw someone aggressively grabbing..."
-                        : 'saw someone messing with the shelf';
-
-                    confidence = 0.3;
-                    subjectHint = getVagueDescription(event.actor, world);
+                        ? `saw ${actorName} ${method}`
+                        : `saw ${actorName} messing with something`;
+                    confidence = 0.6;
+                    subjectHint = actorName.toLowerCase();
                 } else {
-                    observable = 'heard suspicious frantic rustling';
-                    confidence = 0.3;
+                    // Adjacent - heard something, might know who
+                    observable = `heard ${actorName} rummaging around`;
+                    confidence = 0.4;
+                    subjectHint = actorName.toLowerCase();
                 }
             } else if (event.type === 'ACTIVITY_STARTED') {
                 const activityId = (event.data as any)?.activity as ActivityType | undefined;
                 const sound = (event.data as any)?.sound;
                 const actDef = activityId ? ACTIVITIES[activityId] : undefined;
+                const actorNpc = world.npcs.find(n => n.id === event.actor);
+                const actorName = actorNpc?.name ?? 'someone';
 
                 if (isSameRoom && actDef) {
-                    // Witness sees the activity - make it look suspicious!
-                    observable = `saw ${actDef.looksLike}`;
-                    confidence = 0.6;
-                    subjectHint = getVagueDescription(event.actor, world);
+                    // Witness sees the activity - name the person
+                    observable = `saw ${actorName} ${actDef.looksLike}`;
+                    confidence = 0.7;
+                    subjectHint = actorName.toLowerCase();
+                } else if (isAdjacent && sound) {
+                    // Adjacent room - heard sound, might know who
+                    observable = `heard ${actorName} - ${sound}`;
+                    confidence = 0.5;
+                    subjectHint = actorName.toLowerCase();
                 } else if (sound) {
                     observable = `heard ${sound}`;
-                    confidence = 0.5;
-                } else if (actDef && actDef.audioClues.length > 0) {
-                    // Use default audio clue from activity
-                    observable = `heard ${actDef.audioClues[0]}`;
                     confidence = 0.4;
+                } else if (actDef && actDef.audioClues.length > 0) {
+                    observable = `heard ${actDef.audioClues[0]}`;
+                    confidence = 0.3;
                 } else {
                     continue;
                 }
@@ -273,9 +378,11 @@ function deriveTestimony(
 
             // Anti-anticlimax: If this is the crime event used by culprit,
             // NEVER give high confidence identification
+            let subject: NPCId | undefined = event.actor;
             if (event.actor === config.culpritId && event.window === config.crimeWindow) {
                 confidence = Math.min(confidence, 0.5);
                 subjectHint = undefined; // Remove hint for crime events
+                subject = undefined; // Don't directly identify culprit at crime scene
             }
 
             evidence.push({
@@ -287,8 +394,60 @@ function deriveTestimony(
                 observable,
                 confidence,
                 subjectHint,
+                subject: subject, // Identify subject when we know who it is
+                subjectPlace: event.place,
                 cites: [event.id],
             });
+        }
+    }
+
+    // Generate "presence sighting" testimony - witnesses report seeing NPCs in adjacent rooms
+    // This helps discover suspects who were present but didn't trigger events
+    for (const timeWindow of WINDOWS) {
+        const windowId = timeWindow.id;
+        const locationMap = npcLocationsPerWindow.get(windowId);
+        if (!locationMap) continue;
+
+        for (const witness of world.npcs) {
+            const witnessPlace = locationMap.get(witness.id);
+            if (!witnessPlace) continue;
+
+            const witnessRoom = world.places.find(p => p.id === witnessPlace);
+            if (!witnessRoom) continue;
+
+            // Check adjacent rooms for other NPCs
+            for (const adjPlaceId of witnessRoom.adjacent) {
+                for (const other of world.npcs) {
+                    if (other.id === witness.id) continue;
+
+                    const otherPlace = locationMap.get(other.id);
+                    if (otherPlace !== adjPlaceId) continue;
+
+                    // Don't reveal culprit at crime scene/time
+                    if (other.id === config.culpritId &&
+                        windowId === config.crimeWindow &&
+                        (adjPlaceId === config.crimePlace || adjPlaceId === config.hiddenPlace)) {
+                        continue;
+                    }
+
+                    const adjRoom = world.places.find(p => p.id === adjPlaceId);
+                    const roomName = adjRoom?.name ?? adjPlaceId;
+
+                    evidence.push({
+                        id: makeEvidenceId('testimony'),
+                        kind: 'testimony',
+                        witness: witness.id,
+                        window: windowId,
+                        place: witnessPlace,
+                        observable: `noticed ${other.name} was in the ${roomName}`,
+                        confidence: 0.7,
+                        subjectHint: other.name.toLowerCase(),
+                        subject: other.id,
+                        subjectPlace: adjPlaceId,
+                        cites: [],
+                    });
+                }
+            }
         }
     }
 
@@ -299,13 +458,14 @@ function deriveTestimony(
 }
 
 function getVagueDescription(npcId: NPCId, world: World): string {
-    // Return vague physical descriptions, never names
+    // Return truly vague descriptions - no clothing/appearance that player can't verify
+    // These are intentionally generic since player should use COMPARE to catch lies
     const descriptions: Record<string, string> = {
-        alice: 'someone in business casual',
-        bob: 'a person in a hoodie',
-        carol: 'someone with dark hair',
-        dan: 'an early-riser type',
-        eve: 'a mysterious figure',
+        alice: 'someone',
+        bob: 'a figure',
+        carol: 'somebody',
+        dan: 'a person',
+        eve: 'someone moving quickly',
     };
     return descriptions[npcId] ?? 'someone';
 }
@@ -363,7 +523,28 @@ function derivePhysical(
         disappearance: `${targetItem.funnyName} has mysteriously vanished`,
     };
 
-    // Crime-type specific descriptions - with location (gated)
+    // Method-specific descriptions for crime scene (WHERE it was taken from)
+    // These clearly indicate HOW the crime was done
+    const methodMissingDescriptions: Record<MethodId, string> = {
+        // Theft methods
+        grabbed: `${targetItem.funnyName} was grabbed from ${targetItem.startPlace} - knocked over nearby items`,
+        pocketed: `${targetItem.funnyName} was swiped from ${targetItem.startPlace} - small enough to pocket`,
+        smuggled: `${targetItem.funnyName} was taken from ${targetItem.startPlace} - wrapping materials left behind`,
+        // Sabotage methods
+        broke: `${targetItem.funnyName} was broken in ${targetItem.startPlace} - pieces scattered`,
+        unplugged: `${targetItem.funnyName} was unplugged in ${targetItem.startPlace} - cables disconnected`,
+        reprogrammed: `${targetItem.funnyName} was reprogrammed in ${targetItem.startPlace} - settings changed`,
+        // Prank methods
+        relocated: `${targetItem.funnyName} was taken from ${targetItem.startPlace} - moved somewhere silly`,
+        swapped: `${targetItem.funnyName} was swapped out in ${targetItem.startPlace} - decoy left behind`,
+        disguised: `${targetItem.funnyName} was disguised in ${targetItem.startPlace} - costume remnants found`,
+        // Disappearance methods
+        hid: `${targetItem.funnyName} was hidden - last seen in ${targetItem.startPlace}`,
+        buried: `${targetItem.funnyName} was buried away from ${targetItem.startPlace}`,
+        donated: `${targetItem.funnyName} was "donated" from ${targetItem.startPlace} - donation note found`,
+    };
+
+    // Fallback crime-type specific descriptions - with location (gated)
     const missingLocationDescriptions: Record<string, string> = {
         theft: `${targetItem.funnyName} was taken from ${targetItem.startPlace}`,
         sabotage: `${targetItem.funnyName} was tampered with in ${targetItem.startPlace}`,
@@ -371,6 +552,28 @@ function derivePhysical(
         disappearance: `${targetItem.funnyName} vanished from ${targetItem.startPlace}`,
     };
 
+    // Method-specific descriptions for HOW deduction
+    // Each method hints at how the crime was committed
+    const methodFoundDescriptions: Record<MethodId, string> = {
+        // Theft methods
+        grabbed: `${targetItem.funnyName} was found hastily stashed in ${config.hiddenPlace} - signs of a quick grab`,
+        pocketed: `${targetItem.funnyName} was found in ${config.hiddenPlace} - small enough to have been pocketed`,
+        smuggled: `${targetItem.funnyName} was found wrapped up in ${config.hiddenPlace} - someone smuggled it out`,
+        // Sabotage methods
+        broke: `${targetItem.funnyName} was found broken in ${config.hiddenPlace}`,
+        unplugged: `${targetItem.funnyName} was found unplugged/disconnected in ${config.hiddenPlace}`,
+        reprogrammed: `${targetItem.funnyName} was found in ${config.hiddenPlace} with tampered settings`,
+        // Prank methods
+        relocated: `${targetItem.funnyName} was deliberately relocated to ${config.hiddenPlace}`,
+        swapped: `${targetItem.funnyName} was swapped out - found in ${config.hiddenPlace}`,
+        disguised: `${targetItem.funnyName} was disguised and left in ${config.hiddenPlace}`,
+        // Disappearance methods
+        hid: `${targetItem.funnyName} was carefully hidden in ${config.hiddenPlace}`,
+        buried: `${targetItem.funnyName} was buried under stuff in ${config.hiddenPlace}`,
+        donated: `${targetItem.funnyName} was "donated away" - found in ${config.hiddenPlace}`,
+    };
+
+    // Fallback to crime-type generic if method not found
     const foundDescriptions: Record<string, string> = {
         theft: `${targetItem.funnyName} was found stashed in ${config.hiddenPlace}`,
         sabotage: `${targetItem.funnyName} was found dumped in ${config.hiddenPlace}`,
@@ -378,47 +581,45 @@ function derivePhysical(
         disappearance: `${targetItem.funnyName} was found carefully hidden in ${config.hiddenPlace}`,
     };
 
-    // WHERE the item was taken from - GATED (requires device logs or testimony)
-    // Player must investigate before learning the crime scene location
+    // Use method-specific description if available, otherwise fall back to crime-type
+    const methodId = config.crimeMethod?.methodId;
+    const foundDetail = methodId && methodFoundDescriptions[methodId]
+        ? methodFoundDescriptions[methodId]
+        : (foundDescriptions[config.crimeType] ?? `${targetItem.funnyName} was found in ${config.hiddenPlace}`);
+
+    // Use method-specific description for crime scene, or fall back to crime-type
+    const missingDetail = methodId && methodMissingDescriptions[methodId]
+        ? methodMissingDescriptions[methodId]
+        : (missingLocationDescriptions[config.crimeType] ?? `${targetItem.funnyName} was taken from ${targetItem.startPlace}`);
+
+    // WHERE the item was taken from - THIS IS THE CRIME LOCATION for accusation
+    // Gating REMOVED: gossip now reveals location, so player should find evidence when they search
     evidence.push({
         id: makeEvidenceId('physical'),
         kind: 'physical',
         item: targetItem.id,
-        detail: missingLocationDescriptions[config.crimeType] ?? `${targetItem.funnyName} was taken from ${targetItem.startPlace}`,
+        detail: `[CRIME SCENE] ${missingDetail}`,
         place: targetItem.startPlace,
         window: config.crimeWindow,
+        methodTag: methodId,  // Explicit HOW hint
         cites: events
             .filter(e => e.type === 'ITEM_TAKEN' && e.target === targetItem.id)
             .map(e => e.id),
-        isGated: true,
-        discoveryPrerequisites: [
-            // Can discover if player found device logs showing activity at start location
-            { type: 'device_log', placeHint: targetItem.startPlace },
-            // Or if testimony mentions the start location
-            { type: 'testimony', placeHint: targetItem.startPlace },
-        ],
     });
 
-    // Item is hidden in new location - GATED (requires prerequisite evidence)
-    // This prevents the "physical evidence shortcut" where players just search
-    // every location to instantly find the hidden item
+    // Item is hidden in new location - NOT the crime location
+    // Gating REMOVED: player should be able to find physical evidence directly via SEARCH
     evidence.push({
         id: makeEvidenceId('physical'),
         kind: 'physical',
         item: targetItem.id,
-        detail: foundDescriptions[config.crimeType] ?? `${targetItem.funnyName} was found hidden in ${config.hiddenPlace}`,
+        detail: `[HIDDEN] ${foundDetail}`,
         place: config.hiddenPlace,
         window: config.crimeWindow,
+        methodTag: methodId,  // Explicit HOW hint
         cites: events
             .filter(e => e.type === 'ITEM_HIDDEN' && e.target === targetItem.id)
             .map(e => e.id),
-        isGated: true,
-        discoveryPrerequisites: [
-            // Can discover if player found device logs showing activity at hidden location
-            { type: 'device_log', placeHint: config.hiddenPlace },
-            // Or if testimony mentions the hidden location
-            { type: 'testimony', placeHint: config.hiddenPlace },
-        ],
     });
 
     // Evidence Traces (Activities)
@@ -598,17 +799,31 @@ function deriveMotiveEvidence(world: World, config?: CaseConfig): MotiveEvidence
             }
         }
 
-        // Add "crime awareness" gossip - NPCs know WHAT happened but not WHERE
-        // This reveals the crime type without giving away the location
+        // Add "crime awareness" gossip - NPCs know WHAT happened, WHERE, and roughly WHEN
+        // This gives player clear direction on where to start investigating
         const targetItem = world.items.find(i => i.id === config.targetItem);
         if (targetItem) {
-            const crimeAwareness: Record<string, string> = {
-                theft: `Did you hear? ${targetItem.funnyName} has gone missing!`,
-                sabotage: `Someone messed with ${targetItem.funnyName}!`,
-                prank: `${targetItem.funnyName} got moved somewhere ridiculous`,
-                disappearance: `${targetItem.funnyName} has vanished - nobody knows where`,
+            // Use human-readable room name, but show place ID for SEARCH command
+            const place = world.places.find(p => p.id === config.crimePlace);
+            const roomName = place?.name ?? config.crimePlace;
+            const placeHint = `${roomName} (SEARCH: ${config.crimePlace})`;
+            const windowTimes: Record<string, string> = {
+                W1: 'late afternoon',
+                W2: 'early evening',
+                W3: 'evening',
+                W4: 'late evening',
+                W5: 'late at night',
+                W6: 'after midnight',
             };
-            const awarenessText = crimeAwareness[config.crimeType] ?? `Something happened to ${targetItem.funnyName}`;
+            const timeHint = windowTimes[config.crimeWindow] ?? 'sometime';
+
+            const crimeAwareness: Record<string, string> = {
+                theft: `Did you hear? ${targetItem.funnyName} went missing from the ${placeHint} during the ${timeHint} (${config.crimeWindow})!`,
+                sabotage: `Someone messed with ${targetItem.funnyName} in the ${placeHint} during the ${timeHint} (${config.crimeWindow})!`,
+                prank: `${targetItem.funnyName} got moved from the ${placeHint} during the ${timeHint} (${config.crimeWindow}) - check somewhere ridiculous`,
+                disappearance: `${targetItem.funnyName} vanished from the ${placeHint} during the ${timeHint} (${config.crimeWindow})`,
+            };
+            const awarenessText = crimeAwareness[config.crimeType] ?? `Something happened to ${targetItem.funnyName} in the ${placeHint}`;
 
             // Multiple NPCs know about the crime (household gossip spreads fast)
             const gossipSources = world.npcs.filter(n => n.id !== config.culpritId).slice(0, 2);
@@ -695,6 +910,8 @@ function deriveContradictoryEvidence(
                 observable: `${voucherName} thinks they saw ${actorName} in the bedroom`,
                 confidence: 0.5, // Low confidence - can be broken
                 subjectHint: actorName.toLowerCase(),
+                subject: alibiActor, // Track who was allegedly seen
+                subjectPlace: 'bedroom',
                 cites: [],
             } as TestimonyEvidence);
 
@@ -833,6 +1050,8 @@ function deriveContradictoryEvidence(
                 observable: `${gossiper.name} saw ${patsyName} "lurking" (they were just getting a snack)`,
                 confidence: 0.4, // Low confidence - easily disproven
                 subjectHint: patsyName.toLowerCase(),
+                subject: patsyId, // Track who was allegedly seen
+                subjectPlace: 'bedroom',
                 cites: [],
             } as TestimonyEvidence);
         }
@@ -863,6 +1082,8 @@ function deriveContradictoryEvidence(
             observable: `${helperName} swears ${culpritName} was with them the whole time`,
             confidence: 0.85, // High confidence - they're lying on purpose
             subjectHint: culpritName.toLowerCase(),
+            subject: config.culpritId, // Track who was allegedly seen
+            subjectPlace: 'living',
             cites: [],
         } as TestimonyEvidence);
 
@@ -916,10 +1137,63 @@ export function deriveEvidence(
 
     return [
         ...derivePresence(world, events),
-        ...deriveDeviceLogs(world, events),
+        ...deriveDeviceLogs(world, events, config),
         ...deriveTestimony(world, events, config),
         ...derivePhysical(world, events, config),
         ...deriveMotiveEvidence(world, config),
         ...deriveContradictoryEvidence(world, events, config),
+        ...deriveCulpritAlibiClaim(world, config),
     ];
+}
+
+// ============================================================================
+// Culprit's False Alibi Claim (ALWAYS generated for COMPARE to work)
+// ============================================================================
+
+/**
+ * The culprit always claims to be somewhere other than the crime scene.
+ * This creates a discoverable contradiction:
+ * - Culprit's testimony: "I was in bedroom all night"
+ * - Device logs/presence: Shows culprit was at crime scene
+ *
+ * This makes COMPARE actually useful without needing a twist.
+ */
+function deriveCulpritAlibiClaim(
+    world: World,
+    config: CaseConfig
+): EvidenceItem[] {
+    const evidence: EvidenceItem[] = [];
+
+    const culprit = world.npcs.find(n => n.id === config.culpritId);
+    if (!culprit) return evidence;
+
+    // Find a plausible alibi location (not the crime scene or hidden place)
+    const alibiLocations = world.places.filter(
+        p => p.id !== config.crimePlace && p.id !== config.hiddenPlace
+    );
+    const alibiPlace = alibiLocations.length > 0 ? alibiLocations[0].id : 'bedroom';
+
+    // Culprit's self-testimony about their "alibi"
+    evidence.push({
+        id: makeEvidenceId('testimony'),
+        kind: 'testimony',
+        witness: config.culpritId,
+        window: config.crimeWindow,
+        place: alibiPlace,
+        observable: `${culprit.name} claims to have been here during ${config.crimeWindow}`,
+        confidence: 0.8, // Confident lie
+        cites: [],
+    } as TestimonyEvidence);
+
+    // Culprit's false presence claim (contradicts their real presence at crime scene)
+    evidence.push({
+        id: makeEvidenceId('presence'),
+        kind: 'presence',
+        npc: config.culpritId,
+        window: config.crimeWindow,
+        place: alibiPlace,
+        cites: ['self_reported_alibi'], // Flagged as self-reported
+    } as PresenceEvidence);
+
+    return evidence;
 }

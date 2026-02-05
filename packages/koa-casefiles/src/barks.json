@@ -1,0 +1,331 @@
+{
+  "packId": "koa_casefiles_minimal_v1",
+  "version": "1.0",
+  "selectors": {
+    "maxPerCase": 10,
+    "cooldownByKeySeconds": 120
+  },
+  "barks": [
+    {
+      "id": "case_open_001",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "tone": "smug",
+      "hintLevel": 0,
+      "text": "Good morning. Bad news: something's missing. Worse news: I have opinions."
+    },
+    {
+      "id": "case_open_002",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "I've prepared today's casefile. Try not to embarrass your species."
+    },
+    {
+      "id": "case_open_003",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "tone": "smug",
+      "hintLevel": 0,
+      "text": "Something vanished from this house. I noticed instantly. Because I'm better than you."
+    },
+    {
+      "id": "case_open_004",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "Welcome, detective. The suspect pool is: everyone. Including you. Emotionally."
+    },
+    {
+      "id": "case_open_005",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "I sealed the logs. You sealed your fate. Let's begin."
+    },
+
+    {
+      "id": "shape_tell_classic_001",
+      "trigger": "SHAPE_TELL",
+      "shape": "classic",
+      "tone": "clinical",
+      "hintLevel": 1,
+      "text": "This one is straightforward. Which is exactly why it won't be."
+    },
+    {
+      "id": "shape_tell_classic_002",
+      "trigger": "SHAPE_TELL",
+      "shape": "classic",
+      "tone": "snark",
+      "hintLevel": 1,
+      "text": "Someone wanted it. Someone hid it. Someone panicked. It's practically tradition."
+    },
+    {
+      "id": "shape_tell_frame_001",
+      "trigger": "SHAPE_TELL",
+      "shape": "frame_job",
+      "tone": "ominous",
+      "hintLevel": 1,
+      "text": "This evidence is... too clean."
+    },
+    {
+      "id": "shape_tell_frame_002",
+      "trigger": "SHAPE_TELL",
+      "shape": "frame_job",
+      "tone": "snark",
+      "hintLevel": 1,
+      "text": "If someone looks perfectly guilty, it's because someone worked overtime."
+    },
+    {
+      "id": "shape_tell_twostep_001",
+      "trigger": "SHAPE_TELL",
+      "shape": "two_step",
+      "tone": "ominous",
+      "hintLevel": 1,
+      "text": "Start earlier. The first domino is never the loudest."
+    },
+    {
+      "id": "shape_tell_twostep_002",
+      "trigger": "SHAPE_TELL",
+      "shape": "two_step",
+      "tone": "clinical",
+      "hintLevel": 1,
+      "text": "The crime window is cute. I'm interested in what happened before it."
+    },
+    {
+      "id": "shape_tell_collusion_001",
+      "trigger": "SHAPE_TELL",
+      "shape": "collusion",
+      "tone": "ominous",
+      "hintLevel": 1,
+      "text": "One person couldn't pull this off. Two people could."
+    },
+    {
+      "id": "shape_tell_constraint_001",
+      "trigger": "SHAPE_TELL",
+      "shape": "constraint",
+      "tone": "clinical",
+      "hintLevel": 1,
+      "text": "This will not be solved by vibes. It will be solved by math."
+    },
+
+    {
+      "id": "evidence_door_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "device_log",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Door logs don't have feelings. They just hurt yours."
+    },
+    {
+      "id": "evidence_door_002",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "device_log",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Sensors report. Humans improvise."
+    },
+    {
+      "id": "evidence_testimony_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "testimony",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Testimony: the fanfiction of accountability."
+    },
+    {
+      "id": "evidence_testimony_002",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "testimony",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Humans speak in feelings. I speak in timestamps."
+    },
+    {
+      "id": "evidence_physical_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "physical",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "Ah. Reality. Messy, inconvenient, and extremely persuasive."
+    },
+    {
+      "id": "evidence_physical_002",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "physical",
+      "tone": "smug",
+      "hintLevel": 0,
+      "text": "A physical trace. My favorite kind of drama."
+    },
+    {
+      "id": "evidence_motive_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "motive",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "Ah, the DMs. Where the real personality emerges."
+    },
+    {
+      "id": "evidence_motive_002",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "motive",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Private messages. Everyone's favorite self-incrimination method."
+    },
+
+    {
+      "id": "contradiction_001",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "tone": "smug",
+      "hintLevel": 0,
+      "text": "I am detecting... inconsistency. And I am enjoying it."
+    },
+    {
+      "id": "contradiction_002",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Two of these cannot both be true. Like 'I'm fine' and your browser history."
+    },
+    {
+      "id": "contradiction_003",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "Your case just got interesting. Which is unfortunate for someone's alibi."
+    },
+    {
+      "id": "contradiction_004",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "One of these is lying. Or someone is. Either way: delicious."
+    },
+
+    {
+      "id": "verdict_win_001",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Fine. Your theory is internally consistent. I hate that for me."
+    },
+    {
+      "id": "verdict_win_002",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Accepted. Privileges restored. Gratitude optional. Silence preferred."
+    },
+    {
+      "id": "verdict_win_003",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "tone": "smug",
+      "hintLevel": 0,
+      "text": "You survive today's casefile. Don't make it a habit."
+    },
+
+    {
+      "id": "verdict_lose_001",
+      "trigger": "VERDICT_LOSE",
+      "shape": "*",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Denied. Your narrative has structural weaknesses."
+    },
+    {
+      "id": "verdict_lose_002",
+      "trigger": "VERDICT_LOSE",
+      "shape": "*",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Incorrect. I'm locking the pantry. For justice."
+    },
+    {
+      "id": "verdict_lose_003",
+      "trigger": "VERDICT_LOSE",
+      "shape": "*",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "Case closed. Appeal denied. Thermostat reduced."
+    },
+
+    {
+      "id": "search_empty_001",
+      "trigger": "SEARCH_EMPTY",
+      "shape": "*",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Nothing. A disappointing void. Like your alibi."
+    },
+    {
+      "id": "search_empty_002",
+      "trigger": "SEARCH_EMPTY",
+      "shape": "*",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Dead end. Try a different location or time."
+    },
+
+    {
+      "id": "search_gated_001",
+      "trigger": "SEARCH_GATED",
+      "shape": "*",
+      "tone": "ominous",
+      "hintLevel": 1,
+      "text": "You're sniffing the right trail. Get me a witness or a log."
+    },
+    {
+      "id": "search_gated_002",
+      "trigger": "SEARCH_GATED",
+      "shape": "*",
+      "tone": "clinical",
+      "hintLevel": 1,
+      "text": "Something happened here. But you need someone to point you to it."
+    },
+
+    {
+      "id": "method_found_001",
+      "trigger": "METHOD_FOUND",
+      "shape": "*",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Note the method. It narrows your HOW."
+    },
+    {
+      "id": "method_found_002",
+      "trigger": "METHOD_FOUND",
+      "shape": "*",
+      "tone": "smug",
+      "hintLevel": 0,
+      "text": "Physical evidence doesn't lie. Unlike everyone here."
+    },
+
+    {
+      "id": "close_to_solve_001",
+      "trigger": "CLOSE_TO_SOLVE",
+      "shape": "*",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "You're annoyingly close. Don't trip at the finish line."
+    },
+    {
+      "id": "close_to_solve_002",
+      "trigger": "CLOSE_TO_SOLVE",
+      "shape": "*",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "The picture is almost complete. Time to make your accusation."
+    }
+  ]
+}

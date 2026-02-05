@@ -10,9 +10,21 @@
 
 import { simulate } from './sim.js';
 import { deriveEvidence } from './evidence.js';
-import { validateCase, findImplicatingChains, getAllChains } from './validators.js';
+import {
+    validateCase,
+    findImplicatingChains,
+    getAllChains,
+    validatePlayability,
+    DEFAULT_PLAYER_CONSTRAINTS,
+    DEFAULT_TUNER_CONFIG,
+    type PlayerConstraints,
+    type PlayabilityResult,
+    type TunerResult,
+} from './validators.js';
 import type { CaseValidation, DifficultyConfig } from './types.js';
 import { ACTIVITIES } from './activities.js';
+import { autosolve, solve } from './solver.js';
+import type { SolverMetrics } from './validators.js';
 
 // Default difficulty config for validation
 const DEFAULT_DIFFICULTY: DifficultyConfig = {
@@ -31,6 +43,13 @@ interface Args {
     generate: number;
     seed?: number;
     verbose: boolean;
+    useBlueprints: boolean;
+    tier: number;
+    houseId?: string;
+    castId?: string;
+    tune: boolean;
+    playability: boolean;
+    autosolve: boolean;
 }
 
 function parseArgs(): Args {
@@ -38,6 +57,13 @@ function parseArgs(): Args {
     let generate = 100;
     let seed: number | undefined;
     let verbose = false;
+    let useBlueprints = false;
+    let tier = 2;
+    let houseId: string | undefined;
+    let castId: string | undefined;
+    let tune = false;
+    let playability = false;
+    let autosolve = false;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -48,6 +74,20 @@ function parseArgs(): Args {
             generate = 1;
         } else if (arg === '--verbose' || arg === '-v') {
             verbose = true;
+        } else if (arg === '--blueprints' || arg === '-b') {
+            useBlueprints = true;
+        } else if (arg === '--tier' || arg === '-t') {
+            tier = parseInt(args[++i], 10) || 2;
+        } else if (arg === '--house') {
+            houseId = args[++i];
+        } else if (arg === '--cast') {
+            castId = args[++i];
+        } else if (arg === '--tune') {
+            tune = true;
+        } else if (arg === '--playability' || arg === '-p') {
+            playability = true;
+        } else if (arg === '--autosolve' || arg === '-a') {
+            autosolve = true;
         } else if (arg === '--help' || arg === '-h') {
             console.log(`
 KOA Casefiles - Case Generation Validator
@@ -59,21 +99,35 @@ Options:
   --generate, -g <n>   Generate and validate n cases (default: 100)
   --seed, -s <n>       Generate single case with specific seed
   --verbose, -v        Show detailed output
+  --blueprints, -b     Use blueprint system (new incident templates)
+  --tier, -t <n>       Difficulty tier 1-4 (default: 2)
+  --house <id>         House layout: share_house, cramped_apartment, mcmansion
+  --cast <id>          NPC cast: roommates, family, coworkers, friends
+  --playability, -p    Check playability with current player constraints
+  --tune               Grid search for optimal player constraints
+  --autosolve, -a      Run automated solver across seeds (practical playtest)
   --help, -h           Show this help
 `);
             process.exit(0);
         }
     }
 
-    return { generate, seed, verbose };
+    return { generate, seed, verbose, useBlueprints, tier, houseId, castId, tune, playability, autosolve };
 }
 
 // ============================================================================
 // Single Case Generation
 // ============================================================================
 
-function generateCase(seed: number, verbose: boolean): CaseValidation | null {
-    const result = simulate(seed);
+function generateCase(
+    seed: number,
+    verbose: boolean,
+    useBlueprints: boolean = false,
+    tier: number = 2,
+    houseId?: string,
+    castId?: string
+): CaseValidation | null {
+    const result = simulate(seed, tier, { useBlueprints, houseId, castId });
 
     if (!result) {
         if (verbose) {
@@ -126,8 +180,18 @@ function generateCase(seed: number, verbose: boolean): CaseValidation | null {
 // Batch Generation
 // ============================================================================
 
-function runBatch(count: number, startSeed: number, verbose: boolean): void {
-    console.log(`\nGenerating ${count} cases...\n`);
+function runBatch(
+    count: number,
+    startSeed: number,
+    verbose: boolean,
+    useBlueprints: boolean = false,
+    tier: number = 2,
+    houseId?: string,
+    castId?: string
+): void {
+    const mode = useBlueprints ? ' (BLUEPRINTS)' : '';
+    const config = houseId || castId ? ` [${houseId ?? 'share_house'}+${castId ?? 'roommates'}]` : '';
+    console.log(`\nGenerating ${count} cases${mode}${config}...\n`);
 
     let passed = 0;
     let failed = 0;
@@ -136,7 +200,7 @@ function runBatch(count: number, startSeed: number, verbose: boolean): void {
 
     for (let i = 0; i < count; i++) {
         const seed = startSeed + i;
-        const validation = generateCase(seed, verbose);
+        const validation = generateCase(seed, verbose, useBlueprints, tier, houseId, castId);
 
         if (!validation) {
             noOpportunity++;
@@ -200,16 +264,372 @@ function runBatch(count: number, startSeed: number, verbose: boolean): void {
 }
 
 // ============================================================================
+// Playability Check
+// ============================================================================
+
+function runPlayabilityCheck(
+    count: number,
+    startSeed: number,
+    verbose: boolean,
+    useBlueprints: boolean = false,
+    tier: number = 2
+): void {
+    console.log(`\nChecking playability of ${count} cases with current constraints...\n`);
+    console.log(`Constraints: ${DEFAULT_PLAYER_CONSTRAINTS.maxDays} days, ${DEFAULT_PLAYER_CONSTRAINTS.apPerDay} AP/day, cover-up after day ${DEFAULT_PLAYER_CONSTRAINTS.coverUpDay}, ${DEFAULT_PLAYER_CONSTRAINTS.maxLeads} leads\n`);
+
+    let playable = 0;
+    let unplayable = 0;
+    let noOpportunity = 0;
+    const issueCount: Record<string, number> = {};
+    let totalAPMargin = 0;
+    let totalMinAP = 0;
+
+    // Guidance metrics aggregation
+    let totalWindowSignalAP = 0;
+    let totalKeystoneReachAP = 0;
+    let totalWindowSpread = 0;
+    const clarityCount: Record<string, number> = { clear: 0, moderate: 0, unclear: 0 };
+
+    for (let i = 0; i < count; i++) {
+        const seed = startSeed + i;
+        const result = simulate(seed, tier, { useBlueprints });
+
+        if (!result) {
+            noOpportunity++;
+            continue;
+        }
+
+        const evidence = deriveEvidence(result.world, result.eventLog, result.config);
+        const chains = getAllChains(result.config, evidence);
+        const playResult = validatePlayability(result.config, evidence, chains);
+
+        if (playResult.playable) {
+            playable++;
+        } else {
+            unplayable++;
+        }
+
+        totalAPMargin += playResult.apMargin;
+        totalMinAP += playResult.minAPToSolve;
+
+        // Aggregate guidance metrics
+        totalWindowSignalAP += playResult.crimeWindowSignalAP;
+        if (playResult.keystoneReachAP >= 0) {
+            totalKeystoneReachAP += playResult.keystoneReachAP;
+        }
+        totalWindowSpread += playResult.windowSpread;
+        clarityCount[playResult.firstMoveClarity]++;
+
+        for (const issue of playResult.issues) {
+            issueCount[issue] = (issueCount[issue] || 0) + 1;
+        }
+
+        if (verbose) {
+            const status = playResult.playable ? '✅' : '❌';
+            const clarity = playResult.firstMoveClarity[0].toUpperCase(); // C/M/U
+            console.log(`Seed ${seed}: ${status} minAP=${playResult.minAPToSolve} margin=${playResult.apMargin} keystone=${playResult.keystoneExists ? 'Y' : 'N'} clarity=${clarity} spread=${playResult.windowSpread}`);
+            if (playResult.issues.length > 0) {
+                for (const issue of playResult.issues) {
+                    console.log(`  → ${issue}`);
+                }
+            }
+        }
+    }
+
+    const validCases = playable + unplayable;
+    const playRate = validCases > 0 ? ((playable / validCases) * 100).toFixed(1) : 0;
+    const avgMargin = validCases > 0 ? (totalAPMargin / validCases).toFixed(1) : 0;
+    const avgMinAP = validCases > 0 ? (totalMinAP / validCases).toFixed(1) : 0;
+
+    // Guidance metrics averages
+    const avgWindowSignalAP = validCases > 0 ? (totalWindowSignalAP / validCases).toFixed(1) : 0;
+    const avgKeystoneReachAP = validCases > 0 ? (totalKeystoneReachAP / validCases).toFixed(1) : 0;
+    const avgWindowSpread = validCases > 0 ? (totalWindowSpread / validCases).toFixed(1) : 0;
+
+    console.log('\n' + '='.repeat(60));
+    console.log('PLAYABILITY RESULTS');
+    console.log('='.repeat(60));
+    console.log(`\nTotal seeds:        ${count}`);
+    console.log(`Valid cases:        ${validCases}`);
+    console.log(`  ✅ Playable:      ${playable} (${playRate}%)`);
+    console.log(`  ❌ Unplayable:    ${unplayable}`);
+    console.log(`  ⚠️  No opportunity: ${noOpportunity}`);
+    console.log(`\nAverage min AP:     ${avgMinAP}`);
+    console.log(`Average AP margin:  ${avgMargin}`);
+
+    console.log('\n' + '-'.repeat(60));
+    console.log('PLAYER GUIDANCE METRICS');
+    console.log('-'.repeat(60));
+    console.log(`\nAvg window signal AP:   ${avgWindowSignalAP} (lower = easier to find crime window)`);
+    console.log(`Avg keystone reach AP:  ${avgKeystoneReachAP} (lower = easier to find contradiction)`);
+    console.log(`Avg window spread:      ${avgWindowSpread} (higher = more spread out)`);
+    console.log(`\nFirst move clarity:`);
+    console.log(`  Clear:    ${clarityCount.clear} (${validCases > 0 ? ((clarityCount.clear / validCases) * 100).toFixed(0) : 0}%)`);
+    console.log(`  Moderate: ${clarityCount.moderate} (${validCases > 0 ? ((clarityCount.moderate / validCases) * 100).toFixed(0) : 0}%)`);
+    console.log(`  Unclear:  ${clarityCount.unclear} (${validCases > 0 ? ((clarityCount.unclear / validCases) * 100).toFixed(0) : 0}%)`);
+
+    if (Object.keys(issueCount).length > 0) {
+        console.log('\n' + '-'.repeat(60));
+        console.log('Issue breakdown:');
+        for (const [issue, cnt] of Object.entries(issueCount).sort((a, b) => b[1] - a[1])) {
+            console.log(`  ${cnt}x ${issue}`);
+        }
+    }
+
+    console.log('='.repeat(60) + '\n');
+}
+
+// ============================================================================
+// Grid Search Tuner
+// ============================================================================
+
+function runTuner(
+    casesPerConfig: number,
+    startSeed: number,
+    useBlueprints: boolean = false,
+    tier: number = 2
+): void {
+    console.log(`\nRunning grid search tuner (${casesPerConfig} cases per config)...\n`);
+
+    const results: TunerResult[] = [];
+
+    const { daysRange, apPerDayRange, coverUpDayRange, maxLeadsRange } = DEFAULT_TUNER_CONFIG;
+
+    let totalConfigs = daysRange.length * apPerDayRange.length * coverUpDayRange.length * maxLeadsRange.length;
+    let configNum = 0;
+
+    for (const days of daysRange) {
+        for (const apPerDay of apPerDayRange) {
+            for (const coverUpDay of coverUpDayRange) {
+                for (const maxLeads of maxLeadsRange) {
+                    configNum++;
+                    const constraints: PlayerConstraints = {
+                        maxDays: days,
+                        apPerDay,
+                        coverUpDay,
+                        maxLeads,
+                        leadDiscount: 1,
+                    };
+
+                    let playable = 0;
+                    let total = 0;
+                    let totalMargin = 0;
+                    let totalMinAP = 0;
+                    const issues: Record<string, number> = {};
+
+                    // Guidance metrics aggregation
+                    let totalWindowSignalAP = 0;
+                    let totalKeystoneReachAP = 0;
+                    let totalWindowSpread = 0;
+                    const clarityCount: Record<string, number> = { clear: 0, moderate: 0, unclear: 0 };
+
+                    // Solver metrics aggregation
+                    const difficultyCount: Record<'easy' | 'medium' | 'hard' | 'unsolvable', number> = { easy: 0, medium: 0, hard: 0, unsolvable: 0 };
+                    const difficultySolved: Record<'easy' | 'medium' | 'hard' | 'unsolvable', number> = { easy: 0, medium: 0, hard: 0, unsolvable: 0 };
+                    let culpritSelfContradiction = 0;
+                    let culpritCrimeSceneLie = 0;
+                    let culpritSignatureMotive = 0;
+                    let falsePositiveRisk = 0;
+                    let totalCulpritContradictions = 0;
+                    let totalInnocentContradictions = 0;
+                    let solveCount = 0;
+                    let solverCases = 0;
+
+                    for (let i = 0; i < casesPerConfig; i++) {
+                        const seed = startSeed + i;
+                        const result = simulate(seed, tier, { useBlueprints });
+                        if (!result) continue;
+
+                        const evidence = deriveEvidence(result.world, result.eventLog, result.config);
+                        const chains = getAllChains(result.config, evidence);
+                        const playResult = validatePlayability(result.config, evidence, chains, constraints);
+
+                        total++;
+                        if (playResult.playable) playable++;
+                        totalMargin += playResult.apMargin;
+                        totalMinAP += playResult.minAPToSolve;
+
+                        // Aggregate guidance metrics
+                        totalWindowSignalAP += playResult.crimeWindowSignalAP;
+                        if (playResult.keystoneReachAP >= 0) {
+                            totalKeystoneReachAP += playResult.keystoneReachAP;
+                        }
+                        totalWindowSpread += playResult.windowSpread;
+                        clarityCount[playResult.firstMoveClarity]++;
+
+                        for (const issue of playResult.issues) {
+                            issues[issue] = (issues[issue] || 0) + 1;
+                        }
+
+                        // Run solver and collect metrics
+                        const solverResult = solve(seed, false);
+                        if (solverResult.metrics) {
+                            solverCases++;
+                            difficultyCount[solverResult.metrics.difficultyTier]++;
+                            if (solverResult.correct) {
+                                difficultySolved[solverResult.metrics.difficultyTier]++;
+                                solveCount++;
+                            }
+                            if (solverResult.metrics.culpritHasSelfContradiction) culpritSelfContradiction++;
+                            if (solverResult.metrics.culpritHasCrimeSceneLie) culpritCrimeSceneLie++;
+                            if (solverResult.metrics.culpritHasSignatureMotive) culpritSignatureMotive++;
+                            if (solverResult.metrics.maxInnocentContradictions >= solverResult.metrics.culpritContradictionCount) {
+                                falsePositiveRisk++;
+                            }
+                            totalCulpritContradictions += solverResult.metrics.culpritContradictionCount;
+                            totalInnocentContradictions += solverResult.metrics.maxInnocentContradictions;
+                        }
+                    }
+
+                    const passRate = total > 0 ? playable / total : 0;
+                    const avgMargin = total > 0 ? totalMargin / total : 0;
+                    const avgMinAP = total > 0 ? totalMinAP / total : 0;
+
+                    // Guidance metrics averages
+                    const avgWindowSignalAP = total > 0 ? totalWindowSignalAP / total : 0;
+                    const avgKeystoneReachAP = total > 0 ? totalKeystoneReachAP / total : 0;
+                    const avgWindowSpread = total > 0 ? totalWindowSpread / total : 0;
+
+                    // Solver metrics
+                    const solverMetrics: SolverMetrics = {
+                        difficultyCount,
+                        difficultySolved,
+                        culpritSelfContradiction,
+                        culpritCrimeSceneLie,
+                        culpritSignatureMotive,
+                        falsePositiveRisk,
+                        avgCulpritContradictions: solverCases > 0 ? totalCulpritContradictions / solverCases : 0,
+                        avgInnocentContradictions: solverCases > 0 ? totalInnocentContradictions / solverCases : 0,
+                        solveRate: solverCases > 0 ? solveCount / solverCases : 0,
+                        solveCount,
+                    };
+
+                    results.push({
+                        constraints,
+                        passRate,
+                        avgAPMargin: avgMargin,
+                        avgMinAP,
+                        issues,
+                        avgWindowSignalAP,
+                        avgKeystoneReachAP,
+                        avgWindowSpread,
+                        clarityDistribution: clarityCount,
+                        solverMetrics,
+                    });
+
+                    process.stdout.write(`\r  [${configNum}/${totalConfigs}] days=${days} ap=${apPerDay} cover=${coverUpDay ?? 'none'} leads=${maxLeads} → ${(passRate * 100).toFixed(0)}% playable, ${(solverMetrics.solveRate * 100).toFixed(0)}% solved`);
+                }
+            }
+        }
+    }
+
+    console.log('\n\n' + '='.repeat(80));
+    console.log('TUNER RESULTS (sorted by pass rate, then margin)');
+    console.log('='.repeat(80));
+
+    // Sort by pass rate descending, then by margin descending
+    results.sort((a, b) => {
+        if (b.passRate !== a.passRate) return b.passRate - a.passRate;
+        return b.avgAPMargin - a.avgAPMargin;
+    });
+
+    // Show top 10
+    console.log('\nTop 10 configurations:\n');
+    console.log('  Days  AP/Day  Cover  Leads | Pass%  Margin  MinAP | Signal  Keystone  Spread | Solve%');
+    console.log('  ' + '-'.repeat(88));
+
+    for (let i = 0; i < Math.min(10, results.length); i++) {
+        const r = results[i];
+        const c = r.constraints;
+        const coverStr = c.coverUpDay !== null ? `D${c.coverUpDay}` : '--';
+        const solveStr = r.solverMetrics ? `${(r.solverMetrics.solveRate * 100).toFixed(0)}%` : '-';
+        console.log(
+            `  ${c.maxDays.toString().padEnd(4)}  ${c.apPerDay.toString().padEnd(6)}  ${coverStr.padEnd(5)}  ${c.maxLeads.toString().padEnd(5)} | ` +
+            `${(r.passRate * 100).toFixed(0).padStart(4)}%  ${r.avgAPMargin.toFixed(1).padStart(6)}  ${r.avgMinAP.toFixed(1).padStart(5)} | ` +
+            `${r.avgWindowSignalAP.toFixed(1).padStart(6)}  ${r.avgKeystoneReachAP.toFixed(1).padStart(8)}  ${r.avgWindowSpread.toFixed(1).padStart(6)} | ${solveStr.padStart(5)}`
+        );
+    }
+
+    // Find best config that's >= 90% pass rate
+    const best90 = results.find(r => r.passRate >= 0.9);
+    if (best90) {
+        console.log('\n' + '='.repeat(80));
+        console.log('RECOMMENDED CONFIG (>=90% pass rate):');
+        console.log('='.repeat(80));
+        console.log(`\n  maxDays: ${best90.constraints.maxDays}`);
+        console.log(`  apPerDay: ${best90.constraints.apPerDay}`);
+        console.log(`  coverUpDay: ${best90.constraints.coverUpDay ?? 'null (no cover-up)'}`);
+        console.log(`  maxLeads: ${best90.constraints.maxLeads}`);
+        console.log(`\n  Pass rate: ${(best90.passRate * 100).toFixed(1)}%`);
+        console.log(`  Avg AP margin: ${best90.avgAPMargin.toFixed(1)}`);
+        console.log(`  Avg min AP: ${best90.avgMinAP.toFixed(1)}`);
+        console.log(`\n  GUIDANCE METRICS:`);
+        console.log(`  Avg window signal AP: ${best90.avgWindowSignalAP.toFixed(1)} (lower = easier to find crime window)`);
+        console.log(`  Avg keystone reach AP: ${best90.avgKeystoneReachAP.toFixed(1)} (lower = easier to find contradiction)`);
+        console.log(`  Avg window spread: ${best90.avgWindowSpread.toFixed(1)}`);
+        const totalClarity = (best90.clarityDistribution.clear || 0) + (best90.clarityDistribution.moderate || 0) + (best90.clarityDistribution.unclear || 0);
+        if (totalClarity > 0) {
+            console.log(`  First move clarity: clear=${((best90.clarityDistribution.clear || 0) / totalClarity * 100).toFixed(0)}% moderate=${((best90.clarityDistribution.moderate || 0) / totalClarity * 100).toFixed(0)}% unclear=${((best90.clarityDistribution.unclear || 0) / totalClarity * 100).toFixed(0)}%`);
+        }
+
+        // Show solver metrics for best config
+        if (best90.solverMetrics) {
+            const sm = best90.solverMetrics;
+            const totalCases = sm.difficultyCount.easy + sm.difficultyCount.medium + sm.difficultyCount.hard + sm.difficultyCount.unsolvable;
+
+            console.log(`\n  SOLVER METRICS:`);
+            console.log(`  Solve rate: ${(sm.solveRate * 100).toFixed(1)}% (${sm.solveCount}/${totalCases})`);
+
+            console.log(`\n  Difficulty Distribution:`);
+            console.log(`    easy:       ${sm.difficultyCount.easy.toString().padStart(3)} (${(sm.difficultyCount.easy/totalCases*100).toFixed(0)}%)  solved: ${sm.difficultySolved.easy}`);
+            console.log(`    medium:     ${sm.difficultyCount.medium.toString().padStart(3)} (${(sm.difficultyCount.medium/totalCases*100).toFixed(0)}%)  solved: ${sm.difficultySolved.medium}`);
+            console.log(`    hard:       ${sm.difficultyCount.hard.toString().padStart(3)} (${(sm.difficultyCount.hard/totalCases*100).toFixed(0)}%)  solved: ${sm.difficultySolved.hard}`);
+            console.log(`    unsolvable: ${sm.difficultyCount.unsolvable.toString().padStart(3)} (${(sm.difficultyCount.unsolvable/totalCases*100).toFixed(0)}%)  solved: ${sm.difficultySolved.unsolvable}`);
+
+            console.log(`\n  Signal Availability (culprit has...):`);
+            console.log(`    Self-contradiction: ${sm.culpritSelfContradiction}/${totalCases} (${(sm.culpritSelfContradiction/totalCases*100).toFixed(0)}%)`);
+            console.log(`    Crime scene lie:    ${sm.culpritCrimeSceneLie}/${totalCases} (${(sm.culpritCrimeSceneLie/totalCases*100).toFixed(0)}%)`);
+            console.log(`    Signature motive:   ${sm.culpritSignatureMotive}/${totalCases} (${(sm.culpritSignatureMotive/totalCases*100).toFixed(0)}%)`);
+
+            console.log(`\n  False Positive Risk:`);
+            console.log(`    Cases where innocent >= culprit contradictions: ${sm.falsePositiveRisk}/${totalCases} (${(sm.falsePositiveRisk/totalCases*100).toFixed(0)}%)`);
+            console.log(`    Avg culprit contradictions:  ${sm.avgCulpritContradictions.toFixed(1)}`);
+            console.log(`    Avg innocent contradictions: ${sm.avgInnocentContradictions.toFixed(1)}`);
+        }
+    } else {
+        console.log('\n⚠️  No configuration achieved 90% pass rate!');
+        console.log('Consider making cases easier or increasing player resources.');
+    }
+
+    console.log('\n');
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
 const args = parseArgs();
 
-if (args.seed !== undefined) {
+if (args.tune) {
+    // Grid search tuner mode
+    runTuner(args.generate, 0, args.useBlueprints, args.tier);
+} else if (args.autosolve) {
+    // Automated solver mode - practical playtest
+    autosolve(args.generate, args.seed ?? 1, args.verbose);
+} else if (args.playability) {
+    // Playability check mode
+    runPlayabilityCheck(args.generate, 0, args.verbose, args.useBlueprints, args.tier);
+} else if (args.seed !== undefined) {
     // Single seed mode - show full comedy details
-    console.log(`\nGenerating case with seed ${args.seed}...\n`);
+    const mode = args.useBlueprints ? ' (BLUEPRINTS)' : '';
+    const configLabel = args.houseId || args.castId ? ` [${args.houseId ?? 'share_house'}+${args.castId ?? 'roommates'}]` : '';
+    console.log(`\nGenerating case with seed ${args.seed}${mode}${configLabel}...\n`);
 
-    const result = simulate(args.seed);
+    const result = simulate(args.seed, args.tier, {
+        useBlueprints: args.useBlueprints,
+        houseId: args.houseId,
+        castId: args.castId,
+    });
 
     if (!result) {
         console.log('⚠️ No valid crime opportunity for this seed');
@@ -232,9 +652,12 @@ if (args.seed !== undefined) {
     console.log(`📍 Where: ${config.crimePlace}`);
     console.log(`🕐 When: ${config.crimeWindow} (7:00pm - 8:30pm)`);
     console.log(`🕵️ Hidden in: ${config.hiddenPlace}`);
-    if (config.distractedWitness) {
-        const witness = result.world.npcs.find(n => n.id === config.distractedWitness);
-        console.log(`😴 Distracted witness: ${witness?.name} (was there but didn't notice)`);
+    if (config.distractedWitnesses && config.distractedWitnesses.length > 0) {
+        const names = config.distractedWitnesses
+            .map(id => result.world.npcs.find(n => n.id === id)?.name)
+            .filter(Boolean)
+            .join(', ');
+        console.log(`😴 Distracted witness(es): ${names} (was there but didn't notice)`);
     }
 
     console.log('\n' + '='.repeat(60));
@@ -370,6 +793,6 @@ if (args.seed !== undefined) {
 
 } else {
     // Batch mode
-    runBatch(args.generate, 0, args.verbose);
+    runBatch(args.generate, 0, args.verbose, args.useBlueprints, args.tier, args.houseId, args.castId);
 }
 

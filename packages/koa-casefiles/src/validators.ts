@@ -616,15 +616,17 @@ export function validateRedHerrings(
         // If they have a location alibi, they're cleared
         if (alibi) continue;
 
-        // If they were the distracted witness, they have an implicit alibi
+        // If they were a distracted witness, they have an implicit alibi
         // (they were there but didn't see anything = innocent)
-        if (suspect === config.distractedWitness) continue;
+        if (config.distractedWitnesses?.includes(suspect)) continue;
 
         // No alibi found
         missingAlibis.push(suspect);
     }
 
-    if (missingAlibis.length > 0) {
+    // Allow up to 1 red herring without alibi - still solvable through
+    // process of elimination if culprit has incriminating evidence
+    if (missingAlibis.length > 1) {
         return {
             valid: false,
             reason: `Red herrings missing alibis: ${missingAlibis.join(', ')}`,
@@ -940,6 +942,516 @@ export function validateFunness(
         reason: issues.length > 0 ? issues.join('; ') : undefined,
         details: { issues },
     };
+}
+
+// ============================================================================
+// Keystone Pair Detection
+// ============================================================================
+
+/**
+ * A keystone pair is a contradiction that, when found, narrows suspects to ≤2.
+ * This is the designed "aha moment" of the case.
+ */
+export interface KeystonePair {
+    evidenceA: string;
+    evidenceB: string;
+    rule: string;
+    implicated: NPCId[];  // NPCs implicated by finding this contradiction
+    description: string;  // Human-readable hint
+}
+
+/**
+ * Find the keystone contradiction for a case.
+ * Returns the contradiction that most narrows down the suspect list.
+ */
+export function findKeystonePair(
+    config: CaseConfig,
+    evidence: EvidenceItem[],
+    contradictions: Contradiction[]
+): KeystonePair | null {
+    if (contradictions.length === 0) return null;
+
+    // Score each contradiction by how much it narrows suspects
+    let bestPair: KeystonePair | null = null;
+    let bestScore = 0;
+
+    for (const c of contradictions) {
+        const evA = evidence.find(e => e.id === c.evidenceA);
+        const evB = evidence.find(e => e.id === c.evidenceB);
+        if (!evA || !evB) continue;
+
+        // Find which NPCs are implicated by this contradiction
+        const implicated: NPCId[] = [];
+
+        // Check testimony contradictions - the witness who lied is implicated
+        if (evA.kind === 'testimony' && evB.kind === 'testimony') {
+            const testA = evA as TestimonyEvidence;
+            const testB = evB as TestimonyEvidence;
+
+            // If same witness contradicts themselves, they're implicated
+            if (testA.witness === testB.witness) {
+                implicated.push(testA.witness);
+            }
+        }
+
+        // Check presence contradictions - NPC in two places
+        if (c.rule === 'cannot_be_two_places' || c.rule === 'witness_location_conflict') {
+            if (evA.kind === 'presence') {
+                implicated.push((evA as PresenceEvidence).npc);
+            } else if (evA.kind === 'testimony') {
+                implicated.push((evA as TestimonyEvidence).witness);
+            }
+        }
+
+        // Score = how many suspects eliminated (prefer implicating culprit)
+        const eliminates = config.suspects.filter(s => !implicated.includes(s)).length;
+        const implicatesCulprit = implicated.includes(config.culpritId) ? 10 : 0;
+        const score = eliminates + implicatesCulprit;
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestPair = {
+                evidenceA: c.evidenceA,
+                evidenceB: c.evidenceB,
+                rule: c.rule,
+                implicated,
+                description: getKeystoneDescription(c.rule, implicated),
+            };
+        }
+    }
+
+    return bestPair;
+}
+
+function getKeystoneDescription(rule: string, implicated: NPCId[]): string {
+    switch (rule) {
+        case 'cannot_be_two_places':
+            return `Someone claims to be in two places at once`;
+        case 'witness_location_conflict':
+            return `A witness's story doesn't match where they said they were`;
+        case 'testimony_conflict':
+            return `Two statements about the same moment can't both be true`;
+        case 'false_alibi':
+            return `An alibi doesn't hold up to scrutiny`;
+        default:
+            return `These two pieces of evidence are incompatible`;
+    }
+}
+
+/**
+ * Validate that the case has a keystone pair that narrows to ≤2 suspects.
+ */
+export function validateKeystonePair(
+    config: CaseConfig,
+    evidence: EvidenceItem[]
+): ValidationResult {
+    const contradictions = findContradictions(evidence, config);
+    const keystone = findKeystonePair(config, evidence, contradictions);
+
+    if (!keystone) {
+        return {
+            valid: false,
+            reason: 'No keystone contradiction found',
+        };
+    }
+
+    // Check if keystone narrows to ≤2 suspects
+    const remaining = config.suspects.filter(s => !keystone.implicated.includes(s));
+    if (remaining.length > 2 && !keystone.implicated.includes(config.culpritId)) {
+        return {
+            valid: false,
+            reason: `Keystone doesn't narrow enough (${remaining.length} suspects remain)`,
+            details: { remaining, implicated: keystone.implicated },
+        };
+    }
+
+    return {
+        valid: true,
+        details: {
+            keystone,
+            remainingSuspects: remaining.length,
+        },
+    };
+}
+
+// ============================================================================
+// Player Constraints Validation
+// ============================================================================
+
+/**
+ * Player-side game constraints that affect solvability.
+ */
+export interface PlayerConstraints {
+    maxDays: number;           // Total days available
+    apPerDay: number;          // AP restored each day
+    coverUpDay: number | null; // Day after which cover-up occurs (null = no cover-up)
+    maxLeads: number;          // Max leads that can discount AP
+    leadDiscount: number;      // AP saved per lead used (typically 1)
+}
+
+export const DEFAULT_PLAYER_CONSTRAINTS: PlayerConstraints = {
+    maxDays: 4,
+    apPerDay: 3,
+    coverUpDay: null,  // Disabled: playtest showed it adds stress without fun
+    maxLeads: 2,
+    leadDiscount: 1,
+};
+
+export interface PlayabilityResult {
+    playable: boolean;
+    totalAP: number;              // Total AP available
+    effectiveAP: number;          // AP after lead discounts
+    minAPToSolve: number;         // Estimated minimum AP needed
+    apMargin: number;             // effectiveAP - minAPToSolve
+    crimeWindowDiscoverable: boolean;  // Can player find the crime window?
+    keystoneExists: boolean;      // Is there a keystone contradiction?
+    criticalEvidenceAtRisk: number;    // Evidence that could be removed by cover-up
+    issues: string[];
+
+    // Player guidance metrics
+    crimeWindowSignalAP: number;       // AP needed to discover crime window (0 = gossip reveals it)
+    keystoneReachAP: number;           // AP needed to gather keystone evidence
+    firstMoveClarity: 'clear' | 'moderate' | 'unclear';  // Is there an obvious first move?
+    windowSpread: number;              // How many windows have relevant evidence (1-6)
+}
+
+/**
+ * Check if a case is playable given player constraints.
+ * This is different from validateCase() which checks if the case is well-formed.
+ * This checks if a player can actually solve it within the resource limits.
+ */
+export function validatePlayability(
+    config: CaseConfig,
+    evidence: EvidenceItem[],
+    chains: Record<ChainTarget, EvidenceChainV2[]>,
+    constraints: PlayerConstraints = DEFAULT_PLAYER_CONSTRAINTS
+): PlayabilityResult {
+    const issues: string[] = [];
+
+    // Calculate available AP
+    const totalAP = constraints.maxDays * constraints.apPerDay;
+    const effectiveAP = totalAP + (constraints.maxLeads * constraints.leadDiscount);
+
+    // Estimate minimum AP to solve
+    const minAPToSolve = estimateMinimumAP(chains, evidence);
+    const apMargin = effectiveAP - minAPToSolve;
+
+    if (apMargin < 0) {
+        issues.push(`Not enough AP: need ${minAPToSolve}, have ${effectiveAP}`);
+    } else if (apMargin < 2) {
+        issues.push(`Tight AP margin: only ${apMargin} AP buffer`);
+    }
+
+    // Check if crime window is discoverable early
+    // The crime_awareness gossip should hint at timing
+    const crimeAwareness = evidence.find(e =>
+        e.kind === 'motive' && e.motiveHint === 'crime_awareness'
+    );
+    const crimeWindowDiscoverable = !!crimeAwareness;
+
+    if (!crimeWindowDiscoverable) {
+        issues.push(`No crime_awareness gossip to hint at crime window`);
+    }
+
+    // Check if there's evidence in the crime window that can be found with 2 AP
+    const crimeWindowEvidence = evidence.filter(e => {
+        if (e.kind === 'device_log') return e.window === config.crimeWindow;
+        if (e.kind === 'testimony') return e.window === config.crimeWindow;
+        if (e.kind === 'physical') return e.window === config.crimeWindow;
+        return false;
+    });
+
+    if (crimeWindowEvidence.length < 3) {
+        issues.push(`Crime window ${config.crimeWindow} has sparse evidence (${crimeWindowEvidence.length} items)`);
+    }
+
+    // Check keystone contradiction exists
+    const contradictions = findContradictions(evidence, config);
+    const keystone = findKeystonePair(config, evidence, contradictions);
+    const keystoneExists = !!keystone;
+
+    if (!keystoneExists) {
+        issues.push(`No keystone contradiction found`);
+    }
+
+    // Estimate evidence at risk from cover-up
+    // Cover-up removes undiscovered evidence pointing to culprit
+    let criticalEvidenceAtRisk = 0;
+    if (constraints.coverUpDay !== null) {
+        // Evidence that player likely hasn't found by cover-up day
+        // Assume player can do (coverUpDay * apPerDay) actions before cover-up
+        const actionsBeforeCoverUp = constraints.coverUpDay * constraints.apPerDay;
+
+        // Count evidence that requires more actions than available before cover-up
+        // and points to the culprit
+        const culpritEvidence = evidence.filter(e => {
+            if (e.kind === 'motive') return e.suspect === config.culpritId;
+            if (e.kind === 'physical') return e.place === config.crimePlace || e.place === config.hiddenPlace;
+            if (e.kind === 'testimony') return e.subjectHint?.toLowerCase() === config.culpritId;
+            return false;
+        });
+
+        // Rough estimate: if minAP > actionsBeforeCoverUp, some evidence is at risk
+        if (minAPToSolve > actionsBeforeCoverUp) {
+            criticalEvidenceAtRisk = Math.min(3, culpritEvidence.length);
+        }
+    }
+
+    if (criticalEvidenceAtRisk > 1) {
+        issues.push(`${criticalEvidenceAtRisk} critical evidence items may be lost to cover-up`);
+    }
+
+    // =========================================================================
+    // Player Guidance Metrics
+    // =========================================================================
+
+    // 1. Crime window signal - how many AP to discover which window has the crime?
+    let crimeWindowSignalAP = 0;
+    const crimeAwarenessGossip = evidence.find(e =>
+        e.kind === 'motive' && e.motiveHint === 'crime_awareness'
+    );
+
+    if (crimeAwarenessGossip) {
+        // Gossip exists - costs 1 AP to get (interview gossip)
+        crimeWindowSignalAP = 1;
+    } else {
+        // No gossip - player must scan windows with LOGS
+        // Worst case: check all 6 windows = 6 AP
+        // Average case: find crime window in 3 AP
+        crimeWindowSignalAP = 3;
+        issues.push('No gossip hints at crime timing - player must scan windows');
+    }
+
+    // 2. Keystone reachability - how many AP to gather both pieces?
+    // Traces back to source evidence for presence-based keystones
+    let keystoneReachAP = Infinity;
+    if (keystone) {
+        const evA = evidence.find(e => e.id === keystone.evidenceA);
+        const evB = evidence.find(e => e.id === keystone.evidenceB);
+
+        if (evA && evB) {
+            // Trace back to source evidence for presence items
+            const traceA = estimateAPWithSourceTrace(evA, evidence);
+            const traceB = estimateAPWithSourceTrace(evB, evidence);
+
+            // Combine action keys to avoid double-counting shared sources
+            const allKeys = new Set([...traceA.actionKeys, ...traceB.actionKeys]);
+            keystoneReachAP = allKeys.size; // Each unique action = 1 AP
+        }
+    }
+
+    if (keystoneReachAP > 4) {
+        issues.push(`Keystone requires ${keystoneReachAP} AP to reach`);
+    }
+
+    // 3. First move clarity - is there an obvious starting point?
+    // Clear: crime_awareness gossip tells what happened
+    // Moderate: crime window has lots of evidence
+    // Unclear: evidence spread evenly, no signal
+    let firstMoveClarity: 'clear' | 'moderate' | 'unclear' = 'unclear';
+
+    if (crimeAwarenessGossip) {
+        firstMoveClarity = 'clear';
+    } else {
+        // Check if crime window has significantly more evidence than others
+        const evidenceByWindow = new Map<string, number>();
+        for (const e of evidence) {
+            const w = getEvidenceWindow(e);
+            if (w) {
+                evidenceByWindow.set(w, (evidenceByWindow.get(w) || 0) + 1);
+            }
+        }
+
+        const crimeWindowCount = evidenceByWindow.get(config.crimeWindow) || 0;
+        const otherWindowCounts = Array.from(evidenceByWindow.entries())
+            .filter(([w]) => w !== config.crimeWindow)
+            .map(([, c]) => c);
+        const avgOther = otherWindowCounts.length > 0
+            ? otherWindowCounts.reduce((a, b) => a + b, 0) / otherWindowCounts.length
+            : 0;
+
+        if (crimeWindowCount > avgOther * 1.5) {
+            firstMoveClarity = 'moderate';
+        }
+    }
+
+    if (firstMoveClarity === 'unclear') {
+        issues.push('No clear first move - evidence spread evenly across windows');
+    }
+
+    // 4. Window spread - how many windows have relevant evidence?
+    const windowsWithEvidence = new Set<string>();
+    for (const e of evidence) {
+        const w = getEvidenceWindow(e);
+        if (w) windowsWithEvidence.add(w);
+    }
+    const windowSpread = windowsWithEvidence.size;
+
+    // Playability now includes guidance metrics
+    const wellGuided = crimeWindowSignalAP <= 2 && keystoneReachAP <= 4 && firstMoveClarity !== 'unclear';
+    const playable = apMargin >= 0 && keystoneExists && crimeWindowDiscoverable && wellGuided;
+
+    return {
+        playable,
+        totalAP,
+        effectiveAP,
+        minAPToSolve,
+        apMargin,
+        crimeWindowDiscoverable,
+        keystoneExists,
+        criticalEvidenceAtRisk,
+        issues,
+        crimeWindowSignalAP,
+        keystoneReachAP: keystoneReachAP === Infinity ? -1 : keystoneReachAP,
+        firstMoveClarity,
+        windowSpread,
+    };
+}
+
+// Helper: estimate AP for a single evidence item
+function estimateAPForSingleEvidence(e: EvidenceItem): number {
+    switch (e.kind) {
+        case 'device_log':
+            return 1; // LOGS command
+        case 'testimony':
+            return 1; // INTERVIEW testimony
+        case 'motive':
+            return 1; // INTERVIEW gossip
+        case 'physical':
+            return 1; // SEARCH
+        case 'presence':
+            return 0; // Inferred from other evidence
+        default:
+            return 1;
+    }
+}
+
+/**
+ * Estimate AP for evidence, tracing back to source for presence evidence.
+ * Presence evidence is derived from other evidence (testimony, device logs),
+ * so we need to find and cost the original sources.
+ */
+function estimateAPWithSourceTrace(
+    e: EvidenceItem,
+    allEvidence: EvidenceItem[]
+): { ap: number; actionKeys: Set<string> } {
+    // If not presence, just return direct cost
+    if (e.kind !== 'presence') {
+        return {
+            ap: estimateAPForSingleEvidence(e),
+            actionKeys: new Set([getEvidenceActionKey(e)]),
+        };
+    }
+
+    // Presence evidence - trace back to sources via cites
+    const presenceEv = e as PresenceEvidence;
+    const sourceIds = presenceEv.cites || [];
+
+    if (sourceIds.length === 0) {
+        // No sources cited, fallback to 1 AP (assume some action reveals it)
+        return { ap: 1, actionKeys: new Set([`PRESENCE_${e.id}`]) };
+    }
+
+    // Find source evidence and calculate their AP
+    const actionKeys = new Set<string>();
+    let totalAP = 0;
+
+    for (const sourceId of sourceIds) {
+        const sourceEv = allEvidence.find(ev => ev.id === sourceId);
+        if (sourceEv && sourceEv.kind !== 'presence') {
+            const key = getEvidenceActionKey(sourceEv);
+            if (!actionKeys.has(key)) {
+                actionKeys.add(key);
+                totalAP += estimateAPForSingleEvidence(sourceEv);
+            }
+        }
+    }
+
+    // If we found sources, return their cost; otherwise fallback
+    return totalAP > 0
+        ? { ap: totalAP, actionKeys }
+        : { ap: 1, actionKeys: new Set([`PRESENCE_${e.id}`]) };
+}
+
+// Helper: get action key for evidence
+function getEvidenceActionKey(e: EvidenceItem): string {
+    switch (e.kind) {
+        case 'device_log':
+            return `LOGS_${(e as DeviceLogEvidence).deviceType}_${(e as DeviceLogEvidence).window}`;
+        case 'testimony':
+            return `INTERVIEW_${(e as TestimonyEvidence).witness}_${(e as TestimonyEvidence).window}`;
+        case 'motive':
+            return `GOSSIP_${(e as MotiveEvidence).gossipSource}`;
+        case 'physical':
+            return `SEARCH_${(e as PhysicalEvidence).place}_${(e as PhysicalEvidence).window}`;
+        default:
+            return `OTHER_${e.id}`;
+    }
+}
+
+// Helper: get window for evidence
+function getEvidenceWindow(e: EvidenceItem): string | null {
+    switch (e.kind) {
+        case 'device_log':
+            return (e as DeviceLogEvidence).window;
+        case 'testimony':
+            return (e as TestimonyEvidence).window;
+        case 'physical':
+            return (e as PhysicalEvidence).window;
+        case 'presence':
+            return (e as PresenceEvidence).window;
+        default:
+            return null;
+    }
+}
+
+/**
+ * Grid search over player constraints to find optimal settings.
+ */
+export interface TunerConfig {
+    daysRange: number[];
+    apPerDayRange: number[];
+    coverUpDayRange: (number | null)[];
+    maxLeadsRange: number[];
+}
+
+export const DEFAULT_TUNER_CONFIG: TunerConfig = {
+    daysRange: [3, 4, 5, 6],
+    apPerDayRange: [2, 3, 4],
+    coverUpDayRange: [null, 2, 3],
+    maxLeadsRange: [0, 1, 2],
+};
+
+export interface SolverMetrics {
+    // Difficulty distribution
+    difficultyCount: Record<'easy' | 'medium' | 'hard' | 'unsolvable', number>;
+    difficultySolved: Record<'easy' | 'medium' | 'hard' | 'unsolvable', number>;
+    // Signal availability
+    culpritSelfContradiction: number;  // count of cases where culprit self-contradicts
+    culpritCrimeSceneLie: number;      // count of cases where culprit lies about crime scene
+    culpritSignatureMotive: number;    // count of cases where culprit has signature motive phrase
+    // False positive risk
+    falsePositiveRisk: number;         // cases where innocent has >= culprit contradictions
+    avgCulpritContradictions: number;
+    avgInnocentContradictions: number;
+    // Solve rate
+    solveRate: number;
+    solveCount: number;
+}
+
+export interface TunerResult {
+    constraints: PlayerConstraints;
+    passRate: number;
+    avgAPMargin: number;
+    avgMinAP: number;
+    issues: Record<string, number>;
+    // Guidance metrics
+    avgWindowSignalAP: number;
+    avgKeystoneReachAP: number;
+    avgWindowSpread: number;
+    clarityDistribution: Record<string, number>;
+    // Solver metrics (optional - only present if solver was run)
+    solverMetrics?: SolverMetrics;
 }
 
 // ============================================================================

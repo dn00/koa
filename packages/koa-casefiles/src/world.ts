@@ -4,8 +4,12 @@
  * Defines the house layout, devices, items, and NPCs for the MVP.
  */
 
-import type { Place, Device, Item, NPC, World, WindowId } from './types.js';
+import type { Place, Device, Item, NPC, World, WindowId, Relationship, RelationshipType } from './types.js';
 import type { RNG } from './kernel/rng.js';
+import type { TopologyId, GeneratedTopology, PlaceType, ArchetypeId, NPCArchetype } from './blueprints/types.js';
+import { generateTopologyById, generateRandomTopology, topologyToWorld } from './blueprints/topology/generator.js';
+import { getHouse, getCast, type CastConfig } from './houses.js';
+import { NPC_ARCHETYPES as ARCHETYPE_REGISTRY } from './blueprints/cast/archetypes.js';
 
 // ============================================================================
 // Places - Fixed 5-room house
@@ -248,8 +252,6 @@ function getActivity(place: string, window: WindowId): string {
 // Relationships - Drama between NPCs
 // ============================================================================
 
-import type { Relationship, RelationshipType } from './types.js';
-
 const RELATIONSHIP_TEMPLATES: Array<{
     from: string;
     to: string;
@@ -291,6 +293,461 @@ export function createWorld(rng: RNG): World {
         places: [...PLACES],
         devices: [...DEVICES],
         items: [...ITEMS],
+        npcs,
+        relationships,
+    };
+}
+
+// ============================================================================
+// Generated Topology World Creation
+// ============================================================================
+
+/**
+ * Map place types to item categories for distribution
+ */
+const PLACE_TYPE_ITEMS: Record<PlaceType, string[]> = {
+    social: ['cactus', 'remote', 'blanket', 'coffee', 'leftovers'],
+    private: ['urn', 'pillow', 'charger', 'router'],
+    functional: ['noodles', 'ladder', 'sourdough'],
+    transition: [], // No items in hallways/stairs
+};
+
+/**
+ * Distribute items across generated places based on place types
+ */
+function distributeItems(topology: GeneratedTopology, rng: RNG): Item[] {
+    const items: Item[] = [];
+    const usedItemIds = new Set<string>();
+
+    // Group places by type
+    const placesByType = new Map<PlaceType, string[]>();
+    for (const place of topology.places) {
+        const list = placesByType.get(place.type) ?? [];
+        list.push(place.id);
+        placesByType.set(place.type, list);
+    }
+
+    // Distribute items from templates to appropriate place types
+    for (const item of ITEMS) {
+        // Find appropriate places for this item
+        let candidates: string[] = [];
+
+        for (const [placeType, itemIds] of Object.entries(PLACE_TYPE_ITEMS)) {
+            if (itemIds.includes(item.id)) {
+                const places = placesByType.get(placeType as PlaceType) ?? [];
+                candidates.push(...places);
+            }
+        }
+
+        // Fallback: if no matching places, use any non-transition place
+        if (candidates.length === 0) {
+            candidates = topology.places
+                .filter(p => p.type !== 'transition')
+                .map(p => p.id);
+        }
+
+        if (candidates.length > 0) {
+            const place = rng.pick(candidates);
+            items.push({
+                ...item,
+                startPlace: place,
+            });
+            usedItemIds.add(item.id);
+        }
+    }
+
+    return items;
+}
+
+/**
+ * Generate schedules adapted to the generated topology
+ */
+function generateScheduleForTopology(
+    npcId: string,
+    topology: GeneratedTopology,
+    rng: RNG
+): NPC['schedule'] {
+    const archetype = NPC_ARCHETYPES[npcId] ?? 'wanderer';
+    const patterns = SCHEDULE_PATTERNS[archetype];
+
+    // Map old place IDs to new ones based on type
+    const placesByType = new Map<string, string[]>();
+    for (const place of topology.places) {
+        // Map template names to simple categories
+        const category = getPlaceCategory(place.templateId);
+        const list = placesByType.get(category) ?? [];
+        list.push(place.id);
+        placesByType.set(category, list);
+    }
+
+    const schedule: NPC['schedule'] = [];
+
+    for (const windowId of ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'] as WindowId[]) {
+        const oldOptions = patterns[windowId] ?? ['living'];
+
+        // Convert old place names to available places
+        const newOptions: string[] = [];
+        for (const oldPlace of oldOptions) {
+            const candidates = placesByType.get(oldPlace) ?? [];
+            newOptions.push(...candidates);
+        }
+
+        // Fallback: if no matches, pick any place
+        const finalOptions = newOptions.length > 0
+            ? newOptions
+            : topology.places.map(p => p.id);
+
+        const place = rng.pick(finalOptions);
+        schedule.push({
+            window: windowId,
+            place,
+            activity: getActivityForPlace(place, windowId, topology),
+        });
+    }
+
+    return schedule;
+}
+
+/**
+ * Map template names to simple categories for schedule matching
+ */
+function getPlaceCategory(templateName: string): string {
+    const mapping: Record<string, string> = {
+        'Living Room': 'living',
+        'Great Room': 'living',
+        'Kitchen': 'kitchen',
+        'Bedroom': 'bedroom',
+        'Office': 'office',
+        'Garage': 'garage',
+        'Bathroom': 'bedroom', // Treated like private space
+        'Hallway': 'living',   // Treated like social space
+        'Stairs': 'living',
+        'Dining Room': 'kitchen',
+    };
+    return mapping[templateName] ?? 'living';
+}
+
+/**
+ * Get activity for a place in the generated topology
+ */
+function getActivityForPlace(placeId: string, window: WindowId, topology: GeneratedTopology): string {
+    const place = topology.places.find(p => p.id === placeId);
+    if (!place) return 'existing';
+
+    const activities: Record<string, string[]> = {
+        'Kitchen': ['cooking', 'snacking', 'doing dishes', 'raiding fridge'],
+        'Living Room': ['watching TV', 'scrolling phone', 'napping on couch', 'arguing about thermostat'],
+        'Great Room': ['lounging', 'watching TV', 'reading', 'staring out window'],
+        'Bedroom': ['sleeping', 'reading', 'pretending to sleep', 'doom scrolling'],
+        'Office': ['working', 'pretending to work', 'on a call', 'staring at spreadsheets'],
+        'Garage': ['looking for tools', 'hiding from family', 'working on "project"', 'counting pool noodles'],
+        'Bathroom': ['existing mysteriously', 'taking too long', 'avoiding people'],
+        'Hallway': ['passing through', 'lingering suspiciously', 'checking phone'],
+        'Stairs': ['going up', 'going down', 'sitting dramatically'],
+        'Dining Room': ['eating', 'reading paper', 'avoiding eye contact'],
+    };
+
+    const options = activities[place.templateId] ?? ['existing'];
+    const index = parseInt(window.slice(1)) % options.length;
+    return options[index];
+}
+
+/**
+ * Create a world with a generated topology
+ */
+export function createWorldWithTopology(
+    rng: RNG,
+    topologyId?: TopologyId
+): World {
+    // Generate or select topology
+    const topology = topologyId
+        ? generateTopologyById(topologyId, rng)
+        : generateRandomTopology(rng);
+
+    // Convert topology to World format
+    const { places, devices } = topologyToWorld(topology);
+
+    // Distribute items across generated places
+    const items = distributeItems(topology, rng);
+
+    // Generate NPCs with adapted schedules
+    const npcs: NPC[] = NPC_TEMPLATES.map(template => ({
+        ...template,
+        schedule: generateScheduleForTopology(template.id, topology, rng),
+    }));
+
+    const relationships = generateRelationships(rng);
+
+    return {
+        places,
+        devices,
+        items,
+        npcs,
+        relationships,
+    };
+}
+
+// ============================================================================
+// Canonical House + Cast World Creation
+// ============================================================================
+
+/**
+ * Generate schedule based on archetype behavior patterns
+ */
+function generateScheduleFromArchetype(
+    npcId: string,
+    archetypeId: ArchetypeId,
+    places: Place[],
+    rng: RNG
+): NPC['schedule'] {
+    const archetype = ARCHETYPE_REGISTRY[archetypeId];
+    if (!archetype) {
+        // Fallback to simple schedule
+        return generateSchedule(npcId, rng);
+    }
+
+    const schedule: NPC['schedule'] = [];
+    const placeIds = places.map(p => p.id);
+
+    // Map place types to place IDs
+    const placesByCategory = new Map<string, string[]>();
+    for (const place of places) {
+        const category = getPlaceCategoryFromId(place.id);
+        const list = placesByCategory.get(category) ?? [];
+        list.push(place.id);
+        placesByCategory.set(category, list);
+    }
+
+    // Generate schedule based on archetype preferences
+    for (const windowId of ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'] as WindowId[]) {
+        // Check if distracted or alert in this window
+        const isAlert = archetype.peakAlertWindows.includes(windowId);
+        const isDistracted = archetype.peakDistractedWindows.includes(windowId);
+
+        // Pick place based on preferences
+        let candidates: string[] = [];
+
+        // Prefer certain place types based on archetype
+        for (const pref of archetype.preferredPlaceTypes) {
+            const mapped = mapPlaceType(pref);
+            const placesOfType = placesByCategory.get(mapped) ?? [];
+            candidates.push(...placesOfType);
+        }
+
+        // If no preferred places available, use any place not avoided
+        if (candidates.length === 0) {
+            candidates = placeIds.filter(pid => {
+                const category = getPlaceCategoryFromId(pid);
+                const placeType = mapCategoryToPlaceType(category);
+                return !archetype.avoidedPlaceTypes.includes(placeType);
+            });
+        }
+
+        // Final fallback
+        if (candidates.length === 0) {
+            candidates = placeIds;
+        }
+
+        const place = rng.pick(candidates);
+        schedule.push({
+            window: windowId,
+            place,
+            activity: getActivityForArchetype(place, windowId, archetype, isDistracted),
+        });
+    }
+
+    return schedule;
+}
+
+/**
+ * Map PlaceType to simple category
+ */
+function mapPlaceType(placeType: PlaceType): string {
+    switch (placeType) {
+        case 'social': return 'living';
+        case 'private': return 'bedroom';
+        case 'functional': return 'garage';
+        case 'transition': return 'living';
+        default: return 'living';
+    }
+}
+
+/**
+ * Map category back to PlaceType
+ */
+function mapCategoryToPlaceType(category: string): PlaceType {
+    switch (category) {
+        case 'living':
+        case 'kitchen':
+            return 'social';
+        case 'bedroom':
+        case 'office':
+            return 'private';
+        case 'garage':
+            return 'functional';
+        default:
+            return 'social';
+    }
+}
+
+/**
+ * Get place category from place ID
+ */
+function getPlaceCategoryFromId(placeId: string): string {
+    if (placeId.includes('living') || placeId.includes('great')) return 'living';
+    if (placeId.includes('kitchen') || placeId.includes('dining')) return 'kitchen';
+    if (placeId.includes('bedroom') || placeId.includes('bath') || placeId.includes('master')) return 'bedroom';
+    if (placeId.includes('office') || placeId.includes('den')) return 'office';
+    if (placeId.includes('garage') || placeId.includes('closet')) return 'garage';
+    if (placeId.includes('hall') || placeId.includes('stair')) return 'living';
+    return 'living';
+}
+
+/**
+ * Get activity based on archetype and state
+ */
+function getActivityForArchetype(
+    placeId: string,
+    window: WindowId,
+    archetype: NPCArchetype,
+    isDistracted: boolean
+): string {
+    const category = getPlaceCategoryFromId(placeId);
+
+    // Base activities by place
+    const activities: Record<string, string[]> = {
+        living: ['watching TV', 'scrolling phone', 'napping on couch', 'people watching'],
+        kitchen: ['cooking', 'snacking', 'doing dishes', 'raiding fridge'],
+        bedroom: ['sleeping', 'reading', 'doom scrolling', 'hiding from everyone'],
+        office: ['working', 'pretending to work', 'on a call', 'online shopping'],
+        garage: ['looking for tools', 'hiding from people', 'mysterious project', 'organizing'],
+    };
+
+    // Archetype-specific activity overrides
+    if (archetype.id === 'workaholic' && category === 'office') {
+        return isDistracted ? 'pretending to work' : 'grinding away';
+    }
+    if (archetype.id === 'slacker') {
+        return isDistracted ? 'napping' : 'avoiding responsibilities';
+    }
+    if (archetype.id === 'insomniac') {
+        return isDistracted ? 'finally sleeping' : 'wandering restlessly';
+    }
+    if (archetype.id === 'gossip') {
+        return 'gathering intel';
+    }
+    if (archetype.id === 'paranoid') {
+        return isDistracted ? 'momentarily relaxed' : 'checking locks';
+    }
+    if (archetype.id === 'troublemaker') {
+        return isDistracted ? 'planning something' : 'up to no good';
+    }
+
+    const options = activities[category] ?? ['existing'];
+    const index = parseInt(window.slice(1)) % options.length;
+    return options[index];
+}
+
+/**
+ * Generate relationships between cast members
+ */
+function generateCastRelationships(cast: CastConfig, rng: RNG): Relationship[] {
+    const relationships: Relationship[] = [];
+    const npcs = cast.npcs;
+
+    // Generate some relationships between cast members
+    const relationshipTypes: RelationshipType[] = ['rivalry', 'alliance', 'grudge', 'crush', 'annoyance'];
+
+    // Create 5-8 relationships
+    const numRelationships = 5 + rng.nextInt(4);
+
+    for (let i = 0; i < numRelationships; i++) {
+        const from = rng.pick(npcs);
+        const to = rng.pick(npcs.filter(n => n.id !== from.id));
+        if (!to) continue;
+
+        // Don't duplicate relationships
+        if (relationships.some(r => r.from === from.id && r.to === to.id)) continue;
+
+        const type = rng.pick(relationshipTypes);
+        const intensity = 3 + rng.nextInt(7); // 3-9
+
+        relationships.push({
+            from: from.id,
+            to: to.id,
+            type,
+            intensity,
+            backstory: generateBackstory(from.name, to.name, type, rng),
+        });
+    }
+
+    return relationships;
+}
+
+/**
+ * Generate a backstory for a relationship
+ */
+function generateBackstory(fromName: string, toName: string, type: RelationshipType, rng: RNG): string {
+    const templates: Record<RelationshipType, string[]> = {
+        rivalry: [
+            `${fromName} and ${toName} compete over everything`,
+            `Both claim to be the favorite`,
+            `The coffee incident of 2019 started this`,
+        ],
+        alliance: [
+            `United against the others`,
+            `Share a secret hobby`,
+            `Both hate the thermostat setting`,
+        ],
+        grudge: [
+            `${toName} borrowed something and never returned it`,
+            `The group chat incident`,
+            `${fromName} still remembers what ${toName} said`,
+        ],
+        crush: [
+            `${fromName} laughs too hard at ${toName}'s jokes`,
+            `It's obvious to everyone except ${toName}`,
+            `The shared playlist situation`,
+        ],
+        annoyance: [
+            `${toName}'s habits drive ${fromName} crazy`,
+            `Small things add up`,
+            `The passive-aggressive notes`,
+        ],
+    };
+
+    return rng.pick(templates[type]);
+}
+
+/**
+ * Create a world from canonical house and cast configs
+ */
+export function createWorldFromConfig(
+    rng: RNG,
+    houseId: string = 'share_house',
+    castId: string = 'roommates'
+): World {
+    const house = getHouse(houseId);
+    const cast = getCast(castId);
+
+    // Generate NPCs with archetype-based schedules
+    const npcs: NPC[] = cast.npcs.map(template => ({
+        ...template,
+        schedule: generateScheduleFromArchetype(
+            template.id,
+            cast.archetypes[template.id],
+            house.places,
+            rng
+        ),
+    }));
+
+    // Generate relationships
+    const relationships = generateCastRelationships(cast, rng);
+
+    return {
+        places: [...house.places],
+        devices: [...house.devices],
+        items: [...house.items],
         npcs,
         relationships,
     };

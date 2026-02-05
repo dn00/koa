@@ -121,6 +121,41 @@ export class Director {
         }));
     }
 
+    exportState(): {
+        active: { defId: string; stepIndex: number; nextTick: number; target: PlaceId }[];
+        recentTags: Record<string, number>;
+        nextActivationTick: number;
+        rngState: number;
+    } {
+        return {
+            active: this.active.map(a => ({
+                defId: a.def.id,
+                stepIndex: a.stepIndex,
+                nextTick: a.nextTick,
+                target: a.target,
+            })),
+            recentTags: Object.fromEntries(this.recentTags),
+            nextActivationTick: this.nextActivationTick,
+            rngState: this.rng.getState(),
+        };
+    }
+
+    importState(state: {
+        active: { defId: string; stepIndex: number; nextTick: number; target: PlaceId }[];
+        recentTags: Record<string, number>;
+        nextActivationTick: number;
+        rngState: number;
+    }) {
+        this.active = state.active.map(a => {
+            const def = this.threats.find(t => t.id === a.defId);
+            if (!def) throw new Error(`Unknown threat: ${a.defId}`);
+            return { def, stepIndex: a.stepIndex, nextTick: a.nextTick, target: a.target };
+        });
+        this.recentTags = new Map(Object.entries(state.recentTags));
+        this.nextActivationTick = state.nextActivationTick;
+        this.rng.setState(state.rngState);
+    }
+
     private maybeActivateThreat(tick: number, world: World) {
         if (tick < this.nextActivationTick) return;
         if (this.active.length >= MAX_ACTIVE_THREATS) return;

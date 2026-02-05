@@ -64,9 +64,19 @@ export const DIFFICULTY_PRESETS: Record<number, DifficultyConfig> = {
         redHerringStrength: 9,
     },
 };
-import { createWorld, findPath, getDoorBetween, PLACES } from './world.js';
+import { createWorld, createWorldFromConfig, findPath, getDoorBetween, PLACES } from './world.js';
 import { createRng, type RNG } from './kernel/rng.js';
 import { computeEventId } from './kernel/canonical.js';
+
+// Blueprint system imports
+import {
+    ALL_BLUEPRINTS,
+    tryInstantiateAny,
+    executeCrimePlan,
+    setEventOrdinal,
+    type CrimePlan,
+    type IncidentBlueprint,
+} from './blueprints/index.js';
 
 // Gossip ecology - emergent simulation
 import {
@@ -109,6 +119,44 @@ function createEvent(
     });
 
     return event;
+}
+
+/**
+ * Trigger all sensors (motion, camera) in a room when someone enters.
+ * Returns the events generated.
+ */
+function triggerRoomSensors(
+    world: World,
+    place: PlaceId,
+    actor: NPCId,
+    tick: number,
+    carrying?: ItemId
+): SimEvent[] {
+    const events: SimEvent[] = [];
+
+    // Find all sensors in this room
+    const sensorsInRoom = world.devices.filter(d => d.place === place);
+
+    for (const sensor of sensorsInRoom) {
+        if (sensor.type === 'motion_sensor') {
+            events.push(createEvent(tick, 'MOTION_DETECTED', {
+                actor,
+                place,
+                target: sensor.id,
+            }));
+        }
+
+        if (sensor.type === 'camera') {
+            events.push(createEvent(tick, 'CAMERA_SNAPSHOT', {
+                actor,
+                place,
+                target: sensor.id,
+                data: carrying ? { carrying } : undefined,
+            }));
+        }
+    }
+
+    return events;
 }
 
 // ============================================================================
@@ -199,17 +247,8 @@ export function simulateRoutines(
                 place: to,
             }));
 
-            // Motion sensor trigger if passing through living room
-            if (to === 'living') {
-                const motionSensor = world.devices.find(d => d.id === 'motion_living');
-                if (motionSensor) {
-                    events.push(createEvent(tick, 'MOTION_DETECTED', {
-                        actor: npc.id,
-                        place: 'living',
-                        target: motionSensor.id,
-                    }));
-                }
-            }
+            // Trigger all sensors in the destination room
+            events.push(...triggerRoomSensors(world, to, npc.id, tick));
 
             // Door close event
             if (door) {
@@ -339,6 +378,9 @@ function getDistraction(npc: NPC, window: WindowId, rng: RNG): DistractedActivit
 /**
  * Find NPCs who have opportunity to commit crimes.
  * Opportunity = NPC is with item AND either alone OR only distracted witnesses present
+ *
+ * BALANCING: Returns at most ONE opportunity per NPC to ensure fair culprit distribution.
+ * The item is randomly selected from available items at their location.
  */
 function findOpportunities(
     world: World,
@@ -347,6 +389,7 @@ function findOpportunities(
     rng: RNG
 ): Opportunity[] {
     const opportunities: Opportunity[] = [];
+    const npcsWithOpportunity = new Set<NPCId>(); // Track NPCs who already have an opportunity
 
     // Get where each NPC is during the crime window + their distraction status
     const npcLocations = new Map<NPCId, { place: PlaceId; distracted?: DistractedActivity }>();
@@ -360,61 +403,77 @@ function findOpportunities(
         }
     }
 
-    // For each item, find NPCs who have opportunity
-    for (const item of world.items) {
-        const itemPlace = item.startPlace;
+    // Check each NPC for opportunity (NPC-first, not item-first, for balance)
+    for (const potentialCulprit of world.npcs) {
+        const culpritInfo = npcLocations.get(potentialCulprit.id);
+        if (!culpritInfo) continue;
 
-        // Who is at the item's location?
-        const npcsAtItem = world.npcs.filter(npc =>
-            npcLocations.get(npc.id)?.place === itemPlace
+        // NOTE: Culprits CAN be "distracted" - the distraction just means they're
+        // not paying attention to others, which actually makes crime easier!
+        // Only witnesses are blocked by distraction.
+
+        const culpritPlace = culpritInfo.place;
+
+        // Find items at culprit's location
+        const itemsHere = world.items.filter(item => item.startPlace === culpritPlace);
+        if (itemsHere.length === 0) continue;
+
+        // Check if other NPCs at same location are all distracted or absent
+        const othersHere = world.npcs.filter(n => {
+            if (n.id === potentialCulprit.id) return false;
+            const loc = npcLocations.get(n.id);
+            return loc?.place === culpritPlace;
+        });
+
+        const allDistracted = othersHere.every(n =>
+            npcLocations.get(n.id)?.distracted !== undefined
         );
 
-        if (npcsAtItem.length === 0) continue;
+        // Opportunity exists if alone OR all others are distracted
+        if (othersHere.length === 0 || allDistracted) {
+            // Find a hiding place (adjacent room that's empty or has only distracted NPCs)
+            const place = world.places.find(p => p.id === culpritPlace);
+            if (!place) continue;
 
-        // Check each NPC at that location as potential culprit
-        for (const potentialCulprit of npcsAtItem) {
-            const culpritInfo = npcLocations.get(potentialCulprit.id);
+            // Find ALL valid adjacent rooms for hiding
+            const validHidePlaces: PlaceId[] = [];
+            for (const adjacent of place.adjacent) {
+                const npcsAtAdjacent = world.npcs.filter(n => {
+                    const loc = npcLocations.get(n.id);
+                    return loc?.place === adjacent && !loc.distracted;
+                });
 
-            // Culprit can't be distracted themselves
-            if (culpritInfo?.distracted) continue;
-
-            // Check if other NPCs at same location are all distracted
-            const otherNpcsAtItem = npcsAtItem.filter(n => n.id !== potentialCulprit.id);
-            const allDistracted = otherNpcsAtItem.every(n =>
-                npcLocations.get(n.id)?.distracted !== undefined
-            );
-
-            // Opportunity exists if alone OR all others are distracted
-            if (otherNpcsAtItem.length === 0 || allDistracted) {
-                // Find a hiding place (adjacent room that's empty or has only distracted NPCs)
-                const place = world.places.find(p => p.id === itemPlace);
-                if (!place) continue;
-
-                for (const adjacent of place.adjacent) {
-                    const npcsAtAdjacent = world.npcs.filter(n => {
-                        const loc = npcLocations.get(n.id);
-                        return loc?.place === adjacent && !loc.distracted;
-                    });
-
-                    // Can hide if adjacent is empty or all distracted
-                    if (npcsAtAdjacent.length === 0) {
-                        const distractedWitness = otherNpcsAtItem.length > 0
-                            ? otherNpcsAtItem[0]
-                            : undefined;
-
-                        opportunities.push({
-                            npc: potentialCulprit,
-                            item,
-                            place: itemPlace,
-                            window: crimeWindow,
-                            hidePlace: adjacent,
-                            distractedWitness,
-                        });
-                        break; // One opportunity per item per culprit
-                    }
+                // Can hide if adjacent is empty or all distracted
+                if (npcsAtAdjacent.length === 0) {
+                    validHidePlaces.push(adjacent);
                 }
             }
+
+            // Randomly pick from valid hide places for variety
+            if (validHidePlaces.length > 0) {
+                const hidePlace = rng.pick(validHidePlaces);
+                const distractedWitness = othersHere.length > 0
+                    ? othersHere[0]
+                    : undefined;
+
+                // Pick ONE random item for this NPC (balancing fix)
+                const item = rng.pick(itemsHere);
+
+                opportunities.push({
+                    npc: potentialCulprit,
+                    item,
+                    place: culpritPlace,
+                    window: crimeWindow,
+                    hidePlace,
+                    distractedWitness,
+                });
+
+                npcsWithOpportunity.add(potentialCulprit.id);
+            }
         }
+
+        // Skip to next NPC if this one already has an opportunity
+        if (npcsWithOpportunity.has(potentialCulprit.id)) continue;
     }
 
     return opportunities;
@@ -463,14 +522,8 @@ function executeCrime(
         place: opportunity.hidePlace,
     }));
 
-    // Motion sensor if passing through living
-    if (opportunity.hidePlace === 'living') {
-        events.push(createEvent(tick, 'MOTION_DETECTED', {
-            actor: opportunity.npc.id,
-            place: 'living',
-            target: 'motion_living',
-        }));
-    }
+    // Trigger sensors in the hide place (motion, camera)
+    events.push(...triggerRoomSensors(world, opportunity.hidePlace, opportunity.npc.id, tick, opportunity.item.id));
 
     tick += 1;
 
@@ -899,6 +952,21 @@ function maybeGenerateTwist(
 }
 
 // ============================================================================
+// Simulation Options
+// ============================================================================
+
+export interface SimulationOptions {
+    /** Use blueprint system instead of legacy crime generation */
+    useBlueprints?: boolean;
+    /** Specific blueprints to use (defaults to ALL_BLUEPRINTS) */
+    blueprints?: IncidentBlueprint[];
+    /** House layout to use (defaults to 'share_house') */
+    houseId?: string;
+    /** Cast of NPCs to use (defaults to 'roommates') */
+    castId?: string;
+}
+
+// ============================================================================
 // Main Simulation
 // ============================================================================
 
@@ -907,21 +975,37 @@ function maybeGenerateTwist(
  *
  * @param seed - RNG seed for deterministic generation
  * @param difficultyTier - 1-4, controls twist complexity and red herring strength
+ * @param options - Optional configuration (useBlueprints, etc.)
  * @returns SimulationResult or null if no valid crime setup found
  */
-export function simulate(seed: number, difficultyTier: number = 2): SimulationResult | null {
+export function simulate(
+    seed: number,
+    difficultyTier: number = 2,
+    options: SimulationOptions = {}
+): SimulationResult | null {
+    // If blueprints enabled, use the new system
+    if (options.useBlueprints) {
+        return simulateWithBlueprints(seed, difficultyTier, options);
+    }
+
+    // Otherwise, use legacy system (backward compatible)
     // Reset ordinal for deterministic event IDs
     eventOrdinal = 0;
 
     const difficultyConfig = DIFFICULTY_PRESETS[difficultyTier] ?? DIFFICULTY_PRESETS[2];
 
     const rng = createRng(seed);
-    const world = createWorld(rng);
+
+    // Use canonical house/cast if specified, otherwise legacy world
+    const world = (options.houseId || options.castId)
+        ? createWorldFromConfig(rng, options.houseId ?? 'share_house', options.castId ?? 'roommates')
+        : createWorld(rng);
+
     const npcStates = initNPCStates(world);
 
     const allEvents: SimEvent[] = [];
 
-    // Pick random crime window (W2-W5 for variety - W1 too early, W6 no aftermath)
+    // Pick random crime window (W2-W5 has highest validation pass rates)
     const crimeWindowOptions: WindowId[] = ['W2', 'W3', 'W4', 'W5'];
     const crimeWindowId = rng.pick(crimeWindowOptions);
     const crimeWindowDef = WINDOWS.find(w => w.id === crimeWindowId)!;
@@ -1087,7 +1171,7 @@ export function simulate(seed: number, difficultyTier: number = 2): SimulationRe
         motive,
         twist,
         suspiciousActs,
-        distractedWitness: chosen.distractedWitness?.id,
+        distractedWitnesses: chosen.distractedWitness ? [chosen.distractedWitness.id] : undefined,
     };
 
     return {
@@ -1096,4 +1180,181 @@ export function simulate(seed: number, difficultyTier: number = 2): SimulationRe
         eventLog: allEvents,
         config,
     };
+}
+
+// ============================================================================
+// Blueprint-Based Simulation
+// ============================================================================
+
+/**
+ * Run simulation using the blueprint system.
+ *
+ * This provides more variety through:
+ * - 10 different incident blueprints
+ * - Multiple method variants per blueprint
+ * - Intent-driven crime execution
+ */
+function simulateWithBlueprints(
+    seed: number,
+    difficultyTier: number,
+    options: SimulationOptions
+): SimulationResult | null {
+    // Reset ordinal for deterministic event IDs
+    eventOrdinal = 0;
+    setEventOrdinal(0);
+
+    const difficultyConfig = DIFFICULTY_PRESETS[difficultyTier] ?? DIFFICULTY_PRESETS[2];
+
+    const rng = createRng(seed);
+
+    // Use canonical house/cast if specified, otherwise legacy world
+    const world = (options.houseId || options.castId)
+        ? createWorldFromConfig(rng, options.houseId ?? 'share_house', options.castId ?? 'roommates')
+        : createWorld(rng);
+
+    const npcStates = initNPCStates(world);
+
+    const allEvents: SimEvent[] = [];
+
+    // Use provided blueprints or all available
+    const blueprints = options.blueprints ?? ALL_BLUEPRINTS;
+
+    // Try to instantiate a blueprint
+    const instantiation = tryInstantiateAny(blueprints, world, rng, 20);
+    if (!instantiation) {
+        // Fall back to legacy system if blueprints fail
+        return simulate(seed, difficultyTier, { useBlueprints: false, houseId: options.houseId, castId: options.castId });
+    }
+
+    const { blueprint, plan } = instantiation;
+
+    // Get crime window info
+    const crimeWindowId = plan.crimeWindow;
+    const crimeWindowDef = WINDOWS.find(w => w.id === crimeWindowId)!;
+
+    // Pre-crime: all windows before crime window
+    const allWindowIds: WindowId[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
+    const crimeWindowIndex = allWindowIds.indexOf(crimeWindowId);
+    const preCrimeWindows = allWindowIds.slice(0, crimeWindowIndex);
+
+    for (const window of preCrimeWindows) {
+        const windowDef = WINDOWS.find(w => w.id === window)!;
+        const events = simulateRoutines(world, npcStates, window, windowDef.startTick, rng);
+        allEvents.push(...events);
+    }
+
+    // Simulate routines during crime window
+    const crimeWindowRoutines = simulateRoutines(world, npcStates, crimeWindowId, crimeWindowDef.startTick, rng);
+    allEvents.push(...crimeWindowRoutines);
+
+    // Find distracted witnesses: any non-culprit NPCs at the crime scene
+    const distractedWitnesses: NPCId[] = [];
+    for (const [npcId, state] of npcStates) {
+        if (npcId !== plan.culprit && state.currentPlace === plan.crimePlace) {
+            distractedWitnesses.push(npcId);
+        }
+    }
+
+    // Execute crime using blueprint plan
+    const crimeEvents = executeCrimePlan(plan, world, rng);
+    allEvents.push(...crimeEvents);
+
+    // Run pre-simulation for gossip/motive
+    const history = createEmptyHistory();
+    const gossipState = initGossipState(world, history);
+    generateSyntheticHistory(world, gossipState, history, rng, 30);
+    runPreSimulation(world, history, rng, 50);
+
+    // Get culprit and item for motive generation
+    const culprit = world.npcs.find(n => n.id === plan.culprit)!;
+    const targetItem = world.items.find(i => i.id === plan.targetItem)!;
+
+    // Generate motive from emergent state
+    const motive = deriveEmergentMotive(
+        culprit,
+        targetItem,
+        world,
+        gossipState,
+        history,
+        rng
+    );
+
+    // Map blueprint incident type to crime type
+    const crimeType = mapIncidentToCrimeType(blueprint.incidentType);
+
+    // Generate crime method (use the variant's method ID)
+    const crimeMethod = generateCrimeMethod(crimeType, targetItem, culprit, rng);
+    // Override with the plan's method
+    crimeMethod.methodId = plan.variantId;
+
+    // Maybe add a twist
+    const twist = maybeGenerateTwist(world, plan.culprit, rng, difficultyConfig.twistRules);
+
+    // Aftermath: all windows after crime window
+    const aftermathWindows = allWindowIds.slice(crimeWindowIndex + 1);
+    for (const window of aftermathWindows) {
+        const windowDef = WINDOWS.find(w => w.id === window)!;
+        const events = simulateRoutines(world, npcStates, window, windowDef.startTick, rng);
+        allEvents.push(...events);
+    }
+
+    // Sort events by tick
+    allEvents.sort((a, b) => a.tick - b.tick);
+
+    // Harvest Suspicious Acts
+    const suspiciousActs: SuspiciousAct[] = [];
+    const activityEvents = allEvents.filter(e => e.type === 'ACTIVITY_STARTED');
+    for (const event of activityEvents) {
+        if (!event.data || !event.actor || !event.place) continue;
+        const actId = (event.data as any).activity as ActivityType;
+        const actDef = ACTIVITIES[actId];
+        if (actDef) {
+            suspiciousActs.push({
+                npc: event.actor,
+                window: event.window,
+                place: event.place,
+                action: actDef.visualDescription,
+                looksLike: actDef.looksLike,
+                actualReason: actDef.alibi,
+                generatesEvents: true
+            });
+        }
+    }
+
+    const config: CaseConfig = {
+        seed,
+        suspects: world.npcs.map(n => n.id),
+        culpritId: plan.culprit,
+        crimeType,
+        crimeMethod,
+        targetItem: plan.targetItem,
+        crimeWindow: plan.crimeWindow,
+        crimePlace: plan.crimePlace,
+        hiddenPlace: plan.hidePlace,
+        motive,
+        twist,
+        suspiciousActs,
+        distractedWitnesses: distractedWitnesses.length > 0 ? distractedWitnesses : undefined,
+    };
+
+    return {
+        seed,
+        world,
+        eventLog: allEvents,
+        config,
+    };
+}
+
+/**
+ * Map blueprint incident type to existing crime type
+ */
+function mapIncidentToCrimeType(incidentType: string): CrimeType {
+    switch (incidentType) {
+        case 'theft': return 'theft';
+        case 'sabotage': return 'sabotage';
+        case 'prank': return 'prank';
+        case 'swap': return 'prank'; // Swap is a type of prank
+        case 'disappearance': return 'disappearance';
+        default: return 'theft';
+    }
 }

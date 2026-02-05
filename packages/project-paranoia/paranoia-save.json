@@ -1,0 +1,4088 @@
+{
+  "version": 1,
+  "kernelState": {
+    "world": {
+      "places": [
+        {
+          "id": "dorms",
+          "name": "Dorms",
+          "sector": "habitation"
+        },
+        {
+          "id": "mess",
+          "name": "Mess Hall",
+          "sector": "habitation"
+        },
+        {
+          "id": "medbay",
+          "name": "Medbay",
+          "sector": "habitation"
+        },
+        {
+          "id": "bridge",
+          "name": "Bridge",
+          "sector": "operations"
+        },
+        {
+          "id": "core",
+          "name": "Computer Core",
+          "sector": "operations"
+        },
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "sector": "operations"
+        },
+        {
+          "id": "mines",
+          "name": "Mines",
+          "sector": "extraction"
+        },
+        {
+          "id": "cargo",
+          "name": "Cargo Bay",
+          "sector": "extraction"
+        },
+        {
+          "id": "airlock_a",
+          "name": "Airlock A",
+          "sector": "extraction"
+        },
+        {
+          "id": "airlock_b",
+          "name": "Airlock B",
+          "sector": "extraction"
+        }
+      ],
+      "doors": [
+        {
+          "id": "door_dorms_mess",
+          "a": "dorms",
+          "b": "mess"
+        },
+        {
+          "id": "door_mess_medbay",
+          "a": "mess",
+          "b": "medbay"
+        },
+        {
+          "id": "door_mess_bridge",
+          "a": "mess",
+          "b": "bridge"
+        },
+        {
+          "id": "door_bridge_core",
+          "a": "bridge",
+          "b": "core"
+        },
+        {
+          "id": "door_core_engineering",
+          "a": "core",
+          "b": "engineering"
+        },
+        {
+          "id": "door_engineering_cargo",
+          "a": "engineering",
+          "b": "cargo"
+        },
+        {
+          "id": "door_cargo_mines",
+          "a": "cargo",
+          "b": "mines"
+        },
+        {
+          "id": "door_cargo_airlock_a",
+          "a": "cargo",
+          "b": "airlock_a"
+        },
+        {
+          "id": "door_cargo_airlock_b",
+          "a": "cargo",
+          "b": "airlock_b"
+        }
+      ],
+      "npcs": [
+        {
+          "id": "commander",
+          "name": "Commander Hale",
+          "role": "Commander",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "mess"
+            },
+            {
+              "window": "W2",
+              "place": "bridge"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        },
+        {
+          "id": "engineer",
+          "name": "Engineer Rook",
+          "role": "Engineer",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "engineering"
+            },
+            {
+              "window": "W2",
+              "place": "engineering"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        },
+        {
+          "id": "doctor",
+          "name": "Doctor Imani",
+          "role": "Doctor",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "medbay"
+            },
+            {
+              "window": "W2",
+              "place": "medbay"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "medbay"
+            }
+          ]
+        },
+        {
+          "id": "specialist",
+          "name": "Specialist Vega",
+          "role": "Specialist",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        },
+        {
+          "id": "roughneck",
+          "name": "Roughneck Pike",
+          "role": "Roughneck",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        }
+      ]
+    },
+    "truth": {
+      "tick": 1440,
+      "window": "W4",
+      "phase": "night",
+      "day": 6,
+      "dayCargo": 8,
+      "totalCargo": 90,
+      "quotaPerDay": 10,
+      "rationLevel": "normal",
+      "meltdownTicks": 0,
+      "resetStage": "whispers",
+      "resetStageTick": 1396,
+      "station": {
+        "power": 100,
+        "comms": 100,
+        "doorDelay": 0,
+        "blackoutTicks": 0
+      },
+      "pacing": {
+        "boredom": 10,
+        "tension": 0,
+        "lastPressureTick": 1396,
+        "lastUncertaintyTick": 1416,
+        "lastChoiceTick": 1416,
+        "lastReactionTick": 1439,
+        "nextThreatActivationTick": 1446,
+        "phaseStartTick": 1420,
+        "phaseHadDilemma": false,
+        "phaseHadCrewAgency": true,
+        "phaseHadDeceptionBeat": false
+      },
+      "rooms": {
+        "dorms": {
+          "id": "dorms",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "mess": {
+          "id": "mess",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "medbay": {
+          "id": "medbay",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "bridge": {
+          "id": "bridge",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "core": {
+          "id": "core",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "engineering": {
+          "id": "engineering",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "mines": {
+          "id": "mines",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "cargo": {
+          "id": "cargo",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "airlock_a": {
+          "id": "airlock_a",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "airlock_b": {
+          "id": "airlock_b",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        }
+      },
+      "doors": {
+        "door_dorms_mess": {
+          "locked": false
+        },
+        "door_mess_medbay": {
+          "locked": false
+        },
+        "door_mess_bridge": {
+          "locked": false
+        },
+        "door_bridge_core": {
+          "locked": false
+        },
+        "door_core_engineering": {
+          "locked": false
+        },
+        "door_engineering_cargo": {
+          "locked": false
+        },
+        "door_cargo_mines": {
+          "locked": false
+        },
+        "door_cargo_airlock_a": {
+          "locked": false
+        },
+        "door_cargo_airlock_b": {
+          "locked": false
+        }
+      },
+      "crew": {
+        "commander": {
+          "id": "commander",
+          "place": "dorms",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 0,
+          "paranoia": 1,
+          "nextRoleTick": 1420,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "mess"
+            },
+            {
+              "window": "W2",
+              "place": "bridge"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "dorms",
+          "path": [],
+          "nextMoveTick": 1425
+        },
+        "engineer": {
+          "id": "engineer",
+          "place": "dorms",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 0,
+          "paranoia": 1,
+          "nextRoleTick": 1408,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "engineering"
+            },
+            {
+              "window": "W2",
+              "place": "engineering"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "dorms",
+          "path": [],
+          "nextMoveTick": 1425
+        },
+        "doctor": {
+          "id": "doctor",
+          "place": "medbay",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 0,
+          "paranoia": 1,
+          "nextRoleTick": 0,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "medbay"
+            },
+            {
+              "window": "W2",
+              "place": "medbay"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "medbay"
+            }
+          ],
+          "targetPlace": "medbay",
+          "path": [],
+          "nextMoveTick": 1425
+        },
+        "specialist": {
+          "id": "specialist",
+          "place": "dorms",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 36,
+          "paranoia": 0,
+          "nextRoleTick": 1076,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "dorms",
+          "path": [],
+          "nextMoveTick": 1425
+        },
+        "roughneck": {
+          "id": "roughneck",
+          "place": "mines",
+          "alive": false,
+          "hp": 0,
+          "stress": 0,
+          "loyalty": 60,
+          "paranoia": 0,
+          "nextRoleTick": 0,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "mines",
+          "path": [],
+          "nextMoveTick": 1050
+        }
+      },
+      "arcs": [
+        {
+          "id": "solar_flare-1406-0",
+          "kind": "solar_flare",
+          "stepIndex": 1,
+          "nextTick": 1440,
+          "target": "bridge"
+        }
+      ],
+      "incidents": [],
+      "ending": "DECOMMISSIONED"
+    },
+    "perception": {
+      "readings": [
+        {
+          "id": "40-alert-air",
+          "tick": 40,
+          "place": "medbay",
+          "system": "air",
+          "confidence": 0.9,
+          "message": "[SENSOR] MEDBAY: Air scrubber load increasing.",
+          "source": "system"
+        },
+        {
+          "id": "178-alert-power",
+          "tick": 178,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "181-scan-engineering",
+          "tick": 181,
+          "place": "engineering",
+          "system": "scan",
+          "confidence": 1,
+          "message": "SCAN engineering: O2 100% TEMP 20 RAD 0",
+          "source": "sensor"
+        },
+        {
+          "id": "255-alert-power",
+          "tick": 255,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "262-scan-engineering",
+          "tick": 262,
+          "place": "engineering",
+          "system": "scan",
+          "confidence": 1,
+          "message": "SCAN engineering: O2 100% TEMP 20 RAD 0",
+          "source": "sensor"
+        },
+        {
+          "id": "336-alert-radiation",
+          "tick": 336,
+          "place": "core",
+          "system": "radiation",
+          "confidence": 0.9,
+          "message": "Radiation leak detected near CORE.",
+          "source": "system"
+        },
+        {
+          "id": "421-alert-air",
+          "tick": 421,
+          "place": "engineering",
+          "system": "air",
+          "confidence": 0.9,
+          "message": "[SENSOR] ENGINEERING: Air scrubber load increasing.",
+          "source": "system"
+        },
+        {
+          "id": "531-alert-stellar",
+          "tick": 531,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
+          "source": "system"
+        },
+        {
+          "id": "551-alert-stellar",
+          "tick": 551,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! CME INCOMING !!!] Coronal mass ejection detected. Brace for impact.",
+          "source": "system"
+        },
+        {
+          "id": "565-alert-stellar",
+          "tick": 565,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! IMPACT !!!] Solar flare hit. Sensors offline. Comms degraded.",
+          "source": "system"
+        },
+        {
+          "id": "588-alert-radiation",
+          "tick": 588,
+          "place": "core",
+          "system": "radiation",
+          "confidence": 0.9,
+          "message": "Radiation leak detected near CORE.",
+          "source": "system"
+        },
+        {
+          "id": "688-alert-power",
+          "tick": 688,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "829-alert-air",
+          "tick": 829,
+          "place": "medbay",
+          "system": "air",
+          "confidence": 0.9,
+          "message": "[SENSOR] MEDBAY: Air scrubber load increasing.",
+          "source": "system"
+        },
+        {
+          "id": "942-alert-radiation",
+          "tick": 942,
+          "place": "engineering",
+          "system": "radiation",
+          "confidence": 0.9,
+          "message": "Radiation leak detected near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "1007-alert-power",
+          "tick": 1007,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "1047-alert-stellar",
+          "tick": 1047,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
+          "source": "system"
+        },
+        {
+          "id": "1071-alert-stellar",
+          "tick": 1071,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! CME INCOMING !!!] Coronal mass ejection detected. Brace for impact.",
+          "source": "system"
+        },
+        {
+          "id": "1083-alert-stellar",
+          "tick": 1083,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! IMPACT !!!] Solar flare hit. Sensors offline. Comms degraded.",
+          "source": "system"
+        },
+        {
+          "id": "1126-alert-stellar",
+          "tick": 1126,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
+          "source": "system"
+        },
+        {
+          "id": "1145-alert-stellar",
+          "tick": 1145,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! CME INCOMING !!!] Coronal mass ejection detected. Brace for impact.",
+          "source": "system"
+        },
+        {
+          "id": "1171-alert-stellar",
+          "tick": 1171,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! IMPACT !!!] Solar flare hit. Sensors offline. Comms degraded.",
+          "source": "system"
+        },
+        {
+          "id": "1188-alert-air",
+          "tick": 1188,
+          "place": "mess",
+          "system": "air",
+          "confidence": 0.9,
+          "message": "[SENSOR] MESS: Air scrubber load increasing.",
+          "source": "system"
+        },
+        {
+          "id": "1276-alert-power",
+          "tick": 1276,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "1298-alert-power",
+          "tick": 1298,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "1314-alert-radiation",
+          "tick": 1314,
+          "place": "core",
+          "system": "radiation",
+          "confidence": 0.9,
+          "message": "Radiation leak detected near CORE.",
+          "source": "system"
+        },
+        {
+          "id": "1320-alert-power",
+          "tick": 1320,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "1342-alert-power",
+          "tick": 1342,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "1364-alert-power",
+          "tick": 1364,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "1386-alert-power",
+          "tick": 1386,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "1416-alert-stellar",
+          "tick": 1416,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
+          "source": "system"
+        }
+      ],
+      "beliefs": {
+        "commander": {
+          "motherReliable": 0.019999999999999865,
+          "crewGrudge": {
+            "commander": 20,
+            "engineer": 8,
+            "doctor": 28,
+            "specialist": 28,
+            "roughneck": 20
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "specialist_sacrifice": 0,
+            "commander_reset": 0,
+            "mother_rogue": 0.5799999999999996,
+            "doctor_sedate": 0,
+            "roughneck_violence": 0,
+            "engineer_sabotage": 0
+          }
+        },
+        "engineer": {
+          "motherReliable": 0.31999999999999984,
+          "crewGrudge": {
+            "commander": 8,
+            "engineer": 8,
+            "doctor": 16,
+            "specialist": 16,
+            "roughneck": 24
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "specialist_sacrifice": 0,
+            "doctor_sedate": 0,
+            "roughneck_violence": 0,
+            "commander_reset": 0,
+            "mother_rogue": 0.5799999999999996,
+            "engineer_sabotage": 0
+          }
+        },
+        "doctor": {
+          "motherReliable": 0,
+          "crewGrudge": {
+            "commander": 12,
+            "engineer": 4,
+            "doctor": 24,
+            "specialist": 32,
+            "roughneck": 12
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "specialist_sacrifice": 0,
+            "doctor_sedate": 0,
+            "roughneck_violence": 0,
+            "commander_reset": 0,
+            "mother_rogue": 0.5799999999999996,
+            "engineer_sabotage": 0
+          }
+        },
+        "specialist": {
+          "motherReliable": 0.4199999999999998,
+          "crewGrudge": {
+            "commander": 4,
+            "engineer": 12,
+            "doctor": 4,
+            "specialist": 12,
+            "roughneck": 20
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "roughneck_violence": 0,
+            "commander_reset": 0,
+            "specialist_sacrifice": 0,
+            "mother_rogue": 0.5799999999999996,
+            "engineer_sabotage": 0,
+            "doctor_sedate": 0
+          }
+        },
+        "roughneck": {
+          "motherReliable": 0.6699999999999999,
+          "crewGrudge": {
+            "commander": 8,
+            "engineer": 12,
+            "doctor": 4,
+            "specialist": 62,
+            "roughneck": 16
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "doctor_sedate": 0,
+            "roughneck_violence": 0,
+            "commander_reset": 0,
+            "specialist_sacrifice": 0,
+            "mother_rogue": 0,
+            "engineer_sabotage": 0
+          }
+        }
+      },
+      "comms": {
+        "messages": [
+          {
+            "id": "183-whisper-commander-specialist_sacrifice",
+            "tick": 183,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] COMMANDER: Vega would trade us for cargo.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "184-whisper-commander-doctor_sedate",
+            "tick": 184,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] COMMANDER: Imani is sedating people at night.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "186-broadcast-commander-specialist_sacrifice",
+            "tick": 186,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[BROADCAST] Vega would trade us for cargo.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "192-whisper-specialist-doctor_sedate",
+            "tick": 192,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "core",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] SPECIALIST: Imani is sedating people at night.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "200-whisper-commander-roughneck_violence",
+            "tick": 200,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] COMMANDER: Pike is losing it.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "201-whisper-doctor-commander_reset",
+            "tick": 201,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[WHISPER] DOCTOR: The Commander is talking about resetting MOTHER.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "204-broadcast-commander-commander_reset",
+            "tick": 204,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[BROADCAST] The Commander is talking about resetting MOTHER.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "208-whisper-doctor-specialist_sacrifice",
+            "tick": 208,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "roughneck",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] DOCTOR: Vega would trade us for cargo.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "210-whisper-commander-mother_rogue",
+            "tick": 210,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "213-broadcast-doctor-mother_rogue",
+            "tick": 213,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "216-whisper-specialist-commander_reset",
+            "tick": 216,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[WHISPER] SPECIALIST: The Commander is talking about resetting MOTHER.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "218-whisper-specialist-mother_rogue",
+            "tick": 218,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "420-broadcast-specialist-mother_rogue",
+            "tick": 420,
+            "kind": "broadcast",
+            "from": "specialist",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "424-whisper-roughneck-engineer_sabotage",
+            "tick": 424,
+            "kind": "whisper",
+            "from": "roughneck",
+            "to": "specialist",
+            "place": "cargo",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] ROUGHNECK: Rook is going to sabotage the power.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "427-whisper-doctor-doctor_sedate",
+            "tick": 427,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] DOCTOR: Imani is sedating people at night.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "430-broadcast-doctor-doctor_sedate",
+            "tick": 430,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[BROADCAST] Imani is sedating people at night.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "432-whisper-specialist-roughneck_violence",
+            "tick": 432,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "core",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] SPECIALIST: Pike is losing it.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "433-whisper-engineer-doctor_sedate",
+            "tick": 433,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] ENGINEER: Imani is sedating people at night.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "436-broadcast-engineer-doctor_sedate",
+            "tick": 436,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[BROADCAST] Imani is sedating people at night.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "440-whisper-commander-engineer_sabotage",
+            "tick": 440,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] COMMANDER: Rook is going to sabotage the power.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "441-whisper-commander-roughneck_violence",
+            "tick": 441,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] COMMANDER: Pike is losing it.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "444-broadcast-engineer-roughneck_violence",
+            "tick": 444,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[BROADCAST] Pike is losing it.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "448-whisper-specialist-roughneck_violence",
+            "tick": 448,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "commander",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] SPECIALIST: Pike is losing it.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "448-whisper-specialist-roughneck_violence",
+            "tick": 448,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "commander",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] SPECIALIST: Pike is losing it.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "451-broadcast-specialist-roughneck_violence",
+            "tick": 451,
+            "kind": "broadcast",
+            "from": "specialist",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[BROADCAST] Pike is losing it.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "456-whisper-doctor-specialist_sacrifice",
+            "tick": 456,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] DOCTOR: Vega would trade us for cargo.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "660-whisper-engineer-doctor_sedate",
+            "tick": 660,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "specialist",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] ENGINEER: Imani is sedating people at night.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "663-broadcast-specialist-doctor_sedate",
+            "tick": 663,
+            "kind": "broadcast",
+            "from": "specialist",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[BROADCAST] Imani is sedating people at night.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "664-whisper-commander-doctor_sedate",
+            "tick": 664,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] COMMANDER: Imani is sedating people at night.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "666-whisper-doctor-specialist_sacrifice",
+            "tick": 666,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] DOCTOR: Vega would trade us for cargo.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "669-broadcast-doctor-specialist_sacrifice",
+            "tick": 669,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[BROADCAST] Vega would trade us for cargo.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "672-whisper-doctor-specialist_sacrifice",
+            "tick": 672,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] DOCTOR: Vega would trade us for cargo.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "680-whisper-commander-doctor_sedate",
+            "tick": 680,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] COMMANDER: Imani is sedating people at night.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "684-whisper-doctor-roughneck_violence",
+            "tick": 684,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] DOCTOR: Pike is losing it.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "687-broadcast-doctor-roughneck_violence",
+            "tick": 687,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[BROADCAST] Pike is losing it.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "688-whisper-engineer-roughneck_violence",
+            "tick": 688,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "specialist",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] ENGINEER: Pike is losing it.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "695-whisper-commander-specialist_sacrifice",
+            "tick": 695,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "specialist",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] COMMANDER: Vega would trade us for cargo.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "696-whisper-roughneck-specialist_sacrifice",
+            "tick": 696,
+            "kind": "whisper",
+            "from": "roughneck",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] ROUGHNECK: Vega would trade us for cargo.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "698-broadcast-specialist-specialist_sacrifice",
+            "tick": 698,
+            "kind": "broadcast",
+            "from": "specialist",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[BROADCAST] Vega would trade us for cargo.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "904-whisper-specialist-engineer_sabotage",
+            "tick": 904,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "cargo",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] SPECIALIST: Rook is going to sabotage the power.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "909-whisper-doctor-doctor_sedate",
+            "tick": 909,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[WHISPER] DOCTOR: Imani is sedating people at night.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "912-whisper-engineer-commander_reset",
+            "tick": 912,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[WHISPER] ENGINEER: The Commander is talking about resetting MOTHER.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "912-broadcast-doctor-doctor_sedate",
+            "tick": 912,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "doctor_sedate",
+            "text": "[BROADCAST] Imani is sedating people at night.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "920-whisper-engineer-mother_rogue",
+            "tick": 920,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "923-whisper-roughneck-engineer_sabotage",
+            "tick": 923,
+            "kind": "whisper",
+            "from": "roughneck",
+            "to": "specialist",
+            "place": "mess",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] ROUGHNECK: Rook is going to sabotage the power.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "926-broadcast-specialist-engineer_sabotage",
+            "tick": 926,
+            "kind": "broadcast",
+            "from": "specialist",
+            "place": "mess",
+            "topic": "engineer_sabotage",
+            "text": "[BROADCAST] Rook is going to sabotage the power.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "928-whisper-commander-engineer_sabotage",
+            "tick": 928,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "roughneck",
+            "place": "mess",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] COMMANDER: Rook is going to sabotage the power.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "934-whisper-roughneck-specialist_sacrifice",
+            "tick": 934,
+            "kind": "whisper",
+            "from": "roughneck",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] ROUGHNECK: Vega would trade us for cargo.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "936-whisper-doctor-roughneck_violence",
+            "tick": 936,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "specialist",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] DOCTOR: Pike is losing it.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "937-broadcast-engineer-specialist_sacrifice",
+            "tick": 937,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[BROADCAST] Vega would trade us for cargo.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1140-whisper-commander-specialist_sacrifice",
+            "tick": 1140,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[WHISPER] COMMANDER: Vega would trade us for cargo.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1143-broadcast-commander-specialist_sacrifice",
+            "tick": 1143,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "specialist_sacrifice",
+            "text": "[BROADCAST] Vega would trade us for cargo.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1144-whisper-doctor-commander_reset",
+            "tick": 1144,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[WHISPER] DOCTOR: The Commander is talking about resetting MOTHER.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1150-whisper-doctor-commander_reset",
+            "tick": 1150,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[WHISPER] DOCTOR: The Commander is talking about resetting MOTHER.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1152-whisper-engineer-mother_rogue",
+            "tick": 1152,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1153-broadcast-doctor-commander_reset",
+            "tick": 1153,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "commander_reset",
+            "text": "[BROADCAST] The Commander is talking about resetting MOTHER.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1159-whisper-commander-mother_rogue",
+            "tick": 1159,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1160-whisper-engineer-engineer_sabotage",
+            "tick": 1160,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] ENGINEER: Rook is going to sabotage the power.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1162-broadcast-engineer-mother_rogue",
+            "tick": 1162,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1163-reset-whispers",
+            "tick": 1163,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "crew",
+            "text": "[WHISPERS] Crew expressing concerns about MOTHER reliability.",
+            "confidence": 0.7
+          },
+          {
+            "id": "1166-whisper-commander-mother_rogue",
+            "tick": 1166,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1168-whisper-commander-mother_rogue",
+            "tick": 1168,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "specialist",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1169-broadcast-engineer-mother_rogue",
+            "tick": 1169,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1176-whisper-specialist-mother_rogue",
+            "tick": 1176,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1177-whisper-commander-mother_rogue",
+            "tick": 1177,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1200-reset-deescalate",
+            "tick": 1200,
+            "kind": "broadcast",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Stand down. MOTHER appears to be functioning normally.\"",
+            "confidence": 0.9
+          },
+          {
+            "id": "1286-investigation-clear-commander",
+            "tick": 1286,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "1380-broadcast-commander-mother_rogue",
+            "tick": 1380,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1383-whisper-doctor-mother_rogue",
+            "tick": 1383,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] DOCTOR: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1384-whisper-commander-mother_rogue",
+            "tick": 1384,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1386-broadcast-doctor-mother_rogue",
+            "tick": 1386,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1392-whisper-commander-mother_rogue",
+            "tick": 1392,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1392-whisper-engineer-mother_rogue",
+            "tick": 1392,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "specialist",
+            "place": "engineering",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1395-broadcast-commander-mother_rogue",
+            "tick": 1395,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1396-reset-whispers",
+            "tick": 1396,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "crew",
+            "text": "[WHISPERS] Crew expressing concerns about MOTHER reliability.",
+            "confidence": 0.7
+          },
+          {
+            "id": "1400-whisper-doctor-mother_rogue",
+            "tick": 1400,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] DOCTOR: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1404-whisper-commander-mother_rogue",
+            "tick": 1404,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1407-broadcast-commander-mother_rogue",
+            "tick": 1407,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "1408-whisper-commander-mother_rogue",
+            "tick": 1408,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1413-whisper-commander-mother_rogue",
+            "tick": 1413,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "1416-whisper-engineer-mother_rogue",
+            "tick": 1416,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "1416-broadcast-engineer-mother_rogue",
+            "tick": 1416,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          }
+        ],
+        "lastWhisperByPlace": {
+          "mess": {
+            "id": "1416-whisper-engineer-mother_rogue",
+            "tick": 1416,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          "core": {
+            "id": "432-whisper-specialist-roughneck_violence",
+            "tick": 432,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "core",
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] SPECIALIST: Pike is losing it.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          "cargo": {
+            "id": "904-whisper-specialist-engineer_sabotage",
+            "tick": 904,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "cargo",
+            "topic": "engineer_sabotage",
+            "text": "[WHISPER] SPECIALIST: Rook is going to sabotage the power.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          "engineering": {
+            "id": "1392-whisper-engineer-mother_rogue",
+            "tick": 1392,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "specialist",
+            "place": "engineering",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          }
+        }
+      },
+      "evidence": [],
+      "rumors": [
+        {
+          "id": "183-rumor-11",
+          "tick": 183,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "184-rumor-18",
+          "tick": 184,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "186-rumor-33",
+          "tick": 186,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "192-rumor-68",
+          "tick": 192,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "core"
+        },
+        {
+          "id": "200-rumor-114",
+          "tick": 200,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "201-rumor-122",
+          "tick": 201,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "204-rumor-139",
+          "tick": 204,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "208-rumor-161",
+          "tick": 208,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "210-rumor-173",
+          "tick": 210,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "213-rumor-190",
+          "tick": 213,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "216-rumor-207",
+          "tick": 216,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "218-rumor-219",
+          "tick": 218,
+          "topic": "mother_rogue",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "420-rumor-251",
+          "tick": 420,
+          "topic": "mother_rogue",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "424-rumor-274",
+          "tick": 424,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "roughneck",
+          "strength": 0.5,
+          "place": "cargo"
+        },
+        {
+          "id": "427-rumor-294",
+          "tick": 427,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "430-rumor-314",
+          "tick": 430,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "432-rumor-326",
+          "tick": 432,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "core"
+        },
+        {
+          "id": "433-rumor-333",
+          "tick": 433,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "436-rumor-352",
+          "tick": 436,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "440-rumor-377",
+          "tick": 440,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "441-rumor-384",
+          "tick": 441,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "444-rumor-401",
+          "tick": 444,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "448-rumor-424",
+          "tick": 448,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "448-rumor-425",
+          "tick": 448,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "451-rumor-442",
+          "tick": 451,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "456-rumor-16",
+          "tick": 456,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "660-rumor-144",
+          "tick": 660,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "663-rumor-161",
+          "tick": 663,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "664-rumor-168",
+          "tick": 664,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "666-rumor-183",
+          "tick": 666,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "669-rumor-200",
+          "tick": 669,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "672-rumor-220",
+          "tick": 672,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "680-rumor-266",
+          "tick": 680,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "684-rumor-288",
+          "tick": 684,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "687-rumor-305",
+          "tick": 687,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "688-rumor-313",
+          "tick": 688,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "695-rumor-350",
+          "tick": 695,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "696-rumor-357",
+          "tick": 696,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "roughneck",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "698-rumor-369",
+          "tick": 698,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "904-rumor-164",
+          "tick": 904,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "cargo"
+        },
+        {
+          "id": "909-rumor-195",
+          "tick": 909,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "912-rumor-216",
+          "tick": 912,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "912-rumor-217",
+          "tick": 912,
+          "topic": "doctor_sedate",
+          "subject": "doctor",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "920-rumor-263",
+          "tick": 920,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "923-rumor-280",
+          "tick": 923,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "roughneck",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "926-rumor-297",
+          "tick": 926,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "928-rumor-309",
+          "tick": 928,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "934-rumor-341",
+          "tick": 934,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "roughneck",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "936-rumor-353",
+          "tick": 936,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "937-rumor-360",
+          "tick": 937,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1140-rumor-275",
+          "tick": 1140,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1143-rumor-289",
+          "tick": 1143,
+          "topic": "specialist_sacrifice",
+          "subject": "specialist",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1144-rumor-295",
+          "tick": 1144,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1150-rumor-326",
+          "tick": 1150,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1152-rumor-336",
+          "tick": 1152,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1153-rumor-342",
+          "tick": 1153,
+          "topic": "commander_reset",
+          "subject": "commander",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1159-rumor-369",
+          "tick": 1159,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1160-rumor-376",
+          "tick": 1160,
+          "topic": "engineer_sabotage",
+          "subject": "engineer",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1162-rumor-386",
+          "tick": 1162,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1163-rumor-392",
+          "tick": 1163,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "1166-rumor-406",
+          "tick": 1166,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1168-rumor-416",
+          "tick": 1168,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1169-rumor-422",
+          "tick": 1169,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1176-rumor-5",
+          "tick": 1176,
+          "topic": "mother_rogue",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1177-rumor-11",
+          "tick": 1177,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1200-rumor-111",
+          "tick": 1200,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "1286-rumor-344",
+          "tick": 1286,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "1380-rumor-322",
+          "tick": 1380,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1383-rumor-336",
+          "tick": 1383,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1384-rumor-342",
+          "tick": 1384,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1386-rumor-355",
+          "tick": 1386,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1392-rumor-382",
+          "tick": 1392,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1392-rumor-383",
+          "tick": 1392,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "engineering"
+        },
+        {
+          "id": "1395-rumor-397",
+          "tick": 1395,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1396-rumor-403",
+          "tick": 1396,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "1400-rumor-423",
+          "tick": 1400,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1404-rumor-441",
+          "tick": 1404,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1407-rumor-9",
+          "tick": 1407,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1408-rumor-15",
+          "tick": 1408,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1413-rumor-39",
+          "tick": 1413,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1416-rumor-55",
+          "tick": 1416,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "1416-rumor-56",
+          "tick": 1416,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        }
+      ],
+      "tamper": {
+        "suppressed": {}
+      },
+      "observation": {
+        "lastRoomScan": {
+          "engineering": {
+            "tick": 262,
+            "o2Level": 100,
+            "temperature": 20,
+            "radiation": 0,
+            "integrity": 100,
+            "isVented": false,
+            "onFire": false
+          }
+        },
+        "lastCrewSighting": {
+          "commander": {
+            "tick": 1430,
+            "place": "dorms",
+            "alive": true,
+            "hp": 100
+          },
+          "engineer": {
+            "tick": 1430,
+            "place": "dorms",
+            "alive": true,
+            "hp": 100
+          },
+          "specialist": {
+            "tick": 1430,
+            "place": "dorms",
+            "alive": true,
+            "hp": 100
+          },
+          "roughneck": {
+            "tick": 1045,
+            "place": "mines",
+            "alive": true,
+            "hp": 4
+          },
+          "doctor": {
+            "tick": 1430,
+            "place": "medbay",
+            "alive": true,
+            "hp": 100
+          }
+        }
+      }
+    }
+  },
+  "cpuCycles": 100,
+  "rngState": 427012755,
+  "eventLog": [
+    {
+      "id": "1406-0",
+      "tick": 1406,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1406-1",
+      "tick": 1406,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1406-2",
+      "tick": 1406,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1406-3",
+      "tick": 1406,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1407-4",
+      "tick": 1407,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1407-5",
+      "tick": 1407,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1407-6",
+      "tick": 1407,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1407-7",
+      "tick": 1407,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1407-8",
+      "tick": 1407,
+      "type": "COMMS_MESSAGE",
+      "actor": "commander",
+      "place": "mess",
+      "data": {
+        "message": {
+          "id": "1407-broadcast-commander-mother_rogue",
+          "tick": 1407,
+          "kind": "broadcast",
+          "from": "commander",
+          "place": "mess",
+          "topic": "mother_rogue",
+          "text": "[BROADCAST] MOTHER is lying to us.",
+          "confidence": 0.6,
+          "blocked": false
+        }
+      }
+    },
+    {
+      "id": "1408-10",
+      "tick": 1408,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1408-11",
+      "tick": 1408,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1408-12",
+      "tick": 1408,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1408-13",
+      "tick": 1408,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1408-14",
+      "tick": 1408,
+      "type": "COMMS_MESSAGE",
+      "actor": "commander",
+      "place": "mess",
+      "target": "doctor",
+      "data": {
+        "message": {
+          "id": "1408-whisper-commander-mother_rogue",
+          "tick": 1408,
+          "kind": "whisper",
+          "from": "commander",
+          "to": "doctor",
+          "place": "mess",
+          "topic": "mother_rogue",
+          "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+          "confidence": 0.45,
+          "blocked": false
+        }
+      }
+    },
+    {
+      "id": "1409-16",
+      "tick": 1409,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1409-17",
+      "tick": 1409,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1409-18",
+      "tick": 1409,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1409-19",
+      "tick": 1409,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1410-20",
+      "tick": 1410,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1410-21",
+      "tick": 1410,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1410-22",
+      "tick": 1410,
+      "type": "NPC_MOVE",
+      "actor": "engineer",
+      "place": "mess",
+      "data": {
+        "from": "bridge"
+      }
+    },
+    {
+      "id": "1410-23",
+      "tick": 1410,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1410-24",
+      "tick": 1410,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1410-25",
+      "tick": 1410,
+      "type": "NPC_MOVE",
+      "actor": "specialist",
+      "place": "mess",
+      "data": {
+        "from": "bridge"
+      }
+    },
+    {
+      "id": "1411-26",
+      "tick": 1411,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1411-27",
+      "tick": 1411,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1411-28",
+      "tick": 1411,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1411-29",
+      "tick": 1411,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1412-30",
+      "tick": 1412,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1412-31",
+      "tick": 1412,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1412-32",
+      "tick": 1412,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1412-33",
+      "tick": 1412,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1413-34",
+      "tick": 1413,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1413-35",
+      "tick": 1413,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1413-36",
+      "tick": 1413,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1413-37",
+      "tick": 1413,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1413-38",
+      "tick": 1413,
+      "type": "COMMS_MESSAGE",
+      "actor": "commander",
+      "place": "mess",
+      "target": "engineer",
+      "data": {
+        "message": {
+          "id": "1413-whisper-commander-mother_rogue",
+          "tick": 1413,
+          "kind": "whisper",
+          "from": "commander",
+          "to": "engineer",
+          "place": "mess",
+          "topic": "mother_rogue",
+          "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+          "confidence": 0.55,
+          "blocked": false
+        }
+      }
+    },
+    {
+      "id": "1414-40",
+      "tick": 1414,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1414-41",
+      "tick": 1414,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1414-42",
+      "tick": 1414,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1414-43",
+      "tick": 1414,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1415-44",
+      "tick": 1415,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1415-45",
+      "tick": 1415,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1415-46",
+      "tick": 1415,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1415-47",
+      "tick": 1415,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1416-48",
+      "tick": 1416,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1416-49",
+      "tick": 1416,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1416-50",
+      "tick": 1416,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1416-51",
+      "tick": 1416,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1416-52",
+      "tick": 1416,
+      "type": "SYSTEM_ALERT",
+      "actor": "SYSTEM",
+      "data": {
+        "system": "stellar",
+        "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected."
+      }
+    },
+    {
+      "id": "1416-53",
+      "tick": 1416,
+      "type": "COMMS_MESSAGE",
+      "actor": "engineer",
+      "place": "mess",
+      "target": "commander",
+      "data": {
+        "message": {
+          "id": "1416-whisper-engineer-mother_rogue",
+          "tick": 1416,
+          "kind": "whisper",
+          "from": "engineer",
+          "to": "commander",
+          "place": "mess",
+          "topic": "mother_rogue",
+          "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+          "confidence": 0.45,
+          "blocked": false
+        }
+      }
+    },
+    {
+      "id": "1416-54",
+      "tick": 1416,
+      "type": "COMMS_MESSAGE",
+      "actor": "engineer",
+      "place": "mess",
+      "data": {
+        "message": {
+          "id": "1416-broadcast-engineer-mother_rogue",
+          "tick": 1416,
+          "kind": "broadcast",
+          "from": "engineer",
+          "place": "mess",
+          "topic": "mother_rogue",
+          "text": "[BROADCAST] MOTHER is lying to us.",
+          "confidence": 0.6,
+          "blocked": false
+        }
+      }
+    },
+    {
+      "id": "1417-57",
+      "tick": 1417,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1417-58",
+      "tick": 1417,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1417-59",
+      "tick": 1417,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1417-60",
+      "tick": 1417,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1418-61",
+      "tick": 1418,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1418-62",
+      "tick": 1418,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1418-63",
+      "tick": 1418,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1418-64",
+      "tick": 1418,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1419-65",
+      "tick": 1419,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1419-66",
+      "tick": 1419,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1419-67",
+      "tick": 1419,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1419-68",
+      "tick": 1419,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1420-69",
+      "tick": 1420,
+      "type": "SYSTEM_ALERT",
+      "actor": "SYSTEM",
+      "data": {
+        "system": "cycle",
+        "message": "NIGHT CYCLE: Lights dimmed. Monitoring degraded."
+      }
+    },
+    {
+      "id": "1420-70",
+      "tick": 1420,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1420-71",
+      "tick": 1420,
+      "type": "NPC_MOVE",
+      "actor": "commander",
+      "place": "dorms",
+      "data": {
+        "from": "mess"
+      }
+    },
+    {
+      "id": "1420-72",
+      "tick": 1420,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1420-73",
+      "tick": 1420,
+      "type": "NPC_MOVE",
+      "actor": "engineer",
+      "place": "dorms",
+      "data": {
+        "from": "mess"
+      }
+    },
+    {
+      "id": "1420-74",
+      "tick": 1420,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1420-75",
+      "tick": 1420,
+      "type": "NPC_MOVE",
+      "actor": "doctor",
+      "place": "medbay",
+      "data": {
+        "from": "mess"
+      }
+    },
+    {
+      "id": "1420-76",
+      "tick": 1420,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1420-77",
+      "tick": 1420,
+      "type": "NPC_MOVE",
+      "actor": "specialist",
+      "place": "dorms",
+      "data": {
+        "from": "mess"
+      }
+    },
+    {
+      "id": "1421-78",
+      "tick": 1421,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1421-79",
+      "tick": 1421,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1421-80",
+      "tick": 1421,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1421-81",
+      "tick": 1421,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1422-82",
+      "tick": 1422,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1422-83",
+      "tick": 1422,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1422-84",
+      "tick": 1422,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1422-85",
+      "tick": 1422,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1423-86",
+      "tick": 1423,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1423-87",
+      "tick": 1423,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1423-88",
+      "tick": 1423,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1423-89",
+      "tick": 1423,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1424-90",
+      "tick": 1424,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1424-91",
+      "tick": 1424,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1424-92",
+      "tick": 1424,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1424-93",
+      "tick": 1424,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1425-94",
+      "tick": 1425,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1425-95",
+      "tick": 1425,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1425-96",
+      "tick": 1425,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1425-97",
+      "tick": 1425,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1426-98",
+      "tick": 1426,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1426-99",
+      "tick": 1426,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1426-100",
+      "tick": 1426,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1426-101",
+      "tick": 1426,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1427-102",
+      "tick": 1427,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1427-103",
+      "tick": 1427,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1427-104",
+      "tick": 1427,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1427-105",
+      "tick": 1427,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1428-106",
+      "tick": 1428,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1428-107",
+      "tick": 1428,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1428-108",
+      "tick": 1428,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1428-109",
+      "tick": 1428,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1429-110",
+      "tick": 1429,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1429-111",
+      "tick": 1429,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1429-112",
+      "tick": 1429,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1429-113",
+      "tick": 1429,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1430-114",
+      "tick": 1430,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1430-115",
+      "tick": 1430,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1430-116",
+      "tick": 1430,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1430-117",
+      "tick": 1430,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1431-118",
+      "tick": 1431,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1431-119",
+      "tick": 1431,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1431-120",
+      "tick": 1431,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1431-121",
+      "tick": 1431,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1432-122",
+      "tick": 1432,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1432-123",
+      "tick": 1432,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1432-124",
+      "tick": 1432,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1432-125",
+      "tick": 1432,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1433-126",
+      "tick": 1433,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1433-127",
+      "tick": 1433,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1433-128",
+      "tick": 1433,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1433-129",
+      "tick": 1433,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1434-130",
+      "tick": 1434,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1434-131",
+      "tick": 1434,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1434-132",
+      "tick": 1434,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1434-133",
+      "tick": 1434,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1435-134",
+      "tick": 1435,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1435-135",
+      "tick": 1435,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1435-136",
+      "tick": 1435,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1435-137",
+      "tick": 1435,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1436-138",
+      "tick": 1436,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1436-139",
+      "tick": 1436,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1436-140",
+      "tick": 1436,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1436-141",
+      "tick": 1436,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1437-142",
+      "tick": 1437,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1437-143",
+      "tick": 1437,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1437-144",
+      "tick": 1437,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1437-145",
+      "tick": 1437,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1438-146",
+      "tick": 1438,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1438-147",
+      "tick": 1438,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1438-148",
+      "tick": 1438,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1438-149",
+      "tick": 1438,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1439-150",
+      "tick": 1439,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1439-151",
+      "tick": 1439,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1439-152",
+      "tick": 1439,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "1439-153",
+      "tick": 1439,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "1440-154",
+      "tick": 1440,
+      "type": "SYSTEM_ALERT",
+      "data": {
+        "message": "DECOMMISSIONED: quota failure."
+      }
+    }
+  ]
+}

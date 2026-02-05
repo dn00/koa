@@ -1,14 +1,11 @@
-import { PlayerSession } from './player.js';
-import { EvidenceItem, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, PresenceEvidence } from './types.js';
+import { PlayerSession, ActionType } from './player.js';
+import { EvidenceItem, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, PresenceEvidence, MotiveEvidence } from './types.js';
+
+export type SearchResultCode = 'HIT' | 'EMPTY' | 'GATED' | 'NOISE';
 
 export type ActionResult =
-    | { success: true; evidence: EvidenceItem[]; message: string }
-    | { success: false; evidence: [], message: string };
-
-/**
- * Valid action types
- */
-export type ActionType = 'SEARCH' | 'INTERVIEW' | 'LOGS' | 'COMPARE';
+    | { success: true; evidence: EvidenceItem[]; message: string; resultCode?: SearchResultCode }
+    | { success: false; evidence: [], message: string; resultCode?: SearchResultCode };
 
 /**
  * Interview modes - player must choose what to ask about
@@ -48,7 +45,7 @@ function hasMetPrerequisites(
 
 /**
  * Execute a SEARCH action.
- * Cost: 1 AP
+ * Cost: 1 AP (free if on a lead)
  * Reveals: PhysicalEvidence in a specific place and window.
  *
  * Note: Gated evidence (like hidden items) requires prerequisite clues
@@ -58,10 +55,15 @@ function hasMetPrerequisites(
 export function performSearch(
     session: PlayerSession,
     place: string,
-    window: string
+    window: string,
+    free: boolean = false
 ): ActionResult {
-    if (!session.spendAP(1)) {
+    if (!free && !session.spendAP(1, 'search', `${place}:${window}`)) {
         return { success: false, evidence: [], message: 'Not enough Action Points.' };
+    }
+    if (free) {
+        // Record action but don't spend AP
+        session.actionHistory.push({ type: 'search', day: session.currentDay, apCost: 0, target: `${place}:${window}` });
     }
 
     // Get all physical evidence at this location and time
@@ -83,16 +85,20 @@ export function performSearch(
     );
 
     let message: string;
+    let resultCode: SearchResultCode;
     if (found.length > 0) {
         message = `You searched ${place} (${window}) and found ${found.length} item${found.length > 1 ? 's' : ''}.`;
+        resultCode = 'HIT';
     } else if (gatedButLocked.length > 0) {
-        // Hint that there might be something here if they had more clues
-        message = `You searched ${place} (${window}). Something feels off, but you need more clues to know where to look.`;
+        // Actionable hint: tell player what to do next
+        message = `You searched ${place} (${window}). Evidence may be here, but you need a witness or log that points to this location first. Try INTERVIEW or LOGS.`;
+        resultCode = 'GATED';
     } else {
-        message = `You searched ${place} (${window}) but found nothing of note.`;
+        message = `You searched ${place} (${window}). Dead end - nothing relevant here during this window.`;
+        resultCode = 'EMPTY';
     }
 
-    return { success: true, evidence: found, message };
+    return { success: true, evidence: found, message, resultCode };
 }
 
 /**
@@ -110,10 +116,14 @@ export function performInterview(
     session: PlayerSession,
     suspect: string,
     window: string,
-    mode: InterviewMode = 'testimony'
+    mode: InterviewMode = 'testimony',
+    free: boolean = false
 ): ActionResult {
-    if (!session.spendAP(1)) {
+    if (!free && !session.spendAP(1, 'interview', `${suspect}:${mode}`)) {
         return { success: false, evidence: [], message: 'Not enough Action Points.' };
+    }
+    if (free) {
+        session.actionHistory.push({ type: 'interview', day: session.currentDay, apCost: 0, target: `${suspect}:${mode}` });
     }
 
     const npcName = session.world.npcs.find(n => n.id === suspect)?.name ?? suspect;
@@ -143,6 +153,21 @@ export function performInterview(
             !session.knownEvidence.some(known => known.id === e.id)
         );
 
+        // GUARANTEE: If player doesn't have crime_awareness yet, include it from ANY source
+        const hasCrimeAwareness = session.knownEvidence.some(e =>
+            e.kind === 'motive' && (e as MotiveEvidence).motiveHint === 'crime_awareness'
+        );
+        if (!hasCrimeAwareness) {
+            const crimeAwareness = session.allEvidence.find(e =>
+                e.kind === 'motive' &&
+                (e as MotiveEvidence).motiveHint === 'crime_awareness' &&
+                !session.knownEvidence.some(known => known.id === e.id)
+            );
+            if (crimeAwareness && !found.includes(crimeAwareness)) {
+                found.push(crimeAwareness);
+            }
+        }
+
         found.forEach(e => session.revealEvidence(e));
 
         message = found.length > 0
@@ -164,10 +189,14 @@ export function performInterview(
 export function checkLogs(
     session: PlayerSession,
     deviceType: string,
-    window: string
+    window: string,
+    free: boolean = false
 ): ActionResult {
-    if (!session.spendAP(1)) {
+    if (!free && !session.spendAP(1, 'logs', `${deviceType}:${window}`)) {
         return { success: false, evidence: [], message: 'Not enough Action Points.' };
+    }
+    if (free) {
+        session.actionHistory.push({ type: 'logs', day: session.currentDay, apCost: 0, target: `${deviceType}:${window}` });
     }
 
     // Find ALL matching logs for this device type and window
@@ -298,6 +327,58 @@ export function compareEvidence(
                     message: `CONTRADICTION! Conflicting testimony about ${t1.place} during ${t1.window}.`
                 };
             }
+        }
+    }
+
+    // Type 4: Same witness claims different locations in same window
+    if (ev1.kind === 'testimony' && ev2.kind === 'testimony') {
+        const t1 = ev1 as TestimonyEvidence;
+        const t2 = ev2 as TestimonyEvidence;
+
+        // Same witness, same window, DIFFERENT places = false alibi!
+        if (t1.witness === t2.witness &&
+            t1.window === t2.window &&
+            t1.place !== t2.place) {
+            return {
+                success: true,
+                contradiction: true,
+                rule: 'witness_location_conflict',
+                message: `CONTRADICTION! ${t1.witness} can't be in ${t1.place} AND ${t2.place} during ${t1.window}!`
+            };
+        }
+    }
+
+    // Type 5: Device log shows NPC somewhere vs testimony claiming different location
+    if ((ev1.kind === 'device_log' && ev2.kind === 'testimony') ||
+        (ev1.kind === 'testimony' && ev2.kind === 'device_log')) {
+        const deviceLog = (ev1.kind === 'device_log' ? ev1 : ev2) as DeviceLogEvidence;
+        const testimony = (ev1.kind === 'testimony' ? ev1 : ev2) as TestimonyEvidence;
+
+        // Device log with actor vs testimony where witness claims different location
+        if (deviceLog.actor &&
+            deviceLog.actor === testimony.witness &&
+            deviceLog.window === testimony.window &&
+            deviceLog.place !== testimony.place) {
+            return {
+                success: true,
+                contradiction: true,
+                rule: 'device_vs_testimony',
+                message: `CONTRADICTION! ${deviceLog.actor} opened door in ${deviceLog.place} but claims to be in ${testimony.place} during ${deviceLog.window}!`
+            };
+        }
+
+        // Device log with actor vs testimony about subject in different location
+        if (deviceLog.actor &&
+            testimony.subject &&
+            deviceLog.actor === testimony.subject &&
+            deviceLog.window === testimony.window &&
+            deviceLog.place !== testimony.subjectPlace) {
+            return {
+                success: true,
+                contradiction: true,
+                rule: 'device_vs_witness_claim',
+                message: `CONTRADICTION! ${deviceLog.actor} was in ${deviceLog.place} per door log, but ${testimony.witness} claims they saw them in ${testimony.subjectPlace} during ${deviceLog.window}!`
+            };
         }
     }
 

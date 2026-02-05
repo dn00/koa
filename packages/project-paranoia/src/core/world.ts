@@ -77,7 +77,7 @@ export const NPCS: NPC[] = [
         role: 'Roughneck',
         schedule: [
             { window: 'W1', place: 'cargo' },
-            { window: 'W2', place: 'cargo' },
+            { window: 'W2', place: 'mines' }, // Work in mines during shift
             { window: 'W3', place: 'mess' },
             { window: 'W4', place: 'dorms' },
         ],
