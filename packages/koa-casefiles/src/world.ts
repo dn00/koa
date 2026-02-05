@@ -161,19 +161,19 @@ type ScheduleArchetype = 'workaholic' | 'homebody' | 'nightowl' | 'earlybird' | 
 
 const SCHEDULE_PATTERNS: Record<ScheduleArchetype, Partial<Record<WindowId, string[]>>> = {
     workaholic: {
-        W1: ['office'],
-        W2: ['office'],
-        W3: ['office', 'kitchen'],
-        W4: ['living', 'kitchen'],
-        W5: ['bedroom'],
+        W1: ['office', 'bedroom'], // Getting ready, checking emails
+        W2: ['office', 'kitchen'], // Coffee run
+        W3: ['office', 'garage'], // Checking stored files
+        W4: ['living', 'kitchen'], // Late lunch/dinner
+        W5: ['bedroom', 'office'],
         W6: ['bedroom'],
     },
     homebody: {
-        W1: ['living'],
-        W2: ['living', 'kitchen'],
-        W3: ['living'],
-        W4: ['living'],
-        W5: ['living', 'bedroom'],
+        W1: ['living', 'kitchen'], // Breakfast
+        W2: ['living', 'garage'], // Hiding from chores
+        W3: ['living', 'bedroom'], // Nap time
+        W4: ['living', 'kitchen'], // Snacking
+        W5: ['living', 'office'], // Gaming on the good PC
         W6: ['bedroom'],
     },
     nightowl: {
@@ -181,14 +181,14 @@ const SCHEDULE_PATTERNS: Record<ScheduleArchetype, Partial<Record<WindowId, stri
         W2: ['bedroom', 'kitchen'],
         W3: ['kitchen', 'living'],
         W4: ['living', 'office'],
-        W5: ['office', 'garage'],
+        W5: ['office', 'garage'], // Late night project
         W6: ['garage', 'living'],
     },
     earlybird: {
-        W1: ['kitchen', 'living'],
-        W2: ['living', 'office'],
-        W3: ['office'],
-        W4: ['bedroom'],
+        W1: ['kitchen', 'garage'], // Early morning tinkering
+        W2: ['living', 'office', 'garage'],
+        W3: ['office', 'kitchen'],
+        W4: ['bedroom', 'living'],
         W5: ['bedroom'],
         W6: ['bedroom'],
     },

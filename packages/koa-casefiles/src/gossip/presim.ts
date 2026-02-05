@@ -10,10 +10,11 @@ import type { RNG } from '../kernel/rng.js';
 import type {
     GossipState,
     CaseHistory,
+    CaseSummary, // Added
 } from './types.js';
 import { initializeAffinities, tickProximity, tickAffinityDecay } from './relationships.js';
-import { tickGossipPropagation, tickGossipDecay } from './rumors.js';
-import { applyHistoryToAffinities } from './history.js';
+import { tickGossipPropagation, tickGossipDecay, spawnIncidentGossip } from './rumors.js'; // Added spawnIncidentGossip
+import { applyHistoryToAffinities, recordCase, createGrudge } from './history.js'; // Added recordCase, createGrudge
 import { GOSSIP_CONSTANTS } from './types.js';
 import { PLACES } from '../world.js';
 
@@ -133,13 +134,105 @@ function simulateNpcLocations(
     return locations;
 }
 
+
 // ============================================================================
-// Debug Helpers
+// Synthetic History Generation (Cold Start Fix)
 // ============================================================================
 
 /**
- * Print gossip state summary for debugging
+ * Generate synthetic history to pre-populate grudges and alliances.
+ * This solves the "Cold Start" problem where Day 1 motives are generic.
  */
+export function generateSyntheticHistory(
+    world: World,
+    state: GossipState,
+    history: CaseHistory,
+    rng: RNG,
+    count: number = 30
+): void {
+    // Generate N fake cases in the past
+    for (let i = 0; i < count; i++) {
+        // Simple random selection for speed
+        const culprit = rng.pick(world.npcs);
+        const item = rng.pick(world.items);
+        const crimeType = rng.pick(['theft', 'sabotage', 'prank', 'disappearance']);
+
+        // Who gets accused? (Simulate incomplete evidence)
+        const suspects = world.npcs.filter(n => n.id !== culprit.id);
+        const accusedCount = rng.nextInt(2); // 0 or 1 wrong accusation
+        const wasAccused = [culprit.id]; // Player usually catches culprit in history? Or maybe not.
+        // Let's assume player catches culprit 80% of time
+        const playerCorrect = rng.nextInt(100) < 80;
+
+        if (playerCorrect) {
+            // Player accused culprit (and maybe others)
+            const redHerring = rng.pick(suspects);
+            if (accusedCount > 0) wasAccused.push(redHerring.id);
+        } else {
+            // Player missed culprit, accused random innocent
+            const innocent = rng.pick(suspects);
+            wasAccused.push(innocent.id);
+            // Culprit NOT in wasAccused if valid solution exists but player failed?
+            // History tracks "Who the player accused".
+            // If player was wrong, culprit got away.
+            // But let's simplify: History records "truth" + "who was accused".
+        }
+
+        const summary: CaseSummary = {
+            seed: i + 1000, // Synthetic seeds
+            culprit: culprit.id,
+            targetItem: item.id,
+            crimeType,
+            wasAccused,
+            wasCleared: [], // Simplified
+        };
+
+        recordCase(history, summary);
+
+        // CREATE GRUDGES/ALLIANCES
+        // 1. Wrongly accused hates the culprit? Or assumes culprit framed them?
+        // Actually, if player accused Innocent, Innocent might blame Player (not an NPC).
+        // But if Culprit framed Innocent, Innocent blames Culprit.
+        // Let's assume Innocent blames Culprit if Culprit was revealed later.
+
+        // 2. Simplest Grudge: Culprit stole X. Owner of X hates Culprit.
+        // Find "owner" of item (heuristic: room owner)
+        const owner = findItemOwner(item.startPlace, world);
+        if (owner && owner !== culprit.id) {
+            createGrudge(history, owner, culprit.id, `stole my ${item.name}`, i + 1000, state.tick);
+            // Also spawn gossip
+            spawnIncidentGossip(state, owner, "was robbed", state.tick);
+        }
+
+        // 3. Innocent Accused Grudge
+        // If Alice was accused but Bob did it, Alice hates Bob.
+        for (const acc of wasAccused) {
+            if (acc !== culprit.id) {
+                createGrudge(history, acc, culprit.id, "framed me", i + 1000, state.tick);
+            }
+        }
+
+        // Advance tick slightly so grudges have different timestamps
+        state.tick += 100;
+    }
+
+    // After history gen, re-apply history to affinities
+    applyHistoryToAffinities(state, history, state.tick);
+}
+
+function findItemOwner(placeId: PlaceId, world: World): NPCId | null {
+    // Who spends most time in this place?
+    // Simplified map for MVP history gen
+    const manualMap: Record<PlaceId, NPCId> = {
+        bedroom: 'dan', // Grandma's Urn/Pillow. Dan is early bird? Actually Bedroom is shared.
+        office: 'alice',
+        kitchen: 'carol', // Night owl cooking
+        garage: 'eve',
+        living: 'bob',
+    };
+    return manualMap[placeId] ?? null;
+}
+
 export function debugGossipState(state: GossipState, world: World): void {
     console.log('\n=== GOSSIP STATE ===');
     console.log(`Tick: ${state.tick}`);

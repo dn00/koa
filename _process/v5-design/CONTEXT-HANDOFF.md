@@ -16,22 +16,34 @@ The validation stack runs, generates cases with 96% validity, and features a ful
    - Core world model (5 rooms, 5 NPCs, 12 items).
 
 2. **Emergent Comedy & Variety**
-   - **4 Crime Types:** Theft, Sabotage, Prank, Disappearance.
    - **12 Items:** Distributed across all rooms (Kitchen, Living, Bedroom, Office, Garage).
    - **Distracted Witnesses:** Simulation handles NPCs who are present but "distracted" (sleeping, on phone), allowing for more crime opportunities.
    - **Variety Analysis:** 128+ unique combos, days-to-repeat > 64.
 
-3. **Emergent Gossip Ecology** (`src/gossip/`)
+3. **Deep Simulation (Active Red Herrings)** (`sim.ts`, `activities.ts`)
+   - **True Activity Simulation:** NPCs perform actual tasks when idle (e.g., "Snacking", "Reading Fanfic", "Looking for contact lens").
+   - **Evidence Trails:** Activities generate `TRACE_FOUND` (crumbs) and `AUDIO_AT_LOCATION` (chewing sounds) events.
+   - **No Templates:** The system is fully emergent. Witnesses describe what they *heard*, searching reveals *traces*.
+   - **Comedy Injection:** `CrimeMethod` is generated pre-execution, ensuring the crime itself has the same comedic flavor as the red herrings.
+
+4. **Emergent Gossip Ecology** (`src/gossip/`)
    - **True Emergence:** Motives are no longer templates. They are derived from simulated history.
    - **Pre-Simulation:** Runs 200 ticks of background life before each case to evolve relationships.
    - **Dynamic Relationships:** Proximity and rumors shift affinities (0-100).
    - **Gossip Propagation:** Events spawn rumors that spread through the house network.
    - **History & Grudges:** Tracks past cases; wrongly accused NPCs hold grudges that drive future crimes.
 
-### 📊 Validation Stats
-- **Pass Rate:** 96.2% (Target: 90%)
-- **Valid Seeds:** 42, 7 (Success with emergent motives)
-- **Known Issues:** Garage/Bedroom item opportunity rate is low (~1.3%).
+### 📊 Validation Stats (After Polish)
+- **Pass Rate:** 97.7% (Target: 95%)
+- **Valid Seeds:** 977/1000
+- **Cold Start:** Fixed via 30-day synthetic pre-simulation.
+- **Accessibility:** Garage items up to 7.5% usage.
+- **Motive Variety:** Emergent "Revenge" (77%) and "Chaos" (15%) dominate, driven by simulated history.
+
+### ⚠️ Remaining Nuances
+- **Bob's Culprit Rate:** ~6.6% (Low but non-zero).
+- **Bedroom Items:** ~1.8% (Shared room makes theft hard).
+- **Revenge Dominance:** 77% of cases are revenge-driven (due to high grudge generation in history). This is "working as intended" for emergence, but could be tuned.
 
 ---
 

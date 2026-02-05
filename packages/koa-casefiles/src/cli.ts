@@ -10,8 +10,18 @@
 
 import { simulate } from './sim.js';
 import { deriveEvidence } from './evidence.js';
-import { validateCase } from './validators.js';
-import type { CaseValidation } from './types.js';
+import { validateCase, findImplicatingChains, getAllChains } from './validators.js';
+import type { CaseValidation, DifficultyConfig } from './types.js';
+import { ACTIVITIES } from './activities.js';
+
+// Default difficulty config for validation
+const DEFAULT_DIFFICULTY: DifficultyConfig = {
+    tier: 2,
+    suspectCount: 5,
+    windowCount: 6,
+    twistRules: ['false_alibi'],
+    redHerringStrength: 5,
+};
 
 // ============================================================================
 // CLI Argument Parsing
@@ -73,7 +83,7 @@ function generateCase(seed: number, verbose: boolean): CaseValidation | null {
     }
 
     const evidence = deriveEvidence(result.world, result.eventLog, result.config);
-    const validation = validateCase(result.world, result.config, evidence);
+    const validation = validateCase(result.world, result.config, evidence, DEFAULT_DIFFICULTY);
 
     if (verbose) {
         const status = validation.passed ? '✅' : '❌';
@@ -88,8 +98,19 @@ function generateCase(seed: number, verbose: boolean): CaseValidation | null {
         if (!validation.redHerrings.valid) {
             reasons.push(`red-herrings: ${validation.redHerrings.reason}`);
         }
+        if (validation.difficulty && !validation.difficulty.valid) {
+            reasons.push(`difficulty: ${validation.difficulty.reason}`);
+        }
+        if (validation.funness && !validation.funness.valid) {
+            reasons.push(`funness: ${validation.funness.reason}`);
+        }
 
-        console.log(`Seed ${seed}: ${status} culprit=${validation.culprit} evidence=${validation.evidenceCount}`);
+        // Show difficulty metrics
+        const diffMetrics = validation.difficulty
+            ? `AP=${validation.difficulty.estimatedMinAP} contradictions=${validation.difficulty.contradictionCount} branching=${validation.difficulty.branchingFactor}`
+            : '';
+
+        console.log(`Seed ${seed}: ${status} culprit=${validation.culprit} evidence=${validation.evidenceCount} ${diffMetrics}`);
 
         if (reasons.length > 0) {
             for (const reason of reasons) {
@@ -196,7 +217,7 @@ if (args.seed !== undefined) {
     }
 
     const evidence = deriveEvidence(result.world, result.eventLog, result.config);
-    const validation = validateCase(result.world, result.config, evidence);
+    const validation = validateCase(result.world, result.config, evidence, DEFAULT_DIFFICULTY);
 
     const config = result.config;
     const item = result.world.items.find(i => i.id === config.targetItem);
@@ -241,6 +262,33 @@ if (args.seed !== undefined) {
         console.log(`   🔍 Seen: ${act.action}`);
         console.log(`   🤔 Looks like: ${act.looksLike}`);
         console.log(`   😅 Actually: ${act.actualReason}`);
+
+        // Find evidence related to this act
+        const relatedEvidence = evidence.filter(e =>
+            (e.kind === 'physical' && e.item === 'trace' && e.place === act.place && e.window === act.window) ||
+            (e.kind === 'testimony' && e.window === act.window && e.observable.startsWith('heard '))
+        );
+
+        // Lookup definition
+        const actDef = Object.values(ACTIVITIES).find(d => d.visualDescription === act.action);
+
+        if (relatedEvidence.length > 0 && actDef) {
+            console.log('   📂 Evidence Traces:');
+            for (const e of relatedEvidence) {
+                if (e.kind === 'physical') {
+                    // Only show if it matches definition
+                    if (actDef.physicalTraces.some(t => (e as any).detail.includes(t))) {
+                        console.log(`      - 🕵️ ${(e as any).detail}`);
+                    }
+                } else if (e.kind === 'testimony') {
+                    // Check if the sound matches the activity
+                    const obs = (e as any).observable;
+                    if (actDef.audioClues.some(sound => obs.includes(sound))) {
+                        console.log(`      - 👂 Witness ${(e as any).witness}: "${obs}"`);
+                    }
+                }
+            }
+        }
     }
 
     if (config.twist) {
@@ -269,6 +317,55 @@ if (args.seed !== undefined) {
     console.log(`Solvability: ${validation.solvability.valid ? '✓' : '✗'} ${validation.solvability.reason || ''}`);
     console.log(`Anti-anticlimax: ${validation.antiAnticlimax.valid ? '✓' : '✗'} ${validation.antiAnticlimax.reason || ''}`);
     console.log(`Red herrings: ${validation.redHerrings.valid ? '✓' : '✗'} ${validation.redHerrings.reason || ''}`);
+
+    // Show difficulty metrics
+    if (validation.difficulty) {
+        console.log('\n' + '='.repeat(60));
+        console.log('📊 DIFFICULTY METRICS');
+        console.log('='.repeat(60));
+        console.log(`\nEstimated minimum AP: ${validation.difficulty.estimatedMinAP}`);
+        console.log(`Contradiction count: ${validation.difficulty.contradictionCount}`);
+        console.log(`Branching factor: ${validation.difficulty.branchingFactor}`);
+        console.log(`Chains by target:`);
+        for (const [target, count] of Object.entries(validation.difficulty.chainsByTarget)) {
+            console.log(`  ${target.toUpperCase()}: ${count} chain(s)`);
+        }
+        console.log(`Difficulty valid: ${validation.difficulty.valid ? '✓' : '✗'} ${validation.difficulty.reason || ''}`);
+    }
+
+    if (validation.funness) {
+        console.log(`Funness valid: ${validation.funness.valid ? '✓' : '✗'} ${validation.funness.reason || ''}`);
+    }
+
+    if (validation.contradictions && validation.contradictions.length > 0) {
+        console.log('\n📍 Contradictions found:');
+        for (const c of validation.contradictions) {
+            console.log(`  - ${c.rule}: ${c.evidenceA} vs ${c.evidenceB}`);
+        }
+    }
+
+    if (validation.passed) {
+        console.log('\n' + '='.repeat(60));
+        console.log('🕵️ SOLUTION PATH (How the Player Solves It)');
+        console.log('='.repeat(60));
+
+        const chains = findImplicatingChains(config.culpritId, config, evidence);
+        for (const chain of chains) {
+            console.log(`\n🔗 ${chain.type.toUpperCase()} CHAIN (${Math.round(chain.confidence * 100)}% Confidence)`);
+            for (const e of chain.evidence) {
+                if (e.kind === 'presence') {
+                    console.log(`   - Verified at ${e.place} during ${e.window}`);
+                } else if (e.kind === 'device_log') {
+                    console.log(`   - Device: ${e.detail} at ${e.place} during ${e.window}`);
+                } else if (e.kind === 'testimony') {
+                    console.log(`   - Witness ${e.witness}: "${e.observable}" (Pointed to ${e.subjectHint})`);
+                } else if (e.kind === 'physical') {
+                    console.log(`   - Found ${e.item} at ${e.place}: "${e.detail}"`);
+                }
+            }
+        }
+    }
+
     console.log('');
 
 } else {

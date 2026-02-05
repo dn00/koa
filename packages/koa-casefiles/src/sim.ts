@@ -23,8 +23,47 @@ import type {
     Relationship,
     CrimeType,
     CrimeMethod,
+    DifficultyConfig,
+    TwistType,
+    MethodId,
 } from './types.js';
+import { METHODS_BY_CRIME } from './types.js';
 import { WINDOWS, getWindowForTick } from './types.js';
+
+// ============================================================================
+// Difficulty Presets (Spec Section 14)
+// ============================================================================
+
+export const DIFFICULTY_PRESETS: Record<number, DifficultyConfig> = {
+    1: {
+        tier: 1,
+        suspectCount: 5,   // Easier with fewer suspects
+        windowCount: 6,
+        twistRules: [],    // No twists for beginners
+        redHerringStrength: 3,
+    },
+    2: {
+        tier: 2,
+        suspectCount: 5,
+        windowCount: 6,
+        twistRules: ['false_alibi', 'unreliable_witness'] as TwistType[],
+        redHerringStrength: 5,
+    },
+    3: {
+        tier: 3,
+        suspectCount: 5,
+        windowCount: 6,
+        twistRules: ['false_alibi', 'unreliable_witness', 'planted_evidence'] as TwistType[],
+        redHerringStrength: 7,
+    },
+    4: {
+        tier: 4,
+        suspectCount: 5,
+        windowCount: 6,
+        twistRules: ['false_alibi', 'unreliable_witness', 'tampered_device', 'planted_evidence', 'accomplice'] as TwistType[],
+        redHerringStrength: 9,
+    },
+};
 import { createWorld, findPath, getDoorBetween, PLACES } from './world.js';
 import { createRng, type RNG } from './kernel/rng.js';
 import { computeEventId } from './kernel/canonical.js';
@@ -35,9 +74,12 @@ import {
     createEmptyHistory,
     deriveEmergentMotive,
     spawnDeedGossip,
+    generateSyntheticHistory, // Added
+    initGossipState, // Added
     type GossipState,
     type CaseHistory,
 } from './gossip/index.js';
+import { ACTIVITIES, type ActivityType } from './activities.js';
 
 // ============================================================================
 // Event Generation Helpers
@@ -76,9 +118,10 @@ function createEvent(
 interface NPCState {
     id: NPCId;
     currentPlace: PlaceId;
+    distracted?: string; // Activity if distracted
 }
 
-function initNPCStates(world: World): Map<NPCId, NPCState> {
+export function initNPCStates(world: World): Map<NPCId, NPCState> {
     const states = new Map<NPCId, NPCState>();
     for (const npc of world.npcs) {
         // Start at their W1 scheduled location
@@ -99,7 +142,7 @@ function initNPCStates(world: World): Map<NPCId, NPCState> {
  * Simulate NPC movements according to their schedules.
  * Generates MOVE, DOOR, and MOTION events.
  */
-function simulateRoutines(
+export function simulateRoutines(
     world: World,
     npcStates: Map<NPCId, NPCState>,
     window: WindowId,
@@ -112,14 +155,21 @@ function simulateRoutines(
         const state = npcStates.get(npc.id)!;
         const scheduled = npc.schedule.find(s => s.window === window);
 
-        if (!scheduled || scheduled.place === state.currentPlace) {
-            continue; // Already there or no movement needed
+        if (!scheduled) {
+            continue;
         }
 
         // Find path from current place to scheduled place
         const path = findPath(state.currentPlace, scheduled.place, world.places);
 
-        if (path.length < 2) continue; // Already there
+        if (path.length < 2) {
+            // Already there / Idle
+            // Chance to perform an activity (Simulated Red Herring)
+            const idleTick = startTick + rng.nextInt(5);
+            const activityEvents = simulateActivity(npc, state.currentPlace, idleTick, rng);
+            events.push(...activityEvents);
+            continue;
+        }
 
         // Generate events for each step
         let tick = startTick + rng.nextInt(5); // Slight randomization
@@ -177,6 +227,51 @@ function simulateRoutines(
 
         // Update NPC state
         state.currentPlace = scheduled.place;
+    }
+
+    return events;
+}
+
+/**
+ * Simulate random activities when idle (Red Herrings 2.0)
+ */
+function simulateActivity(npc: NPC, place: PlaceId, tick: number, rng: RNG): SimEvent[] {
+    const events: SimEvent[] = [];
+
+    // 50% chance to do something weird if idle
+    if (rng.nextInt(100) > 50) return events;
+
+    // Find valid activities for this place
+    const candidates = Object.values(ACTIVITIES).filter(def => {
+        if (!def.requiredPlaces) return true; // Anywhere
+        return def.requiredPlaces.includes(place);
+    });
+
+    if (candidates.length === 0) return events;
+
+    const activity = rng.pick(candidates);
+
+    // 1. Start Activity
+    events.push(createEvent(tick, 'ACTIVITY_STARTED', {
+        actor: npc.id,
+        place,
+        data: {
+            activity: activity.id,
+            description: activity.visualDescription,
+            sound: rng.pick(activity.audioClues)
+        }
+    }));
+
+    // 2. Leave Traces (Physical Evidence)
+    if (activity.physicalTraces.length > 0) {
+        events.push(createEvent(tick, 'TRACE_FOUND', {
+            actor: npc.id, // Implicitly created by them
+            place,
+            data: {
+                trace: rng.pick(activity.physicalTraces),
+                fromActivity: activity.id
+            }
+        }));
     }
 
     return events;
@@ -333,6 +428,7 @@ function executeCrime(
     npcStates: Map<NPCId, NPCState>,
     opportunity: Opportunity,
     crimeTickStart: number,
+    crimeMethod: CrimeMethod, // Comedy injection
     rng: RNG
 ): { events: SimEvent[]; config: Partial<CaseConfig> } {
     const events: SimEvent[] = [];
@@ -343,6 +439,7 @@ function executeCrime(
         actor: opportunity.npc.id,
         place: opportunity.place,
         target: opportunity.item.id,
+        data: { method: crimeMethod.funnyMethod }
     }));
 
     tick += 2;
@@ -441,15 +538,19 @@ function executeCrime(
 // ============================================================================
 
 const CRIME_METHOD_TEMPLATES: Record<CrimeType, {
-    descriptions: string[];
+    methods: Record<MethodId, string[]>; // methodId -> funny descriptions
     funnyMethods: string[];
 }> = {
     theft: {
-        descriptions: [
-            'stole {item}',
-            'made off with {item}',
-            'yoinked {item}',
-        ],
+        methods: {
+            grabbed: ['grabbed {item} when no one was looking', 'snatched {item} mid-conversation'],
+            pocketed: ['slipped {item} into their pocket', 'concealed {item} in their hoodie'],
+            smuggled: ['smuggled {item} out in a tote bag', 'hid {item} under a blanket'],
+            // Not applicable to theft
+            broke: [], unplugged: [], reprogrammed: [],
+            relocated: [], swapped: [], disguised: [],
+            hid: [], buried: [], donated: [],
+        },
         funnyMethods: [
             'while pretending to look for their phone',
             'during the great kitchen distraction of 2024',
@@ -458,11 +559,15 @@ const CRIME_METHOD_TEMPLATES: Record<CrimeType, {
         ],
     },
     sabotage: {
-        descriptions: [
-            'sabotaged {item}',
-            'ruined {item}',
-            'tampered with {item}',
-        ],
+        methods: {
+            broke: ['broke {item} \"accidentally\"', 'shattered {item} with suspicious precision'],
+            unplugged: ['unplugged {item} and hid the cord', 'disconnected {item} for \"maintenance\"'],
+            reprogrammed: ['reprogrammed {item} to fail spectacularly', 'changed {item} settings to chaos mode'],
+            // Not applicable
+            grabbed: [], pocketed: [], smuggled: [],
+            relocated: [], swapped: [], disguised: [],
+            hid: [], buried: [], donated: [],
+        },
         funnyMethods: [
             'in a fit of passive-aggressive brilliance',
             'because \"accidents happen\"',
@@ -471,11 +576,15 @@ const CRIME_METHOD_TEMPLATES: Record<CrimeType, {
         ],
     },
     prank: {
-        descriptions: [
-            'pranked the household with {item}',
-            'relocated {item} for maximum confusion',
-            'swapped {item} with something worse',
-        ],
+        methods: {
+            relocated: ['relocated {item} to the garage rafters', 'moved {item} somewhere ridiculous'],
+            swapped: ['swapped {item} with a decoy', 'replaced {item} with a note saying \"gone fishin\"'],
+            disguised: ['disguised {item} as something else', 'covered {item} with a wig and sunglasses'],
+            // Not applicable
+            grabbed: [], pocketed: [], smuggled: [],
+            broke: [], unplugged: [], reprogrammed: [],
+            hid: [], buried: [], donated: [],
+        },
         funnyMethods: [
             'for absolutely no reason other than chaos',
             'and immediately regretted nothing',
@@ -484,11 +593,15 @@ const CRIME_METHOD_TEMPLATES: Record<CrimeType, {
         ],
     },
     disappearance: {
-        descriptions: [
-            'made {item} \"disappear\"',
-            'hid {item} in plain sight',
-            'ensured {item} would never be found (until tomorrow)',
-        ],
+        methods: {
+            hid: ['hid {item} in a \"secret\" spot', 'stashed {item} where only they would look'],
+            buried: ['buried {item} under laundry', 'concealed {item} beneath junk mail'],
+            donated: ['\"donated\" {item} to the neighbor', '\"accidentally\" left {item} at the coffee shop'],
+            // Not applicable
+            grabbed: [], pocketed: [], smuggled: [],
+            broke: [], unplugged: [], reprogrammed: [],
+            relocated: [], swapped: [], disguised: [],
+        },
         funnyMethods: [
             'and will gaslight everyone about its existence',
             'using a hiding spot that is definitely too obvious',
@@ -506,7 +619,16 @@ function generateCrimeMethod(
 ): CrimeMethod {
     const templates = CRIME_METHOD_TEMPLATES[crimeType];
 
-    let description = rng.pick(templates.descriptions);
+    // Pick a valid methodId for this crime type
+    const validMethods = METHODS_BY_CRIME[crimeType];
+    const methodId = rng.pick(validMethods);
+
+    // Get descriptions for this method
+    const methodDescriptions = templates.methods[methodId];
+    let description = methodDescriptions.length > 0
+        ? rng.pick(methodDescriptions)
+        : `${methodId} the ${item.name}`;
+
     const funnyMethod = rng.pick(templates.funnyMethods);
 
     // Fill in template vars
@@ -514,6 +636,7 @@ function generateCrimeMethod(
 
     return {
         type: crimeType,
+        methodId,
         description,
         funnyMethod,
     };
@@ -537,6 +660,11 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'It got more Instagram likes than their selfie',
             'Everyone keeps complimenting it instead of them',
             'It\'s been haunting their dreams',
+            'The neighbors noticed it and not their new haircut',
+            'It was featured in the family newsletter. They weren\'t.',
+            'The cat likes it more than them',
+            'It\'s the main topic at every dinner party',
+            'Even their therapist mentioned it',
         ],
     },
     embarrassment: {
@@ -549,6 +677,11 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'They accidentally talked to it like a person. For an hour.',
             'They were caught cuddling it at 3am',
             'Their browser history would explain everything',
+            'Someone recorded them doing a TikTok dance near it',
+            'There are photos. Multiple photos.',
+            'They cried over it during movie night',
+            'They named it. Out loud. In front of everyone.',
+            'The Ring doorbell captured everything',
         ],
     },
     cover_up: {
@@ -561,6 +694,11 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'The superglue is starting to show',
             'The painted-on details are smudging',
             'The duct tape \'solution\' is unraveling',
+            'The Amazon return window closed yesterday',
+            'They\'ve been gaslighting everyone for three weeks',
+            'The replacement is from Wish and it shows',
+            'One more close inspection and everything falls apart',
+            'The paper mache is not holding up in humidity',
         ],
     },
     rivalry: {
@@ -573,6 +711,11 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'The great thermostat war of 2023 never ended',
             'The last slice of pizza incident demands justice',
             'Someone has to settle the "who makes better coffee" debate',
+            'Board game night still hasn\'t been resolved',
+            'The parking spot dispute entered its third year',
+            'Their fantasy football rivalry knows no bounds',
+            'The "who ate my yogurt" cold war continues',
+            'The lawn care competition has gone too far',
         ],
     },
     attention: {
@@ -585,6 +728,11 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'No one remembered their birthday. Again.',
             'The family group chat ignores their messages',
             'Even the smart home AI forgets their name',
+            'Their Spotify Wrapped was mocked relentlessly',
+            'No one watches their Instagram stories',
+            'The family photo album has three pictures of them total',
+            'The dog greets everyone else first',
+            'Autocorrect doesn\'t even know their name',
         ],
     },
     revenge: {
@@ -597,6 +745,11 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'The "borrowed" charger was never returned. It\'s been 847 days.',
             'They ate the labeled food. THE LABELED FOOD.',
             'Someone left 0:01 on the microwave timer. Every. Single. Time.',
+            'The spoiler was dropped casually. The wounds remain fresh.',
+            'The guest bathroom was left in an unforgivable state',
+            'They used the last of the milk and put the empty carton back',
+            'The passive-aggressive Post-it notes have escalated',
+            'Someone "reorganized" the shared Netflix profile',
         ],
     },
     chaos: {
@@ -609,7 +762,17 @@ const MOTIVE_TEMPLATES: Record<MotiveType, {
             'Mercury is in retrograde and so is their impulse control',
             'The last family meeting was too peaceful',
             'Chaos is a ladder, and they\'re climbing',
+            'They were simply too bored to behave',
+            'The drama well had run dry. Someone had to refill it.',
+            'Their horoscope said "shake things up"',
+            'They needed content for their group chat',
+            'The household peace was getting suspicious',
         ],
+    },
+    crime_awareness: {
+        // Special type - not used for actual crime motives, only for gossip
+        descriptions: [],
+        funnyReasons: [],
     },
 };
 
@@ -663,83 +826,7 @@ function generateMotive(
     };
 }
 
-// ============================================================================
-// Suspicious Acts - Red herrings doing sketchy things
-// ============================================================================
 
-const SUSPICIOUS_ACT_TEMPLATES: Array<{
-    action: string;
-    looksLike: string;
-    actualReason: string;
-}> = [
-        { action: 'sneaking to kitchen at night', looksLike: 'hiding evidence', actualReason: 'shame-eating leftover cake' },
-        { action: 'whispering on phone in garage', looksLike: 'coordinating with accomplice', actualReason: 'ordering surprise gift' },
-        { action: 'quickly closing laptop when approached', looksLike: 'hiding incriminating search history', actualReason: 'was reading fanfiction' },
-        { action: 'checking all the doors repeatedly', looksLike: 'ensuring no witnesses', actualReason: 'OCD about home security' },
-        { action: 'moving something heavy in garage', looksLike: 'disposing of evidence', actualReason: 'finally putting away holiday decorations' },
-        { action: 'avoiding eye contact all evening', looksLike: 'guilty conscience', actualReason: 'hasn\'t told anyone they ate the last yogurt' },
-        { action: 'seen near the crime scene after the fact', looksLike: 'returning to check their work', actualReason: 'looking for their reading glasses' },
-        { action: 'washing hands repeatedly', looksLike: 'removing evidence', actualReason: 'germaphobe having a moment' },
-        { action: 'suddenly very interested in trash day', looksLike: 'disposing of evidence', actualReason: 'finally throwing away ex\'s stuff' },
-        { action: 'asking weird questions about alibis', looksLike: 'fishing for information', actualReason: 'writing a mystery novel' },
-    ];
-
-function generateSuspiciousActs(
-    world: World,
-    culpritId: NPCId,
-    crimeWindow: WindowId,
-    rng: RNG
-): { acts: SuspiciousAct[]; events: SimEvent[] } {
-    const acts: SuspiciousAct[] = [];
-    const events: SimEvent[] = [];
-
-    const innocents = world.npcs.filter(n => n.id !== culpritId);
-    const numActs = 2 + rng.nextInt(3); // 2-4 suspicious acts
-
-    const shuffledTemplates = rng.shuffle([...SUSPICIOUS_ACT_TEMPLATES]);
-    const shuffledInnocents = rng.shuffle([...innocents]);
-
-    for (let i = 0; i < Math.min(numActs, shuffledInnocents.length); i++) {
-        const npc = shuffledInnocents[i];
-        const template = shuffledTemplates[i % shuffledTemplates.length];
-
-        // Pick a window (prefer around crime window for maximum suspicion)
-        const suspiciousWindows: WindowId[] = ['W2', 'W3', 'W4'];
-        const window = rng.pick(suspiciousWindows);
-
-        // Get NPC's location during that window
-        const scheduled = npc.schedule.find(s => s.window === window);
-        const place = scheduled?.place ?? 'living';
-
-        const act: SuspiciousAct = {
-            npc: npc.id,
-            window,
-            place,
-            action: template.action,
-            looksLike: template.looksLike,
-            actualReason: template.actualReason,
-            generatesEvents: rng.nextInt(100) < 50, // 50% generate events
-        };
-
-        acts.push(act);
-
-        // Generate SUSPICIOUS_ACT event if applicable
-        if (act.generatesEvents) {
-            const windowDef = WINDOWS.find(w => w.id === window)!;
-            events.push(createEvent(
-                windowDef.startTick + 5 + rng.nextInt(10),
-                'SUSPICIOUS_ACT',
-                {
-                    actor: npc.id,
-                    place,
-                    data: { action: act.action, looksLike: act.looksLike },
-                }
-            ));
-        }
-    }
-
-    return { acts, events };
-}
 
 // ============================================================================
 // Twist Rules - Optional complexity
@@ -748,32 +835,66 @@ function generateSuspiciousActs(
 function maybeGenerateTwist(
     world: World,
     culpritId: NPCId,
-    rng: RNG
+    rng: RNG,
+    allowedTwists?: TwistType[]
 ): TwistRule | undefined {
-    // 30% chance of a twist
-    if (rng.nextInt(100) >= 30) return undefined;
+    // 80% chance of a twist (or 0% if no twists allowed)
+    if (!allowedTwists || allowedTwists.length === 0) return undefined;
+    if (rng.nextInt(100) >= 80) return undefined;
 
-    const twistTypes = ['false_alibi', 'unreliable_witness'] as const;
-    const type = rng.pick([...twistTypes]);
+    const type = rng.pick(allowedTwists);
 
+    const culprit = world.npcs.find(n => n.id === culpritId)!;
     const innocents = world.npcs.filter(n => n.id !== culpritId);
-    const actor = rng.pick(innocents);
 
     switch (type) {
         case 'false_alibi':
+            // Culprit lies about their whereabouts - catching this implicates them
             return {
                 type: 'false_alibi',
-                actor: actor.id,
-                description: `${actor.name} claims they were in the bedroom all evening (they weren't)`,
+                actor: culpritId,
+                description: `${culprit.name} claims they were in the bedroom all evening (they weren't)`,
                 affectsEvidence: [],
             };
-        case 'unreliable_witness':
+        case 'unreliable_witness': {
+            // Random innocent has confused timing - creates noise
+            const witness = rng.pick(innocents);
             return {
                 type: 'unreliable_witness',
-                actor: actor.id,
-                description: `${actor.name}'s testimony is off by one time window (they fell asleep and lost track of time)`,
+                actor: witness.id,
+                description: `${witness.name}'s testimony is off by one time window (they fell asleep and lost track of time)`,
                 affectsEvidence: [],
             };
+        }
+        case 'tampered_device': {
+            // Someone "fixed" the smart home logs (badly) - device shows wrong actor
+            return {
+                type: 'tampered_device',
+                actor: culpritId,
+                description: `${culprit.name} tried to edit the smart home logs (they're not as tech-savvy as they think)`,
+                affectsEvidence: [],
+            };
+        }
+        case 'planted_evidence': {
+            // Evidence planted to frame an innocent
+            const patsy = rng.pick(innocents);
+            return {
+                type: 'planted_evidence',
+                actor: patsy.id,
+                description: `Suspicious items were "found" near ${patsy.name}'s stuff (someone's setting them up)`,
+                affectsEvidence: [],
+            };
+        }
+        case 'accomplice': {
+            // Someone helped the culprit - provides false alibi for them
+            const helper = rng.pick(innocents);
+            return {
+                type: 'accomplice',
+                actor: helper.id,
+                description: `${helper.name} is covering for ${culprit.name} (they owe them a favor)`,
+                affectsEvidence: [],
+            };
+        }
     }
 }
 
@@ -781,9 +902,18 @@ function maybeGenerateTwist(
 // Main Simulation
 // ============================================================================
 
-export function simulate(seed: number): SimulationResult | null {
+/**
+ * Run the case simulation.
+ *
+ * @param seed - RNG seed for deterministic generation
+ * @param difficultyTier - 1-4, controls twist complexity and red herring strength
+ * @returns SimulationResult or null if no valid crime setup found
+ */
+export function simulate(seed: number, difficultyTier: number = 2): SimulationResult | null {
     // Reset ordinal for deterministic event IDs
     eventOrdinal = 0;
+
+    const difficultyConfig = DIFFICULTY_PRESETS[difficultyTier] ?? DIFFICULTY_PRESETS[2];
 
     const rng = createRng(seed);
     const world = createWorld(rng);
@@ -791,22 +921,73 @@ export function simulate(seed: number): SimulationResult | null {
 
     const allEvents: SimEvent[] = [];
 
-    // Pre-crime: W1-W2
-    for (const window of ['W1', 'W2'] as WindowId[]) {
+    // Pick random crime window (W2-W5 for variety - W1 too early, W6 no aftermath)
+    const crimeWindowOptions: WindowId[] = ['W2', 'W3', 'W4', 'W5'];
+    const crimeWindowId = rng.pick(crimeWindowOptions);
+    const crimeWindowDef = WINDOWS.find(w => w.id === crimeWindowId)!;
+
+    // Pre-crime: all windows before crime window
+    const allWindowIds: WindowId[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
+    const crimeWindowIndex = allWindowIds.indexOf(crimeWindowId);
+    const preCrimeWindows = allWindowIds.slice(0, crimeWindowIndex);
+
+    for (const window of preCrimeWindows) {
         const windowDef = WINDOWS.find(w => w.id === window)!;
         const events = simulateRoutines(world, npcStates, window, windowDef.startTick, rng);
         allEvents.push(...events);
     }
 
-    // Crime window: W3
-    const crimeWindowDef = WINDOWS.find(w => w.id === 'W3')!;
-
     // First, simulate normal routines to get everyone in position
-    const w3Routines = simulateRoutines(world, npcStates, 'W3', crimeWindowDef.startTick, rng);
-    allEvents.push(...w3Routines);
+    // Simulate routines during crime window
+    const crimeWindowRoutines = simulateRoutines(world, npcStates, crimeWindowId, crimeWindowDef.startTick, rng);
+    allEvents.push(...crimeWindowRoutines);
 
     // Find opportunities for crime
-    const opportunities = findOpportunities(world, npcStates, 'W3', rng);
+    // Find opportunities
+    let opportunities = findOpportunities(world, npcStates, crimeWindowDef.id, rng);
+
+    // RESCUE STRATEGY: If no natural opportunities, force a distraction
+    if (opportunities.length === 0) {
+        // Find any NPC co-located with an item they don't own
+        // We need to access the locations/items derived inside findOpportunities, but we can't.
+        // So we iterate independently.
+        const rescueCandidates: { culprit: NPC, item: Item, witnesses: NPCId[] }[] = [];
+
+        for (const culpritId of npcStates.keys()) {
+            const state = npcStates.get(culpritId)!;
+            const place = state.currentPlace;
+
+            // Find items here
+            const itemsHere = world.items.filter(i => i.startPlace === place);
+
+            for (const item of itemsHere) {
+                // Get witnesses
+                const witnesses = Array.from(npcStates.keys()).filter(id =>
+                    id !== culpritId && npcStates.get(id)!.currentPlace === place
+                );
+
+                // Keep candidate
+                const culprit = world.npcs.find(n => n.id === culpritId)!;
+                rescueCandidates.push({ culprit, item, witnesses });
+            }
+        }
+
+        if (rescueCandidates.length > 0) {
+            // Pick a random candidate to force
+            const rescue = rng.pick(rescueCandidates);
+
+            // FORCE DISTRACTION on all witnesses
+            for (const witnessId of rescue.witnesses) {
+                const witnessState = npcStates.get(witnessId)!;
+                if (!witnessState.distracted) {
+                    witnessState.distracted = 'sleeping'; // Force them to sleep
+                }
+            }
+
+            // Re-run detection
+            opportunities = findOpportunities(world, npcStates, crimeWindowDef.id, rng);
+        }
+    }
 
     if (opportunities.length === 0) {
         // No valid crime setup - this seed fails
@@ -816,9 +997,15 @@ export function simulate(seed: number): SimulationResult | null {
     // Pick one opportunity
     const chosen = rng.pick(opportunities);
 
-    // Run pre-simulation to evolve gossip state
-    const history = createEmptyHistory(); // TODO: Pass in accumulated history
-    const gossipState = runPreSimulation(world, history, rng);
+    // Run pre-simulation (Synthetic History for Cold Start)
+    const history = createEmptyHistory();
+    const gossipState = initGossipState(world, history);
+
+    // Generate 30 days of fake history to seed grudges/alliances
+    generateSyntheticHistory(world, gossipState, history, rng, 30);
+
+    // Run short pre-sim for today's gossip propagation
+    runPreSimulation(world, history, rng, 50);
 
     // Generate motive from emergent state (not templates)
     const motive = deriveEmergentMotive(
@@ -830,30 +1017,30 @@ export function simulate(seed: number): SimulationResult | null {
         rng
     );
 
+    // Generate crime type and method EARLY (so we can log it)
+    const crimeTypes: CrimeType[] = ['theft', 'sabotage', 'prank', 'disappearance'];
+    const crimeType = rng.pick(crimeTypes);
+    const crimeMethod = generateCrimeMethod(crimeType, chosen.item, chosen.npc, rng);
+
     // Execute crime
     const { events: crimeEvents, config: crimeConfig } = executeCrime(
         world,
         npcStates,
         chosen,
         crimeWindowDef.startTick + 10,
+        crimeMethod, // Pass generic flavor
         rng
     );
     allEvents.push(...crimeEvents);
 
-    // Generate suspicious acts for red herrings
-    const { acts: suspiciousActs, events: suspiciousEvents } = generateSuspiciousActs(
-        world,
-        chosen.npc.id,
-        'W3',
-        rng
-    );
-    allEvents.push(...suspiciousEvents);
+    // (Red Herrings are now fully emergent inside simulateRoutines)
 
-    // Maybe add a twist
-    const twist = maybeGenerateTwist(world, chosen.npc.id, rng);
+    // Maybe add a twist (based on difficulty tier)
+    const twist = maybeGenerateTwist(world, chosen.npc.id, rng, difficultyConfig.twistRules);
 
-    // Aftermath: W4-W6
-    for (const window of ['W4', 'W5', 'W6'] as WindowId[]) {
+    // Aftermath: all windows after crime window
+    const aftermathWindows = allWindowIds.slice(crimeWindowIndex + 1);
+    for (const window of aftermathWindows) {
         const windowDef = WINDOWS.find(w => w.id === window)!;
         const events = simulateRoutines(world, npcStates, window, windowDef.startTick, rng);
         allEvents.push(...events);
@@ -862,10 +1049,30 @@ export function simulate(seed: number): SimulationResult | null {
     // Sort events by tick
     allEvents.sort((a, b) => a.tick - b.tick);
 
-    // Generate crime type and method
-    const crimeTypes: CrimeType[] = ['theft', 'sabotage', 'prank', 'disappearance'];
-    const crimeType = rng.pick(crimeTypes);
-    const crimeMethod = generateCrimeMethod(crimeType, chosen.item, chosen.npc, rng);
+
+
+    // Harvest Suspicious Acts from the simulation (Emergent Red Herrings)
+    const suspiciousActs: SuspiciousAct[] = [];
+    const activityEvents = allEvents.filter(e => e.type === 'ACTIVITY_STARTED');
+    for (const event of activityEvents) {
+        if (!event.data || !event.actor || !event.place) continue;
+
+        // Lookup definition
+        const actId = (event.data as any).activity as ActivityType;
+        const actDef = ACTIVITIES[actId];
+
+        if (actDef) {
+            suspiciousActs.push({
+                npc: event.actor,
+                window: event.window,
+                place: event.place,
+                action: actDef.visualDescription,
+                looksLike: actDef.looksLike,
+                actualReason: actDef.alibi,
+                generatesEvents: true
+            });
+        }
+    }
 
     const config: CaseConfig = {
         seed,

@@ -3,6 +3,14 @@
     "version": "0.1.0",
     "type": "module",
     "description": "Simulation-based mystery case generation for KOA Casefiles",
+    "exports": {
+        "./types": "./src/types.ts",
+        "./world": "./src/world.ts",
+        "./activities": "./src/activities.ts",
+        "./gossip": "./src/gossip/index.ts",
+        "./kernel/rng": "./src/kernel/rng.ts",
+        "./kernel/canonical": "./src/kernel/canonical.ts"
+    },
     "scripts": {
         "generate": "tsx src/cli.ts",
         "test": "tsx src/cli.ts --generate 100"

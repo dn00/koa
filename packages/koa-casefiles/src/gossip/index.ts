@@ -78,5 +78,6 @@ export {
 export {
     initGossipState,
     runPreSimulation,
+    generateSyntheticHistory,
     debugGossipState,
 } from './presim.js';
