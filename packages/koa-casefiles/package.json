@@ -1,0 +1,18 @@
+{
+    "name": "@aura/koa-casefiles",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Simulation-based mystery case generation for KOA Casefiles",
+    "scripts": {
+        "generate": "tsx src/cli.ts",
+        "test": "tsx src/cli.ts --generate 100"
+    },
+    "dependencies": {
+        "fast-json-stable-stringify": "^2.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "tsx": "^4.7.0",
+        "typescript": "^5.3.0"
+    }
+}
