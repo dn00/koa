@@ -2,22 +2,27 @@
 
 :root {
     /* Antares-9 OS Palette */
-    --color-bg: #050505;
-    /* Void Black */
-    --color-phosphor: #33ff33;
-    /* Phosphor Green */
-    --color-phosphor-dim: #1a801a;
+    /* Lifted from pure black to deep CRT charcoal/green */
+    --color-bg: #0a0f0a;
 
-    --color-alert: #ff3333;
+    /* Slightly less neon, more "worn phosphor" */
+    --color-phosphor: #4dbf4d;
+
+    /* Dimmer variance for hierarchy - Brightened from #265926 for better contrast */
+    --color-phosphor-dim: #3a803a;
+
+    --color-alert: #ff4d4d;
+    /* Softer red */
     /* Critical Failure */
-    --color-alert-glow: rgba(255, 51, 51, 0.6);
+    --color-alert-glow: rgba(255, 77, 77, 0.4);
 
-    --color-warning: #ffcc00;
+    --color-warning: #ffcc33;
     /* Mechanical Warning */
-    --color-warning-dim: #997a00;
+    --color-warning-dim: #997a1f;
 
-    --color-grid: rgba(51, 255, 51, 0.1);
-    --color-scanline: rgba(0, 0, 0, 0.5);
+    --color-grid: rgba(77, 191, 77, 0.08);
+    /* Fainter grid */
+    --color-scanline: rgba(10, 20, 10, 0.4);
 
     /* Typography */
     --font-main: 'Share Tech Mono', monospace;

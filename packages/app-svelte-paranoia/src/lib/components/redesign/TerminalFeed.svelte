@@ -29,12 +29,18 @@
     }
   });
 
-  function getColor(type: string) {
-    switch (type) {
-      case 'error': return 'var(--color-alert)';
-      case 'warning': return 'var(--color-warning)';
-      case 'success': return 'var(--color-phosphor)';
-      default: return 'var(--color-phosphor-dim)';
+  function getMessageStyle(log: any) {
+    // Source-specific overrides for the MESSAGE text
+    if (log.source === 'MOTHER') return 'color: #ffffff; text-shadow: 0 0 2px rgba(255,255,255,0.5);';
+    if (log.source === 'BIO') return 'color: #00ffff;'; /* Cyan */
+    if (log.source === 'ALERT') return 'color: var(--color-alert);';
+    
+    // Default fallback to type-based colors
+    switch (log.type) {
+      case 'error': return 'color: var(--color-alert);';
+      case 'warning': return 'color: var(--color-warning);';
+      case 'success': return 'color: var(--color-phosphor);';
+      default: return 'color: var(--color-phosphor-dim);';
     }
   }
 </script>
@@ -51,7 +57,11 @@
         on:click={() => handleLogClick(log)}
       >
         <span class="timestamp">[{log.timestamp}]</span>
-        <span class="source" class:alert={log.source === 'ALERT'} class:bio={log.source === 'BIO'} class:mother={log.source === 'MOTHER'}>
+        <span class="source" 
+          class:alert={log.source === 'ALERT'} 
+          class:bio={log.source === 'BIO'} 
+          class:mother={log.source === 'MOTHER'}
+          class:system={log.source === 'SYSTEM'}>
           [{log.source}]
         </span>
         {#if log.severity}
@@ -59,7 +69,7 @@
             {log.severity}
           </span>
         {/if}
-        <span class="message" style:color={getColor(log.type)}>
+        <span class="message" style={getMessageStyle(log)}>
           {@html log.message}
         </span>
         {#if log.metadata}
@@ -93,7 +103,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: rgba(0, 5, 0, 0.9);
+    background: rgba(10, 15, 10, 0.95); /* Matches new bg theme */
     overflow: hidden; /* Main container doesn't scroll */
     position: relative;
   }
@@ -148,9 +158,10 @@
   }
 
   .source {
-    color: var(--color-phosphor-dim);
+    color: var(--color-phosphor); /* Brighter default for SYSTEM etc */
     font-weight: bold;
     min-width: 80px;
+    letter-spacing: 0.5px;
   }
   
   .source.alert {
@@ -159,12 +170,17 @@
   }
   
   .source.bio {
-    color: #00cccc; /* Cyan for Med/Bio */
+    color: #00ffff; /* Cyan to match message */
+    text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
   }
   
+  .source.system {
+    color: #88ff88; /* Pale green */
+  }
+
   .source.mother {
-    color: #fff;
-    text-shadow: 0 0 5px #fff;
+    color: #ffffff; /* Pure white */
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
   }
   
   .severity-badge {
@@ -213,7 +229,7 @@
   .command-bar {
     border-top: 2px solid var(--color-phosphor-dim);
     padding: var(--spacing-sm);
-    background: rgba(0, 15, 0, 0.95);
+    background: rgba(15, 25, 15, 0.98); /* Slightly lighter for separation */
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -296,18 +312,19 @@
     transform: translateY(2px);
   }
   
-  /* Curate is special */
+  /* Curate is special (Golden) */
   .cmd-btn.cur {
-    border-color: var(--color-alert-dim);
-    color: var(--color-alert);
+    border-color: var(--color-warning-dim);
+    color: var(--color-warning);
+    background: rgba(40, 30, 0, 0.6);
   }
   .cmd-btn.cur::before, .cmd-btn.cur::after {
-    border-color: var(--color-alert);
+    border-color: var(--color-warning);
   }
   
   .cmd-btn.cur:hover {
-    background: var(--color-alert);
+    background: var(--color-warning);
     color: #000;
-    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
   }
 </style>

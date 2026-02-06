@@ -22,7 +22,7 @@
       <button class="action-item">
         <div class="icon"><Users size={20} /></div>
         <div class="details">
-          <span class="name">Dispatch Crew through {$focusRoomId}</span>
+          <span class="name">Dispatch Crew through <span class="highlight">{$focusRoomId}</span></span>
           <span class="sub">Rook is nearest (Hub)</span>
         </div>
       </button>
@@ -30,7 +30,7 @@
       <button class="action-item">
         <div class="icon"><Lock size={20} /></div>
         <div class="details">
-          <span class="name">Lockdown {$focusRoomId}</span>
+          <span class="name">Lockdown <span class="highlight">{$focusRoomId}</span></span>
           <span class="sub">Seals all connected doors</span>
         </div>
       </button>
@@ -38,7 +38,7 @@
       <button class="action-item danger">
         <div class="icon"><Wind size={20} /></div>
         <div class="details">
-          <span class="name">Vent Atmosphere</span>
+          <span class="name">Vent Atmosphere: <span class="highlight-danger">{$focusRoomId}</span></span>
           <span class="sub text-danger">Hazard: Lethal</span>
         </div>
       </button>
@@ -114,6 +114,13 @@
 
   .action-item.danger {
     border-color: var(--color-warning-dim);
+    color: var(--color-warning); /* Force text to warning color */
+  }
+  
+  .action-item.danger .name,
+  .action-item.danger .sub,
+  .action-item.danger .icon {
+    color: var(--color-warning); /* Ensure children inherit */
   }
   
   .action-item.danger:hover {
@@ -142,9 +149,22 @@
     color: var(--color-phosphor);
   }
 
+  /* Dynamic Target Highlight */
+  :global(.highlight) {
+    color: #ffffff; /* Pure white for emphasis */
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+  }
+  
+  :global(.highlight-danger) {
+    color: #ffffff;
+    text-shadow: 0 0 5px var(--color-warning);
+    font-weight: 900;
+  }
+
   .sub {
     font-size: 12px;
-    color: var(--color-phosphor-dim);
+    color: var(--color-phosphor); /* Brighter */
+    opacity: 0.8;
     font-family: var(--font-mono);
   }
   

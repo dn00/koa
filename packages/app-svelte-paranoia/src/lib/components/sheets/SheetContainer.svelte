@@ -51,13 +51,17 @@
   }
 
   .sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    max-width: 600px;
-    background: #000;
-    border: 1px solid var(--color-phosphor);
-    box-shadow: 0 0 20px rgba(51, 255, 51, 0.2);
+    /* Replaced solid black with theme charcoal-green */
+    background: rgba(15, 20, 15, 0.98); 
+    border-top: 2px solid var(--color-phosphor);
+    z-index: 100;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 -4px 20px rgba(0, 50, 0, 0.5); /* Ambient glow */
     max-height: 90%;
     position: relative;
   }

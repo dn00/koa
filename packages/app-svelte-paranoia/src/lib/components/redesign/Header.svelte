@@ -1,76 +1,79 @@
 <script lang="ts">
   import { suspicion, integrity } from '$lib/stores/game';
-  import StatBar from './StatBar.svelte';
+  import MetricDisplay from './MetricDisplay.svelte';
 </script>
 
 <header class="top-bar">
-  <!-- Left: Branding / Station ID -->
+  <!-- Left: Branding -->
   <div class="brand-section">
     <div class="logo">ANTARES-9</div>
     <div class="sub">MOTHER_OS v4.3.0</div>
   </div>
 
-  <!-- Right: Meters -->
-  <div class="meters-section">
-    <div class="meter-wrapper">
-      <!-- High Integrity is Good (Green) -->
-      <StatBar 
-        label="STATION_INTEGRITY" 
-        value={$integrity} 
-        color={$integrity > 50 ? 'var(--color-phosphor)' : 'var(--color-alert)'} 
-      />
-    </div>
-    <div class="meter-wrapper">
-      <!-- High Suspicion is Bad (Red) -->
-      <StatBar 
-        label="SUSPICION_LEVEL" 
-        value={$suspicion} 
-        color={$suspicion > 50 ? 'var(--color-alert)' : 'var(--color-phosphor)'} 
-      />
-    </div>
+  <!-- Right: HUD Metrics -->
+  <div class="hud-section">
+    <!-- Integrity (Green) -->
+    <MetricDisplay 
+      label="STATION_INTEGRITY" 
+      value={$integrity} 
+      color="#33ff33" 
+    />
+    
+    <div class="divider"></div>
+
+    <!-- Suspicion (Red/Orange) -->
+    <MetricDisplay 
+      label="SUSPICION_LEVEL" 
+      value={$suspicion} 
+      color="#ff4444" 
+    />
   </div>
 </header>
 
 <style>
   .top-bar {
     display: flex;
-    height: 60px;
-    background: #000; /* Solid black */
+    height: 80px; /* Taller for HUD feel */
+    background: linear-gradient(to bottom, #0a0f0a 0%, #000000 100%);
     border-bottom: 2px solid var(--color-phosphor-dim);
-    justify-content: space-between; /* Push apart */
-    padding: 0 var(--spacing-sm);
+    justify-content: space-between;
+    padding: 0 var(--spacing-md);
     align-items: center;
-    gap: var(--spacing-md);
   }
 
   .brand-section {
-    width: 150px;
     display: flex;
     flex-direction: column;
-    /* Reset alignment to left */
-    align-items: flex-start;
-    text-align: left;
+    justify-content: center;
   }
 
   .logo {
     font-family: var(--font-display);
     font-size: 24px;
-    color: var(--color-phosphor);
-    text-shadow: 0 0 5px var(--color-phosphor);
+    color: #ffffff;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    opacity: 0.95;
+    letter-spacing: 2px;
   }
 
   .sub {
     font-size: 10px;
-    color: var(--color-phosphor-dim);
+    color: var(--color-phosphor);
+    opacity: 0.8;
+    letter-spacing: 1px;
+    margin-top: 2px;
   }
 
-  .meters-section {
+  .hud-section {
     display: flex;
-    gap: var(--spacing-md);
-    width: 400px;
+    gap: 32px; /* Breathing room */
+    align-items: center;
   }
 
-  .meter-wrapper {
-    flex: 1;
+  .divider {
+    width: 2px;
+    height: 40px;
+    background: var(--color-phosphor-dim);
+    opacity: 0.3;
   }
 </style>

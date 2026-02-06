@@ -41,6 +41,21 @@
     overflow: hidden;
   }
 
+  .scan-label {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 10px;
+    color: var(--color-phosphor); /* Brighter */
+    background: #000;
+    padding: 0 4px;
+    z-index: 10;
+    pointer-events: none;
+    letter-spacing: 1px;
+    opacity: 0.9; /* More visible (was 0.7 or dim) */
+    text-shadow: 0 0 2px var(--color-phosphor-dim);
+  }
+
   .section-header {
     background: var(--color-phosphor-dim);
     color: #000;

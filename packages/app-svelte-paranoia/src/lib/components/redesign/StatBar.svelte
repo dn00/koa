@@ -50,6 +50,7 @@
     color: var(--color-phosphor-dim);
     letter-spacing: 1px;
     font-weight: bold;
+    opacity: 0.9; /* More visible (was 0.7) */
   }
 
   .value {

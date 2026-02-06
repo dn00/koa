@@ -37,24 +37,29 @@
   h2 {
     font-family: var(--font-display);
     color: var(--color-phosphor);
-    font-size: 24px;
+    font-size: 42px; /* Consistency with CrewSheet */
+    text-shadow: 0 0 8px rgba(77, 191, 77, 0.6);
+    letter-spacing: 2px;
     margin-bottom: 4px;
   }
   
   .subtitle {
     font-size: 14px;
-    color: var(--color-phosphor-dim);
+    color: var(--color-phosphor); /* Brighter */
+    opacity: 0.8;
     font-family: var(--font-mono);
   }
 
   .section-title {
-    font-size: 12px;
+    font-size: 14px; /* Increased */
     font-weight: 700;
-    color: var(--color-phosphor-dim);
+    color: var(--color-phosphor); /* Brighter */
+    background: rgba(0, 20, 0, 0.6); /* Block style */
+    padding: 4px 8px;
     margin: var(--spacing-md) 0 var(--spacing-sm);
     letter-spacing: 1px;
-    border-bottom: 1px dashed var(--color-phosphor-dim);
-    display: inline-block;
+    border-left: 3px solid var(--color-phosphor); /* Left border accent */
+    display: block; /* Full width */
   }
 
   .doubt-card {
