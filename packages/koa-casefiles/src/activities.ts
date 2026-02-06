@@ -136,3 +136,40 @@ export const ACTIVITIES: Record<ActivityType, ActivityDef> = {
         alibi: 'felt guilty about the cake',
     }
 };
+
+// ============================================================================
+// Escalation Activities (Petty Retaliation)
+// ============================================================================
+
+export type EscalationActivityType =
+    | 'rearranging_stuff'
+    | 'passive_aggressive_note'
+    | 'petty_theft';
+
+export const ESCALATION_ACTIVITIES: Record<EscalationActivityType, ActivityDef> = {
+    rearranging_stuff: {
+        id: 'rearranging_stuff' as ActivityType,
+        physicalTraces: ['moved furniture', 'rearranged shelf', 'items out of place'],
+        audioClues: ['scraping furniture', 'slamming drawers', 'heavy sighing'],
+        visualDescription: 'aggressively rearranging furniture',
+        looksLike: 'destroying evidence',
+        alibi: 'was "improving the feng shui" (out of spite)',
+    },
+    passive_aggressive_note: {
+        id: 'passive_aggressive_note' as ActivityType,
+        physicalTraces: ['sticky note with passive-aggressive message', 'uncapped marker', 'crumpled drafts'],
+        audioClues: ['pen scratching angrily', 'paper tearing', 'muttered complaints'],
+        visualDescription: 'writing something with intense focus',
+        looksLike: 'writing a threatening note',
+        alibi: 'was leaving a "helpful reminder" about shared spaces',
+    },
+    petty_theft: {
+        id: 'petty_theft' as ActivityType,
+        requiredPlaces: ['kitchen', 'living'],
+        physicalTraces: ['empty spot where something was', 'moved container', 'crumbs of what was taken'],
+        audioClues: ['fridge opening', 'rummaging', 'triumphant humming'],
+        visualDescription: 'taking something from the shelf',
+        looksLike: 'stealing evidence',
+        alibi: 'was "borrowing" their rival\'s leftovers',
+    },
+};

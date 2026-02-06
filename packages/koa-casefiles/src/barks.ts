@@ -41,6 +41,7 @@ export interface Bark {
     trigger: BarkTrigger;
     shape?: CaseShape;
     category?: EvidenceKind;  // For FIRST_EVIDENCE
+    koaMode?: string;         // KOA personality mode (undefined = universal)
     tone: BarkTone;
     hintLevel: 0 | 1 | 2;
     text: string;
@@ -61,6 +62,7 @@ export interface BarkContext {
     category?: EvidenceKind;
     item?: string;
     turn?: number;
+    koaMode?: string;         // KOA personality mode for this case
 }
 
 // ============================================================================
@@ -118,7 +120,7 @@ export class BarkState {
 
 let barkPack: BarkPack | null = null;
 
-function loadBarkPack(): BarkPack {
+export function loadBarkPack(): BarkPack {
     if (barkPack) return barkPack;
 
     try {
@@ -170,6 +172,20 @@ export function selectBark(
         if (categorySpecific.length > 0) {
             candidates = categorySpecific;
         }
+    }
+
+    // Filter by KOA mode (soft: prefer mode-specific, fall back to universal)
+    if (context.koaMode) {
+        const modeSpecific = candidates.filter(b => b.koaMode === context.koaMode);
+        if (modeSpecific.length > 0) {
+            candidates = modeSpecific;
+        } else {
+            // Fall back to universal barks (no koaMode set)
+            candidates = candidates.filter(b => !b.koaMode);
+        }
+    } else {
+        // No mode = only universal barks
+        candidates = candidates.filter(b => !b.koaMode);
     }
 
     // Filter by hint level based on turn

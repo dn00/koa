@@ -326,6 +326,190 @@
       "tone": "ominous",
       "hintLevel": 0,
       "text": "The picture is almost complete. Time to make your accusation."
+    },
+
+    {
+      "id": "corp_open_001",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "corporate",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Per our household incident response protocol, a property discrepancy has been logged."
+    },
+    {
+      "id": "corp_open_002",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "corporate",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Good evening. A compliance issue has been escalated to your desk. Please resolve by EOD."
+    },
+    {
+      "id": "corp_verdict_001",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "koaMode": "corporate",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Resolution accepted. Updating stakeholder confidence metrics. Thank you for your service."
+    },
+    {
+      "id": "corp_contradiction_001",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "koaMode": "corporate",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "A discrepancy has been identified between two stakeholder reports. Recommending alignment."
+    },
+    {
+      "id": "corp_evidence_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "testimony",
+      "koaMode": "corporate",
+      "tone": "clinical",
+      "hintLevel": 0,
+      "text": "Witness deposition logged. Filing under HR/Incident/Testimony."
+    },
+
+    {
+      "id": "pa_open_001",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "passive_aggressive",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Oh good, something's missing. I'm sure no one saw anything. As usual."
+    },
+    {
+      "id": "pa_open_002",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "passive_aggressive",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Another incident. But I'm fine. Everything's fine. Let's just... investigate."
+    },
+    {
+      "id": "pa_verdict_001",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "koaMode": "passive_aggressive",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Oh, you solved it. Good for you. I guess some of us are just... better at this."
+    },
+    {
+      "id": "pa_contradiction_001",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "koaMode": "passive_aggressive",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Well, SOMEONE isn't being entirely honest. Not that I'm surprised."
+    },
+    {
+      "id": "pa_evidence_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "device_log",
+      "koaMode": "passive_aggressive",
+      "tone": "snark",
+      "hintLevel": 0,
+      "text": "Here's what my sensors saw. Not that anyone ever thanks the sensors."
+    },
+
+    {
+      "id": "oh_open_001",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "overhelpful",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "INCIDENT DETECTED! I've already prepared 3 theories, a timeline, and a suspect ranking!"
+    },
+    {
+      "id": "oh_open_002",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "overhelpful",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "New case! I've color-coded the evidence categories and pre-sorted the witness list!"
+    },
+    {
+      "id": "oh_verdict_001",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "koaMode": "overhelpful",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "CASE SOLVED! I'm generating a summary report, infographic, and celebratory playlist!"
+    },
+    {
+      "id": "oh_contradiction_001",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "koaMode": "overhelpful",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "CONTRADICTION FOUND! I've already cross-referenced it with 14 other data points!"
+    },
+    {
+      "id": "oh_evidence_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "physical",
+      "koaMode": "overhelpful",
+      "tone": "playful",
+      "hintLevel": 0,
+      "text": "Physical evidence! I've catalogued it, photographed it, and assigned it a case number!"
+    },
+
+    {
+      "id": "con_open_001",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "conspiracy",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "Something vanished. But was it taken... or was it ALLOWED to disappear?"
+    },
+    {
+      "id": "con_open_002",
+      "trigger": "CASE_OPEN",
+      "shape": "*",
+      "koaMode": "conspiracy",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "New incident. Pattern analysis suggests this was planned weeks ago. By whom? Everyone."
+    },
+    {
+      "id": "con_verdict_001",
+      "trigger": "VERDICT_WIN",
+      "shape": "*",
+      "koaMode": "conspiracy",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "Case closed. Officially. But we both know there's a deeper layer."
+    },
+    {
+      "id": "con_contradiction_001",
+      "trigger": "CONTRADICTION",
+      "shape": "*",
+      "koaMode": "conspiracy",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "These statements conflict. Classic double-agent maneuver. Trust no one."
+    },
+    {
+      "id": "con_evidence_001",
+      "trigger": "FIRST_EVIDENCE",
+      "category": "motive",
+      "koaMode": "conspiracy",
+      "tone": "ominous",
+      "hintLevel": 0,
+      "text": "Motive uncovered. But ask yourself: who benefits from YOU knowing this?"
     }
   ]
 }
