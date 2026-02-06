@@ -153,11 +153,11 @@ export const ITEMS: Item[] = [
 // ============================================================================
 
 const NPC_TEMPLATES: Omit<NPC, 'schedule'>[] = [
-    { id: 'alice', name: 'Alice', role: 'workaholic sibling' },
-    { id: 'bob', name: 'Bob', role: 'couch potato roommate' },
-    { id: 'carol', name: 'Carol', role: 'night owl cousin' },
-    { id: 'dan', name: 'Dan', role: 'early bird neighbor' },
-    { id: 'eve', name: 'Eve', role: 'mysterious houseguest' },
+    { id: 'alice', name: 'Alice', role: 'workaholic sibling', archetypeId: 'workaholic' },
+    { id: 'bob', name: 'Bob', role: 'couch potato roommate', archetypeId: 'slacker' },
+    { id: 'carol', name: 'Carol', role: 'night owl cousin', archetypeId: 'night_owl' },
+    { id: 'dan', name: 'Dan', role: 'early bird neighbor', archetypeId: 'early_bird' },
+    { id: 'eve', name: 'Eve', role: 'mysterious houseguest', archetypeId: 'secretive' },
 ];
 
 // Schedule patterns per archetype
@@ -733,6 +733,7 @@ export function createWorldFromConfig(
     // Generate NPCs with archetype-based schedules
     const npcs: NPC[] = cast.npcs.map(template => ({
         ...template,
+        archetypeId: cast.archetypes[template.id],
         schedule: generateScheduleFromArchetype(
             template.id,
             cast.archetypes[template.id],

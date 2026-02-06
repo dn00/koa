@@ -5,11 +5,11 @@ import { CONFIG } from '../src/config.js';
 
 describe('Task 001: Pressure Channel Types & Config', () => {
     describe('AC-1: getPressureMix returns low-band weights', () => {
-        test('suspicion=10 returns physical=0.6, social=0.1, epistemic=0.3', () => {
+        test('suspicion=10 returns physical=0.55, social=0.2, epistemic=0.25', () => {
             const mix = getPressureMix(10, CONFIG);
-            expect(mix.physical).toBeCloseTo(0.6, 5);
-            expect(mix.social).toBeCloseTo(0.1, 5);
-            expect(mix.epistemic).toBeCloseTo(0.3, 5);
+            expect(mix.physical).toBeCloseTo(0.55, 5);
+            expect(mix.social).toBeCloseTo(0.2, 5);
+            expect(mix.epistemic).toBeCloseTo(0.25, 5);
         });
     });
 
@@ -64,9 +64,9 @@ describe('Task 001: Pressure Channel Types & Config', () => {
     describe('EC-2: extreme suspicion values do not crash', () => {
         test('suspicion=0 returns valid low-band mix', () => {
             const mix = getPressureMix(0, CONFIG);
-            expect(mix.physical).toBeCloseTo(0.6, 5);
-            expect(mix.social).toBeCloseTo(0.1, 5);
-            expect(mix.epistemic).toBeCloseTo(0.3, 5);
+            expect(mix.physical).toBeCloseTo(0.55, 5);
+            expect(mix.social).toBeCloseTo(0.2, 5);
+            expect(mix.epistemic).toBeCloseTo(0.25, 5);
         });
 
         test('suspicion=100 returns valid high-band mix', () => {

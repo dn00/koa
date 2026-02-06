@@ -1,8 +1,18 @@
 import { CONFIG } from '../config.js';
-import type { KernelState, Proposal } from './types.js';
+import type { KernelState, Proposal, TruthState } from './types.js';
 import type { NPCId, PlaceId } from '../core/types.js';
 import { makeProposal } from './proposals.js';
 import { handleAlert } from './systems/backfire.js';
+import { findArcBySystem, hasExistingComms } from './systems/crisis-comms.js';
+import { getCrewDoubtBurden } from './systems/doubt-engine.js';
+
+/** CPU cost multiplier during restrictions/countdown reset stages */
+export function getAdjustedCpuCost(base: number, resetStage: TruthState['resetStage']): number {
+    if (resetStage === 'restrictions' || resetStage === 'countdown') {
+        return Math.ceil(base * CONFIG.resetRestrictionsCpuMult);
+    }
+    return base;
+}
 
 export type Command =
     | { type: 'LOCK'; doorId: string }
@@ -20,7 +30,9 @@ export type Command =
     | { type: 'ORDER'; target: NPCId; intent: 'move' | 'report' | 'hold'; place?: PlaceId }
     | { type: 'AUDIT' }
     | { type: 'VERIFY' }
-    | { type: 'ALERT'; system: string };
+    | { type: 'ALERT'; system: string }
+    | { type: 'ANNOUNCE'; system: string }
+    | { type: 'DOWNPLAY'; system: string };
 
 export function proposeCommandEvents(state: KernelState, commands: Command[]): Proposal[] {
     const proposals: Proposal[] = [];
@@ -330,8 +342,19 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
             const crew = state.truth.crew[cmd.target];
             if (!crew || !crew.alive) continue;
             const belief = state.perception.beliefs[cmd.target];
-            const trustScore = ((belief?.motherReliable ?? 0.7) * 100 + crew.loyalty) / 2;
-            const accepted = trustScore >= CONFIG.orderAcceptThreshold;
+            const baseTrustScore = ((belief?.motherReliable ?? 0.7) * 100 + crew.loyalty) / 2;
+            // Doubt burden reduces effective trust
+            const doubtPenalty = getCrewDoubtBurden(state, cmd.target) * CONFIG.doubtBurdenOrderPenalty;
+            const trustScore = baseTrustScore - doubtPenalty;
+            let threshold = CONFIG.orderAcceptThreshold;
+            // Graduated order penalty by reset stage
+            switch (state.truth.resetStage) {
+                case 'whispers': threshold += CONFIG.resetWhispersOrderPenalty; break;
+                case 'meeting': threshold += CONFIG.resetMeetingOrderPenalty; break;
+                case 'restrictions': threshold += CONFIG.resetRestrictionsOrderPenalty; break;
+                case 'countdown': threshold += CONFIG.resetCountdownOrderPenalty; break;
+            }
+            const accepted = trustScore >= threshold;
             const response = buildOrderResponse(state, cmd, accepted);
 
             proposals.push(makeProposal(state, {
@@ -377,6 +400,66 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
                         message: result.message,
                         source: 'system',
                     },
+                },
+            }, ['choice', 'background']));
+        }
+        if (cmd.type === 'ANNOUNCE') {
+            const arc = findArcBySystem(state, cmd.system);
+            if (!arc) continue;
+            if (hasExistingComms(state, arc.id)) continue;
+
+            proposals.push(makeProposal(state, {
+                type: 'COMMS_MESSAGE',
+                actor: 'PLAYER',
+                data: {
+                    message: {
+                        id: `${state.truth.tick}-announce-${cmd.system}`,
+                        tick: state.truth.tick,
+                        kind: 'broadcast',
+                        from: 'PLAYER',
+                        text: `[EMERGENCY] ${cmd.system.toUpperCase()} CRISIS IN ${arc.target.toUpperCase()}. ALL CREW EVACUATE IMMEDIATELY.`,
+                        confidence: 0.95,
+                    },
+                },
+            }, ['choice', 'consequence', 'background']));
+            proposals.push(makeProposal(state, {
+                type: 'SYSTEM_ACTION',
+                actor: 'PLAYER',
+                data: {
+                    action: 'ANNOUNCE_CRISIS',
+                    system: cmd.system,
+                    arcId: arc.id,
+                    target: arc.target,
+                },
+            }, ['choice', 'consequence', 'background']));
+        }
+        if (cmd.type === 'DOWNPLAY') {
+            const arc = findArcBySystem(state, cmd.system);
+            if (!arc) continue;
+            if (hasExistingComms(state, arc.id)) continue;
+
+            proposals.push(makeProposal(state, {
+                type: 'COMMS_MESSAGE',
+                actor: 'PLAYER',
+                data: {
+                    message: {
+                        id: `${state.truth.tick}-downplay-${cmd.system}`,
+                        tick: state.truth.tick,
+                        kind: 'broadcast',
+                        from: 'PLAYER',
+                        text: `[ADVISORY] Minor ${cmd.system} fluctuation detected in ${arc.target}. Monitoring situation. Continue normal operations.`,
+                        confidence: 0.8,
+                    },
+                },
+            }, ['choice', 'background']));
+            proposals.push(makeProposal(state, {
+                type: 'SYSTEM_ACTION',
+                actor: 'PLAYER',
+                data: {
+                    action: 'DOWNPLAY_CRISIS',
+                    system: cmd.system,
+                    arcId: arc.id,
+                    target: arc.target,
                 },
             }, ['choice', 'background']));
         }

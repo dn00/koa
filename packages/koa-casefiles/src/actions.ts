@@ -1,4 +1,5 @@
 import { PlayerSession, ActionType } from './player.js';
+import type { ContradictionLevel, EvidenceSemantic, SlicedWindowId } from './types.js';
 import { EvidenceItem, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, PresenceEvidence, MotiveEvidence } from './types.js';
 
 export type SearchResultCode = 'HIT' | 'EMPTY' | 'GATED' | 'NOISE';
@@ -132,18 +133,35 @@ export function performInterview(
 
     if (mode === 'testimony') {
         // Get testimony about this specific window
-        found = session.allEvidence.filter(e =>
+        const unrevealed = session.allEvidence.filter(e =>
             e.kind === 'testimony' &&
             e.witness === suspect &&
             e.window === window &&
             !session.knownEvidence.some(known => known.id === e.id)
         );
 
+        // Return a slice (max 4 new observations per interview)
+        const TESTIMONY_SLICE_SIZE = 4;
+        found = unrevealed.slice(0, TESTIMONY_SLICE_SIZE);
+
         found.forEach(e => session.revealEvidence(e));
 
-        message = found.length > 0
-            ? `${npcName} shared ${found.length} observation${found.length > 1 ? 's' : ''} about ${window}.`
-            : `${npcName} didn't notice anything during ${window}.`;
+        const remaining = unrevealed.length - found.length;
+        if (found.length > 0) {
+            message = `${npcName} shared ${found.length} observation${found.length > 1 ? 's' : ''} about ${window}.`;
+            if (remaining > 0) {
+                message += ` (${remaining} more available)`;
+            }
+        } else {
+            const allMatching = session.allEvidence.filter(e =>
+                e.kind === 'testimony' &&
+                e.witness === suspect &&
+                e.window === window
+            );
+            message = allMatching.length > 0
+                ? `${npcName} has nothing new to share about ${window}. (Already heard everything)`
+                : `${npcName} didn't notice anything during ${window}.`;
+        }
 
     } else {
         // Get gossip this NPC knows (motive evidence where they're the source)
@@ -235,26 +253,100 @@ export function checkLogs(
 }
 
 /**
- * Compare result for COMPARE action
+ * Compare result for COMPARE action.
+ * `level` distinguishes HARD (physically impossible) from SOFT (odd but plausible).
+ * `contradiction` is true for both HARD and SOFT (backward compat).
  */
 export type CompareResult =
-    | { success: true; contradiction: true; rule: string; message: string }
-    | { success: true; contradiction: false; message: string }
+    | { success: true; contradiction: true; level: ContradictionLevel; rule: string; message: string }
+    | { success: true; contradiction: false; level: 'NO_CONTRADICTION'; message: string }
     | { success: false; message: string };
+
+// ── Semantic helpers for compareEvidence ──
+
+/** Infer semantic from evidence kind + deviceType when field is absent (legacy compat). */
+function inferSemantic(ev: EvidenceItem): EvidenceSemantic {
+    if (ev.semantic) return ev.semantic;
+    if (ev.kind === 'device_log') {
+        const d = ev as DeviceLogEvidence;
+        return d.deviceType === 'door_sensor' ? 'movement' : 'presence';
+    }
+    if (ev.kind === 'testimony') {
+        const t = ev as TestimonyEvidence;
+        if (t.claimType) return 'claim';
+        if (t.observable.includes('door')) return 'movement';
+        return 'presence';
+    }
+    return 'presence';
+}
+
+/** Source: device hardware vs NPC testimony. */
+type EvidenceSource = 'device' | 'testimony';
+
+function inferSource(ev: EvidenceItem): EvidenceSource {
+    return ev.kind === 'device_log' ? 'device' : 'testimony';
+}
+
+/** Slices overlap if either is null/undefined (covers full window) or they match. */
+function slicesOverlap(a: SlicedWindowId | undefined, b: SlicedWindowId | undefined): boolean {
+    if (!a || !b) return true;
+    return a === b;
+}
+
+/** Extract the NPC that this evidence is about. */
+function evidenceNpc(ev: EvidenceItem): string | undefined {
+    if (ev.kind === 'presence') return (ev as PresenceEvidence).npc;
+    if (ev.kind === 'device_log') return (ev as DeviceLogEvidence).actor;
+    if (ev.kind === 'testimony') {
+        const t = ev as TestimonyEvidence;
+        // Claims and self-location testimony → witness is the subject
+        if (t.claimType || t.semantic === 'claim') return t.witness;
+        // Observation testimony → subject is the NPC being observed
+        return t.subject ?? t.witness;
+    }
+    return undefined;
+}
+
+/** Extract the place this evidence asserts about the NPC. */
+function evidencePlace(ev: EvidenceItem): string | undefined {
+    if (ev.kind === 'presence') return (ev as PresenceEvidence).place;
+    if (ev.kind === 'device_log') return (ev as DeviceLogEvidence).place;
+    if (ev.kind === 'testimony') {
+        const t = ev as TestimonyEvidence;
+        if (t.claimType || t.semantic === 'claim') return t.place;
+        return t.subjectPlace ?? t.place;
+    }
+    return undefined;
+}
+
+/** Extract the window this evidence covers. */
+function evidenceWindow(ev: EvidenceItem): string | undefined {
+    if (ev.kind === 'presence') return (ev as PresenceEvidence).window;
+    if (ev.kind === 'device_log') return (ev as DeviceLogEvidence).window;
+    if (ev.kind === 'testimony') return (ev as TestimonyEvidence).window;
+    return undefined;
+}
+
+function isStayClaim(ev: EvidenceItem): boolean {
+    if (ev.kind === 'testimony') return (ev as TestimonyEvidence).claimType === 'STAY';
+    if (ev.kind === 'presence') return (ev as PresenceEvidence).isSelfReported === true;
+    return false;
+}
 
 /**
  * Execute a COMPARE action.
  * Cost: 0 AP (free action - encourages deduction)
  *
- * Compares two evidence items to check if they contradict each other.
- * This makes lie-catching an active gameplay verb.
+ * Compares two evidence items using semantic HARD/SOFT rules:
+ * - HARD: physically impossible (STAY claim vs presence elsewhere, device vs device)
+ * - SOFT: odd but plausible (testimony disagree, movement tension)
+ * - NONE: no conflict
  */
 export function compareEvidence(
     session: PlayerSession,
     evidenceId1: string,
     evidenceId2: string
 ): CompareResult {
-    // Find both evidence items in known evidence
     const ev1 = session.knownEvidence.find(e => e.id === evidenceId1);
     const ev2 = session.knownEvidence.find(e => e.id === evidenceId2);
 
@@ -268,124 +360,122 @@ export function compareEvidence(
         return { success: false, message: `Cannot compare evidence with itself.` };
     }
 
-    // Check for contradictions
+    // Only compare evidence kinds that carry location assertions
+    const locationKinds = new Set(['presence', 'device_log', 'testimony']);
+    if (!locationKinds.has(ev1.kind) || !locationKinds.has(ev2.kind)) {
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
+    }
 
-    // Type 1: Two presence records for same NPC in same window but different places
-    if (ev1.kind === 'presence' && ev2.kind === 'presence') {
-        const p1 = ev1 as PresenceEvidence;
-        const p2 = ev2 as PresenceEvidence;
-        if (p1.npc === p2.npc && p1.window === p2.window && p1.place !== p2.place) {
-            return {
-                success: true,
-                contradiction: true,
-                rule: 'cannot_be_two_places',
-                message: `CONTRADICTION! ${p1.npc} cannot be in ${p1.place} AND ${p2.place} during ${p1.window}.`
-            };
+    // Extract semantic properties
+    const npc1 = evidenceNpc(ev1);
+    const npc2 = evidenceNpc(ev2);
+    const place1 = evidencePlace(ev1);
+    const place2 = evidencePlace(ev2);
+    const window1 = evidenceWindow(ev1);
+    const window2 = evidenceWindow(ev2);
+    const sem1 = inferSemantic(ev1);
+    const sem2 = inferSemantic(ev2);
+    const src1 = inferSource(ev1);
+    const src2 = inferSource(ev2);
+    const stay1 = isStayClaim(ev1);
+    const stay2 = isStayClaim(ev2);
+
+    // Prerequisites for any contradiction: same NPC, same window
+    if (!npc1 || !npc2 || npc1 !== npc2) {
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
+    }
+    if (!window1 || !window2 || window1 !== window2) {
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
+    }
+    if (!place1 || !place2) {
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
+    }
+
+    // Same-place special case: a STAY claim + door_sensor at the same place is
+    // SOFT_TENSION — the person interacted with a boundary door, suggesting movement
+    // out of their claimed location. Other same-place combos are no contradiction.
+    if (place1 === place2) {
+        const isDoor1 = ev1.kind === 'device_log' && (ev1 as DeviceLogEvidence).deviceType === 'door_sensor';
+        const isDoor2 = ev2.kind === 'device_log' && (ev2 as DeviceLogEvidence).deviceType === 'door_sensor';
+        if ((stay1 && isDoor2) || (stay2 && isDoor1)) {
+            return { success: true, contradiction: true, level: 'SOFT_TENSION', rule: 'stay_vs_movement',
+                message: `Interesting... ${npc1} claims to have stayed put, but a door log suggests movement during ${window1}.` };
+        }
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
+    }
+
+    // Slices must overlap for a conflict to exist
+    if (!slicesOverlap(ev1.slice, ev2.slice)) {
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
+    }
+
+    // ── HARD rules: require STAY claim or device-vs-device ──
+
+    // Rule 1: STAY claim vs device presence = HARD (the money shot)
+    if (stay1 && src2 === 'device' && sem2 === 'presence') {
+        return { success: true, contradiction: true, level: 'HARD_CONTRADICTION', rule: 'stay_vs_device_presence',
+            message: `CONTRADICTION! ${npc1} claims to have stayed in ${place1} but was detected in ${place2} during ${window1}!` };
+    }
+    if (stay2 && src1 === 'device' && sem1 === 'presence') {
+        return { success: true, contradiction: true, level: 'HARD_CONTRADICTION', rule: 'stay_vs_device_presence',
+            message: `CONTRADICTION! ${npc1} claims to have stayed in ${place2} but was detected in ${place1} during ${window1}!` };
+    }
+
+    // Rule 2: STAY claim vs testimony presence (conf >= 0.5) = HARD
+    if (stay1 && sem2 === 'presence' && src2 === 'testimony') {
+        const conf2 = ev2.kind === 'testimony' ? (ev2 as TestimonyEvidence).confidence : 1.0;
+        if (conf2 >= 0.5) {
+            return { success: true, contradiction: true, level: 'HARD_CONTRADICTION', rule: 'stay_vs_witness',
+                message: `CONTRADICTION! ${npc1} claims to have stayed in ${place1} but was seen in ${place2} during ${window1}!` };
+        }
+    }
+    if (stay2 && sem1 === 'presence' && src1 === 'testimony') {
+        const conf1 = ev1.kind === 'testimony' ? (ev1 as TestimonyEvidence).confidence : 1.0;
+        if (conf1 >= 0.5) {
+            return { success: true, contradiction: true, level: 'HARD_CONTRADICTION', rule: 'stay_vs_witness',
+                message: `CONTRADICTION! ${npc1} claims to have stayed in ${place2} but was seen in ${place1} during ${window1}!` };
         }
     }
 
-    // Type 2: Testimony claiming location vs presence showing different location
-    if ((ev1.kind === 'testimony' && ev2.kind === 'presence') ||
-        (ev1.kind === 'presence' && ev2.kind === 'testimony')) {
-        const testimony = (ev1.kind === 'testimony' ? ev1 : ev2) as TestimonyEvidence;
-        const presence = (ev1.kind === 'presence' ? ev1 : ev2) as PresenceEvidence;
+    // Rule 3: Device presence vs device presence (same NPC, overlapping slice, diff place) = HARD
+    if (src1 === 'device' && src2 === 'device' && sem1 === 'presence' && sem2 === 'presence') {
+        return { success: true, contradiction: true, level: 'HARD_CONTRADICTION', rule: 'device_presence_conflict',
+            message: `CONTRADICTION! Sensors show ${npc1} in both ${place1} and ${place2} during ${window1}!` };
+    }
 
-        // Check if testimony is a self-claim about location
-        if (testimony.witness === presence.npc &&
-            testimony.window === presence.window &&
-            testimony.observable.toLowerCase().includes('claims') &&
-            testimony.place !== presence.place) {
-            return {
-                success: true,
-                contradiction: true,
-                rule: 'false_alibi',
-                message: `CONTRADICTION! ${testimony.witness} claims to be in ${testimony.place} but was actually in ${presence.place} during ${testimony.window}.`
-            };
+    // ── SOFT rules ──
+
+    // Rule 4: STAY claim vs movement evidence (door log) = SOFT
+    if ((stay1 && sem2 === 'movement') || (stay2 && sem1 === 'movement')) {
+        return { success: true, contradiction: true, level: 'SOFT_TENSION', rule: 'stay_vs_movement',
+            message: `Interesting... ${npc1} claims to have stayed put, but a door log suggests movement during ${window1}.` };
+    }
+
+    // Rule 5: Testimony vs testimony (presence) = SOFT always (perspective, not lies)
+    if (src1 === 'testimony' && src2 === 'testimony' && sem1 === 'presence' && sem2 === 'presence') {
+        return { success: true, contradiction: true, level: 'SOFT_TENSION', rule: 'witness_disagree',
+            message: `Witnesses disagree about where ${npc1} was during ${window1} — could be different perspectives.` };
+    }
+
+    // Rule 6: Testimony vs device presence (no STAY claim) = SOFT
+    if ((src1 === 'device' && src2 === 'testimony') || (src2 === 'device' && src1 === 'testimony')) {
+        if ((sem1 === 'presence' || sem2 === 'presence') && !stay1 && !stay2) {
+            return { success: true, contradiction: true, level: 'SOFT_TENSION', rule: 'testimony_vs_device',
+                message: `Device log and testimony disagree about ${npc1}'s location during ${window1}.` };
         }
     }
 
-    // Type 3: Two testimonies about same window/place with conflicting observations
-    if (ev1.kind === 'testimony' && ev2.kind === 'testimony') {
-        const t1 = ev1 as TestimonyEvidence;
-        const t2 = ev2 as TestimonyEvidence;
-
-        if (t1.window === t2.window && t1.place === t2.place) {
-            const t1HeardNothing = t1.observable.toLowerCase().includes('nothing') ||
-                                   t1.observable.toLowerCase().includes('quiet');
-            const t2HeardSomething = t2.observable.toLowerCase().includes('heard') &&
-                                     !t2.observable.toLowerCase().includes('nothing');
-            const t1HeardSomething = t1.observable.toLowerCase().includes('heard') &&
-                                     !t1.observable.toLowerCase().includes('nothing');
-            const t2HeardNothing = t2.observable.toLowerCase().includes('nothing') ||
-                                   t2.observable.toLowerCase().includes('quiet');
-
-            if ((t1HeardNothing && t2HeardSomething) || (t1HeardSomething && t2HeardNothing)) {
-                return {
-                    success: true,
-                    contradiction: true,
-                    rule: 'testimony_conflict',
-                    message: `CONTRADICTION! Conflicting testimony about ${t1.place} during ${t1.window}.`
-                };
-            }
-        }
+    // Rule 7: Movement vs presence = SOFT
+    if ((sem1 === 'movement' && sem2 === 'presence') || (sem2 === 'movement' && sem1 === 'presence')) {
+        return { success: true, contradiction: true, level: 'SOFT_TENSION', rule: 'presence_vs_movement',
+            message: `Evidence suggests ${npc1} was moving around during ${window1}.` };
     }
 
-    // Type 4: Same witness claims different locations in same window
-    if (ev1.kind === 'testimony' && ev2.kind === 'testimony') {
-        const t1 = ev1 as TestimonyEvidence;
-        const t2 = ev2 as TestimonyEvidence;
-
-        // Same witness, same window, DIFFERENT places = false alibi!
-        if (t1.witness === t2.witness &&
-            t1.window === t2.window &&
-            t1.place !== t2.place) {
-            return {
-                success: true,
-                contradiction: true,
-                rule: 'witness_location_conflict',
-                message: `CONTRADICTION! ${t1.witness} can't be in ${t1.place} AND ${t2.place} during ${t1.window}!`
-            };
-        }
+    // Rule 8: Movement vs movement = no contradiction (normal walking)
+    if (sem1 === 'movement' && sem2 === 'movement') {
+        return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
     }
 
-    // Type 5: Device log shows NPC somewhere vs testimony claiming different location
-    if ((ev1.kind === 'device_log' && ev2.kind === 'testimony') ||
-        (ev1.kind === 'testimony' && ev2.kind === 'device_log')) {
-        const deviceLog = (ev1.kind === 'device_log' ? ev1 : ev2) as DeviceLogEvidence;
-        const testimony = (ev1.kind === 'testimony' ? ev1 : ev2) as TestimonyEvidence;
-
-        // Device log with actor vs testimony where witness claims different location
-        if (deviceLog.actor &&
-            deviceLog.actor === testimony.witness &&
-            deviceLog.window === testimony.window &&
-            deviceLog.place !== testimony.place) {
-            return {
-                success: true,
-                contradiction: true,
-                rule: 'device_vs_testimony',
-                message: `CONTRADICTION! ${deviceLog.actor} opened door in ${deviceLog.place} but claims to be in ${testimony.place} during ${deviceLog.window}!`
-            };
-        }
-
-        // Device log with actor vs testimony about subject in different location
-        if (deviceLog.actor &&
-            testimony.subject &&
-            deviceLog.actor === testimony.subject &&
-            deviceLog.window === testimony.window &&
-            deviceLog.place !== testimony.subjectPlace) {
-            return {
-                success: true,
-                contradiction: true,
-                rule: 'device_vs_witness_claim',
-                message: `CONTRADICTION! ${deviceLog.actor} was in ${deviceLog.place} per door log, but ${testimony.witness} claims they saw them in ${testimony.subjectPlace} during ${deviceLog.window}!`
-            };
-        }
-    }
-
-    // No contradiction found
-    return {
-        success: true,
-        contradiction: false,
-        message: `No contradiction found between these evidence items.`
-    };
+    // Default: no contradiction
+    return { success: true, contradiction: false, level: 'NO_CONTRADICTION', message: `No contradiction found between these evidence items.` };
 }

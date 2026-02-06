@@ -146,8 +146,8 @@ describe('Task 004: Epistemic Event Generators', () => {
         });
     });
 
-    describe('AC-6: doubt_voiced applies +2 suspicion', () => {
-        test('proposal carries deferred suspicion change with delta +2', () => {
+    describe('AC-6: doubt_voiced applies +3 suspicion', () => {
+        test('proposal carries deferred suspicion change with delta +3', () => {
             const rng = createRng(42);
             let found = false;
             for (let i = 0; i < 50; i++) {
@@ -157,7 +157,7 @@ describe('Task 004: Epistemic Event Generators', () => {
 
                 for (const p of proposals) {
                     const ps = (p.event.data as any)?.pressureSuspicion;
-                    if (ps && ps.reason === 'DOUBT_VOICED' && ps.delta === 2) {
+                    if (ps && ps.reason === 'DOUBT_VOICED' && ps.delta === 3) {
                         found = true;
                         break;
                     }

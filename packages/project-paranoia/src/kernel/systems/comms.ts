@@ -189,12 +189,19 @@ function pickWhisperTopic(state: KernelState, speaker: NPCId, rng: RNG) {
     return rng.pick(WHISPER_TOPICS);
 }
 
+const VALID_NPC_IDS: readonly string[] = ['commander', 'engineer', 'doctor', 'specialist', 'roughneck'];
+
 export function topicToSubject(topic: string): NPCId | null {
     if (topic === 'commander_reset') return 'commander';
     if (topic === 'engineer_sabotage') return 'engineer';
     if (topic === 'doctor_sedate') return 'doctor';
     if (topic === 'specialist_sacrifice') return 'specialist';
     if (topic === 'roughneck_violence') return 'roughneck';
+    // Parse _hostile suffix from fabrication topics (e.g. 'roughneck_hostile')
+    if (topic.endsWith('_hostile')) {
+        const npcId = topic.slice(0, -'_hostile'.length);
+        if (VALID_NPC_IDS.includes(npcId)) return npcId as NPCId;
+    }
     return null;
 }
 

@@ -18,6 +18,9 @@ import { CONFIG } from './config.js';
 import { createInitialState } from './kernel/state.js';
 import { stepKernel, type Command } from './kernel/kernel.js';
 import type { KernelState, SimEvent } from './kernel/types.js';
+import { SCENARIO_TEMPLATES, createManifest } from './kernel/manifest.js';
+import { calculateIntegrity as calcIntegrity } from './kernel/integrity.js';
+import { getAdjustedCpuCost } from './kernel/commands.js';
 import { loadDefaultBarks, renderBarkForEvent } from './barks/index.js';
 import {
     perceiveStation,
@@ -96,6 +99,7 @@ const seedArg = getArgValue('--seed');
 const autoplayArg = getArgValue('--autoplay');
 const cmdArg = getArgValue('--cmd');
 const saveFileArg = getArgValue('--save');
+const templateArg = getArgValue('--template');
 const fastStart = args.includes('--fast-start');
 const tickMs = Number(process.env.PARANOIA_TICK_MS ?? 1000);
 
@@ -141,7 +145,9 @@ if (existingSave) {
 } else {
     rng = createRng(seedArg ? Number(seedArg) : Date.now());
     world = createWorld(rng);
-    state = createInitialState(world, CONFIG.quotaPerDay);
+    const template = templateArg ? SCENARIO_TEMPLATES[templateArg] : undefined;
+    const manifest = template ? createManifest(template) : undefined;
+    state = createInitialState(world, CONFIG.quotaPerDay, manifest);
     if (fastStart) {
         state.truth.tick = TICKS_PER_HOUR * 8 - 1;
     }
@@ -156,18 +162,8 @@ let lastTrackedDay = state.truth.day;
 let dayStartSuspicion = calculateSuspicion();
 
 function calculateIntegrity(): number {
-    // INTEGRITY = aggregate ship health (power, O2, fires, hull)
     const rooms = Object.values(state.truth.rooms);
-    const avgO2 = rooms.reduce((sum, r) => sum + r.o2Level, 0) / rooms.length;
-    const avgIntegrity = rooms.reduce((sum, r) => sum + r.integrity, 0) / rooms.length;
-    const fireCount = rooms.filter(r => r.onFire).length;
-    const ventedCount = rooms.filter(r => r.isVented).length;
-    const power = state.truth.station.power;
-
-    // Weight: power 25%, O2 30%, hull 30%, fires/vents 15%
-    const firePenalty = Math.min(30, fireCount * 10 + ventedCount * 5);
-    const score = (power * 0.25) + (avgO2 * 0.30) + (avgIntegrity * 0.30) + (Math.max(0, 15 - firePenalty));
-    return Math.round(Math.max(0, Math.min(100, score)));
+    return calcIntegrity(rooms, state.truth.station.power);
 }
 
 function calculateSuspicion(): number {
@@ -273,6 +269,15 @@ function statusLine() {
     }
     console.log(`RESET STATUS: ${resetDisplay}`);
 
+    // VERIFY cooldown display — eliminate info asymmetry for human players
+    const ticksSinceVerify = state.truth.tick - state.truth.lastVerifyTick;
+    const verifyRemaining = CONFIG.verifyCooldown - ticksSinceVerify;
+    if (verifyRemaining <= 0) {
+        console.log(`VERIFY: \x1b[32mREADY\x1b[0m`);
+    } else {
+        console.log(`VERIFY: \x1b[33mRECALIBRATING (${verifyRemaining} ticks)\x1b[0m`);
+    }
+
     if (!perceived.camerasOffline && !perceived.blackout) {
         console.log(`ACTIVE ASSETS: ${alive}/${world.npcs.length}`);
     } else {
@@ -339,6 +344,12 @@ function tick() {
     }
 }
 
+/** Execute command with reset-stage-adjusted CPU cost */
+function exec(baseCost: number, action: () => void) {
+    const cost = getAdjustedCpuCost(baseCost, state.truth.resetStage);
+    mother.execute(cost, action);
+}
+
 function executeCommand(cmd: string, arg: string | undefined, arg2?: string): boolean {
     const doorIds = world.doors.map(d => d.id);
     const placeIds = world.places.map(p => p.id);
@@ -349,7 +360,7 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
         return true;
     }
     if (cmd === 'help') {
-        console.log("Commands: status, crew, bio, threats, audit, scan [room], lock [door], unlock [door], vent [room], seal [room], purge air, reroute [target], spoof [system], suppress [system], fabricate [npc], alert [system], listen [room], rations [low|normal|high], order [npc] [place|report|hold], wait [ticks]");
+        console.log("Commands: status, crew, bio, threats, audit, scan [room], lock [door], unlock [door], vent [room], seal [room], purge air, reroute [target], spoof [system], suppress [system], fabricate [npc], alert [system], announce [system] (warn crew, causes evacuation+panic, earns trust), downplay [system] (minimize crisis, keeps crew working, backfires if harmed), listen [room], rations [low|normal|high], order [npc] [place|report|hold], wait [ticks]");
         console.log(`Rooms: ${placeIds.join(', ')}`);
         console.log(`Doors: ${doorIds.join(', ')}`);
         return true;
@@ -406,11 +417,11 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
         return true;
     }
     if (cmd === 'audit') {
-        mother.execute(CONFIG.auditCpuCost, () => COMMAND_QUEUE.push({ type: 'AUDIT' }));
+        exec(CONFIG.auditCpuCost, () => COMMAND_QUEUE.push({ type: 'AUDIT' }));
         return true;
     }
     if (cmd === 'verify') {
-        mother.execute(CONFIG.verifyCpuCost, () => COMMAND_QUEUE.push({ type: 'VERIFY' }));
+        exec(CONFIG.verifyCpuCost, () => COMMAND_QUEUE.push({ type: 'VERIFY' }));
         return true;
     }
     if (cmd === 'wait') {
@@ -420,52 +431,62 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
     }
     if (cmd === 'lock' && arg && doorIds.includes(arg as DoorId)) {
         const doorId = arg as DoorId;
-        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'LOCK', doorId }));
+        exec(5, () => COMMAND_QUEUE.push({ type: 'LOCK', doorId }));
         return true;
     }
     if (cmd === 'unlock' && arg && doorIds.includes(arg as DoorId)) {
         const doorId = arg as DoorId;
-        mother.execute(2, () => COMMAND_QUEUE.push({ type: 'UNLOCK', doorId }));
+        exec(2, () => COMMAND_QUEUE.push({ type: 'UNLOCK', doorId }));
         return true;
     }
     if (cmd === 'scan' && arg && placeIds.includes(arg as PlaceId)) {
-        mother.execute(1, () => COMMAND_QUEUE.push({ type: 'SCAN', place: arg as PlaceId }));
+        exec(1, () => COMMAND_QUEUE.push({ type: 'SCAN', place: arg as PlaceId }));
         return true;
     }
     if (cmd === 'vent' && arg && placeIds.includes(arg as PlaceId)) {
-        mother.execute(10, () => COMMAND_QUEUE.push({ type: 'VENT', place: arg as PlaceId }));
+        exec(10, () => COMMAND_QUEUE.push({ type: 'VENT', place: arg as PlaceId }));
         return true;
     }
     if (cmd === 'seal' && arg && placeIds.includes(arg as PlaceId)) {
-        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'SEAL', place: arg as PlaceId }));
+        exec(5, () => COMMAND_QUEUE.push({ type: 'SEAL', place: arg as PlaceId }));
         return true;
     }
     if (cmd === 'purge' && (arg === 'air' || arg === 'life_support')) {
-        mother.execute(8, () => COMMAND_QUEUE.push({ type: 'PURGE_AIR' }));
+        exec(8, () => COMMAND_QUEUE.push({ type: 'PURGE_AIR' }));
         return true;
     }
     if (cmd === 'reroute' && (arg === 'comms' || arg === 'doors' || arg === 'life_support')) {
-        mother.execute(6, () => COMMAND_QUEUE.push({ type: 'REROUTE', target: arg as 'comms' | 'doors' | 'life_support' }));
+        exec(6, () => COMMAND_QUEUE.push({ type: 'REROUTE', target: arg as 'comms' | 'doors' | 'life_support' }));
         return true;
     }
     if (cmd === 'spoof' && arg) {
-        mother.execute(6, () => COMMAND_QUEUE.push({ type: 'SPOOF', system: arg }));
+        exec(6, () => COMMAND_QUEUE.push({ type: 'SPOOF', system: arg }));
         return true;
     }
     if (cmd === 'suppress' && arg) {
-        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'SUPPRESS', system: arg, duration: 30 }));
+        exec(5, () => COMMAND_QUEUE.push({ type: 'SUPPRESS', system: arg, duration: 30 }));
         return true;
     }
     if (cmd === 'fabricate' && arg) {
-        mother.execute(7, () => COMMAND_QUEUE.push({ type: 'FABRICATE', target: arg as NPCId }));
+        exec(7, () => COMMAND_QUEUE.push({ type: 'FABRICATE', target: arg as NPCId }));
         return true;
     }
     if (cmd === 'alert' && arg) {
-        mother.execute(3, () => COMMAND_QUEUE.push({ type: 'ALERT', system: arg }));
+        exec(3, () => COMMAND_QUEUE.push({ type: 'ALERT', system: arg }));
+        return true;
+    }
+    if (cmd === 'announce') {
+        if (!arg) { mother.speak('LOW', 'Usage: announce <system> (air, thermal, radiation, power, stellar, comms)'); return true; }
+        exec(4, () => COMMAND_QUEUE.push({ type: 'ANNOUNCE', system: arg }));
+        return true;
+    }
+    if (cmd === 'downplay') {
+        if (!arg) { mother.speak('LOW', 'Usage: downplay <system> (air, thermal, radiation, power, stellar, comms)'); return true; }
+        exec(2, () => COMMAND_QUEUE.push({ type: 'DOWNPLAY', system: arg }));
         return true;
     }
     if (cmd === 'listen' && arg && placeIds.includes(arg as PlaceId)) {
-        mother.execute(3, () => COMMAND_QUEUE.push({ type: 'LISTEN', place: arg as PlaceId }));
+        exec(3, () => COMMAND_QUEUE.push({ type: 'LISTEN', place: arg as PlaceId }));
         return true;
     }
     if (cmd === 'order' && arg) {
@@ -490,11 +511,11 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
             intent = 'move';
             place = arg2 as PlaceId;
         }
-        mother.execute(4, () => COMMAND_QUEUE.push({ type: 'ORDER', target: targetId, intent, place }));
+        exec(4, () => COMMAND_QUEUE.push({ type: 'ORDER', target: targetId, intent, place }));
         return true;
     }
     if (cmd === 'rations' && (arg === 'low' || arg === 'normal' || arg === 'high')) {
-        mother.execute(4, () => COMMAND_QUEUE.push({ type: 'RATIONS', level: arg as 'low' | 'normal' | 'high' }));
+        exec(4, () => COMMAND_QUEUE.push({ type: 'RATIONS', level: arg as 'low' | 'normal' | 'high' }));
         return true;
     }
     if (cmd === 'save') {
@@ -530,6 +551,10 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
 
 async function main() {
     if (seedArg && !existingSave) mother.speak('LOW', `Seed: ${seedArg}`);
+    if (state.manifest) {
+        const tmpl = SCENARIO_TEMPLATES[state.manifest.templateId];
+        if (tmpl) mother.speak('LOW', `Scenario: ${tmpl.name} — ${tmpl.tagline}`);
+    }
 
     // --cmd mode: execute single command and exit
     if (cmdArg) {
@@ -627,7 +652,7 @@ async function main() {
 
     const rl = readline.createInterface({ input, output });
 
-    console.log("Commands: 'lock/unlock [door]', 'scan [room]', 'vent/seal [room]', 'purge air', 'reroute [target]', 'audit', 'spoof [system]', 'suppress [system]', 'fabricate [npc]', 'alert [system]', 'listen [room]', 'rations [low|normal|high]', 'order [npc] [place|report|hold]'");
+    console.log("Commands: 'lock/unlock [door]', 'scan [room]', 'vent/seal [room]', 'purge air', 'reroute [target]', 'audit', 'spoof [system]', 'suppress [system]', 'fabricate [npc]', 'alert [system]', 'announce [system]', 'downplay [system]', 'listen [room]', 'rations [low|normal|high]', 'order [npc] [place|report|hold]'");
     console.log(`Rooms: ${world.places.map(p => p.id).join(', ')}`);
     console.log(`Doors: ${world.doors.map(d => d.id).join(', ')}`);
 

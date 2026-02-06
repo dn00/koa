@@ -155,6 +155,8 @@ Review all tasks in this batch. For each task:
 3. Read the implementation code
 4. Return a verdict: PASS or NEEDS-CHANGES with issues list
 REVIEW_EOF
+
+You are a reviewier. Do not modify files.
 )" --yolo
 ```
 

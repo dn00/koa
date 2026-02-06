@@ -53,16 +53,17 @@ export function checkSuppressBackfire(state: KernelState): void {
         applySuspicionChange(state, spike, 'SUPPRESS_BACKFIRE',
             `Crew witnessed ${system} crisis while alert suppressed`);
 
-        // Create ActiveDoubt (Task 010)
+        // Create ActiveDoubt (Task 010) with enhanced narrative (Task 003)
         state.perception.activeDoubts.push({
             id: `doubt-${state.truth.tick}-suppress`,
-            topic: `${system} crisis was hidden`,
+            topic: `MOTHER concealed ${system} crisis alert`,
             createdTick: state.truth.tick,
-            severity: op.severity,
+            severity: 3, // Task 003: All backfire doubts have max severity
             involvedCrew: [...op.crewAffected],
             relatedOpId: op.id,
             system,
             resolved: false,
+            source: 'backfire', // Task 003: Backfire source tracking
         });
     }
 }
@@ -157,16 +158,17 @@ export function checkSpoofBackfire(state: KernelState): void {
             }
         }
 
-        // Create ActiveDoubt (Task 010)
+        // Create ActiveDoubt (Task 010) with enhanced narrative (Task 003)
         state.perception.activeDoubts.push({
             id: `doubt-${state.truth.tick}-spoof`,
-            topic: `False ${system} alarm exposed`,
+            topic: `MOTHER lied about ${system} emergency`,
             createdTick: state.truth.tick,
-            severity: op.severity,
+            severity: 3, // Task 003: All backfire doubts have max severity
             involvedCrew: [...op.crewAffected],
             relatedOpId: op.id,
             system,
             resolved: false,
+            source: 'backfire', // Task 003: Backfire source tracking
         });
     }
 }
@@ -221,15 +223,16 @@ export function checkFabricateBackfire(state: KernelState): void {
             applySuspicionChange(state, spike, 'FABRICATE_BACKFIRE',
                 `Frame job against ${target} exposed — alibi confirmed`);
 
-            // Create ActiveDoubt (Task 010)
+            // Create ActiveDoubt (Task 010) with enhanced narrative (Task 003)
             state.perception.activeDoubts.push({
                 id: `doubt-${state.truth.tick}-fabricate`,
-                topic: `Frame job against ${target} exposed`,
+                topic: `MOTHER framed ${target} with false logs`,
                 createdTick: state.truth.tick,
-                severity: op.severity,
+                severity: 3, // Task 003: All backfire doubts have max severity
                 involvedCrew: [...op.crewAffected],
                 relatedOpId: op.id,
                 resolved: false,
+                source: 'backfire', // Task 003: Backfire source tracking
             });
 
             // Target becomes extremely distrustful

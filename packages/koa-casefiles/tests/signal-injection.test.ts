@@ -70,8 +70,8 @@ function makeConfig(overrides: Partial<CaseConfig> = {}): CaseConfig {
 // AC-1: Injects door event catching culprit
 // ---------------------------------------------------------------------------
 
-describe('AC-1: Injects door event catching culprit', () => {
-  test('creates DOOR_OPENED event with actor=culpritId targeting door adjacent to crime scene', () => {
+describe('AC-1: Injects MOTION_DETECTED event catching culprit', () => {
+  test('creates MOTION_DETECTED event with actor=culpritId targeting device adjacent to crime scene', () => {
     const world = makeWorld();
     const config = makeConfig();
     const events: SimEvent[] = [];
@@ -80,12 +80,11 @@ describe('AC-1: Injects door event catching culprit', () => {
     const result = injectMinimalSignal(world, events, config, rng);
 
     expect(result).not.toBeNull();
-    expect(result!.type).toBe('DOOR_OPENED');
+    expect(result!.type).toBe('MOTION_DETECTED');
     expect(result!.actor).toBe('npc_culprit');
-    // Event targets a door adjacent to the crime scene (kitchen)
-    const door = world.devices.find(d => d.id === result!.target);
-    expect(door).toBeDefined();
-    expect(door!.type).toBe('door_sensor');
+    // Event targets a device adjacent to the crime scene (kitchen)
+    const device = world.devices.find(d => d.id === result!.target);
+    expect(device).toBeDefined();
   });
 
   test('event is added to the events array', () => {

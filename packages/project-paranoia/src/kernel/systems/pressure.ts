@@ -71,28 +71,30 @@ export function maybeActivatePressure(
     rng: RNG,
     cfg: PressureRoutingConfig = CONFIG as PressureRoutingConfig,
 ): Proposal[] {
-    const { truth } = state;
+    const { truth, manifest } = state;
 
     // Check cooldown
+    const cooldown = manifest?.directorOverrides?.threatActivationCooldown ?? cfg.threatActivationCooldown;
     if (truth.tick < truth.pacing.nextThreatActivationTick) return [];
 
     // Calculate activation chance with boredom/tension modifiers
-    let chance = cfg.threatActivationChance;
+    let chance = manifest?.directorOverrides?.threatActivationChance ?? cfg.threatActivationChance;
     if (truth.pacing.boredom >= cfg.boredomThreshold) chance += 3;
     if (truth.pacing.tension >= cfg.tensionThreshold) chance = Math.max(1, chance - 1);
 
     // Roll for activation
     if (rng.nextInt(100) >= chance) return [];
 
-    // Get suspicion → mix → channel
+    // Get suspicion → mix → channel (manifest overrides pressure weights)
     const suspicion = calculateCrewSuspicion(state);
-    const mix = getPressureMix(suspicion, cfg);
+    const effectiveCfg = manifest?.pressureWeights ? applyManifestPressure(cfg, manifest.pressureWeights) : cfg;
+    const mix = getPressureMix(suspicion, effectiveCfg);
     const channel = pickChannel(mix, rng);
 
     let proposals: Proposal[] = [];
 
     if (channel === 'physical') {
-        tryActivateArc(state, rng, cfg.maxActiveThreats);
+        tryActivateArc(state, rng);
     } else if (channel === 'social') {
         proposals = proposeSocialPressure(state, rng);
     } else {
@@ -100,9 +102,27 @@ export function maybeActivatePressure(
     }
 
     // Set cooldown regardless of channel
-    truth.pacing.nextThreatActivationTick = truth.tick + cfg.threatActivationCooldown;
+    truth.pacing.nextThreatActivationTick = truth.tick + cooldown;
 
     return proposals;
+}
+
+function applyManifestPressure(
+    base: PressureConfig,
+    overrides: NonNullable<import('../manifest.js').RunManifest['pressureWeights']>,
+): PressureConfig {
+    return {
+        ...base,
+        pressureLowPhysical: overrides.low?.physical ?? base.pressureLowPhysical,
+        pressureLowSocial: overrides.low?.social ?? base.pressureLowSocial,
+        pressureLowEpistemic: overrides.low?.epistemic ?? base.pressureLowEpistemic,
+        pressureMidPhysical: overrides.mid?.physical ?? base.pressureMidPhysical,
+        pressureMidSocial: overrides.mid?.social ?? base.pressureMidSocial,
+        pressureMidEpistemic: overrides.mid?.epistemic ?? base.pressureMidEpistemic,
+        pressureHighPhysical: overrides.high?.physical ?? base.pressureHighPhysical,
+        pressureHighSocial: overrides.high?.social ?? base.pressureHighSocial,
+        pressureHighEpistemic: overrides.high?.epistemic ?? base.pressureHighEpistemic,
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -113,13 +133,33 @@ let pressureOrdinal = 0;
 
 export function pickSuspiciousCrew(state: KernelState, rng: RNG): CrewTruth | undefined {
     const aliveCrew = Object.values(state.truth.crew).filter(c => c.alive);
+    if (aliveCrew.length === 0) return undefined;
+
+    // Tier 1: crew who already distrust MOTHER (evidence-based)
     const suspicious = aliveCrew.filter(c => {
         const belief = state.perception.beliefs[c.id];
         if (!belief) return false;
         return belief.motherReliable < 0.5 || belief.tamperEvidence > 20;
     });
-    if (suspicious.length === 0) return undefined;
-    return rng.pick(suspicious);
+    if (suspicious.length > 0) return rng.pick(suspicious);
+
+    // Tier 2: crew with justified unease — something bad happened to them
+    // Stressed, injured, or exposed to active crises → "why didn't MOTHER prevent this?"
+    const uneasy = aliveCrew.filter(c => {
+        if (c.stress > 30) return true; // anxious people get paranoid
+        if (c.hp < 80) return true; // injured crew blame the system
+        // Near an active crisis
+        const nearCrisis = state.truth.arcs.some(arc => arc.target === c.place);
+        if (nearCrisis) return true;
+        // In a hazardous room
+        const room = state.truth.rooms[c.place];
+        if (room && (room.onFire || room.isVented || room.o2Level < 40 || room.radiation > 3)) return true;
+        return false;
+    });
+    if (uneasy.length > 0) return rng.pick(uneasy);
+
+    // No one has a reason to grumble — station is running fine
+    return undefined;
 }
 
 function makeCommsMessage(params: {
@@ -150,7 +190,7 @@ function makeCommsMessage(params: {
 // Task 003: Social pressure events
 // ---------------------------------------------------------------------------
 
-type SocialEventType = 'whisper_campaign' | 'loyalty_test' | 'confrontation';
+type SocialEventType = 'whisper_campaign' | 'loyalty_test' | 'confrontation' | 'grudge_whisper';
 
 export function proposeSocialPressure(state: KernelState, rng: RNG): Proposal[] {
     const suspicious = pickSuspiciousCrew(state, rng);
@@ -164,6 +204,14 @@ export function proposeSocialPressure(state: KernelState, rng: RNG): Proposal[] 
     pool.push('loyalty_test');
     pool.push('confrontation');
 
+    // Check if any crew has high grudge against someone (from fabrication)
+    const hasGrudgeTarget = aliveCrew.some(c => {
+        const belief = state.perception.beliefs[c.id];
+        if (!belief) return false;
+        return Object.values(belief.crewGrudge).some(g => g >= CONFIG.grudgeWhisperThreshold);
+    });
+    if (hasGrudgeTarget && aliveCrew.length >= 2) pool.push('grudge_whisper');
+
     const eventType = rng.pick(pool);
 
     switch (eventType) {
@@ -173,6 +221,8 @@ export function proposeSocialPressure(state: KernelState, rng: RNG): Proposal[] 
             return proposeLoyaltyTest(state, suspicious, rng);
         case 'confrontation':
             return proposeConfrontation(state, suspicious, rng);
+        case 'grudge_whisper':
+            return proposeGrudgeWhisper(state, rng);
     }
 }
 
@@ -254,6 +304,63 @@ function proposeConfrontation(state: KernelState, suspicious: CrewTruth, rng: RN
             pressureSuspicion: { delta: 3, reason: 'CONFRONTATION', detail: `${suspicious.id} confronts crew about MOTHER` },
         },
     }, ['reaction', 'choice'])];
+}
+
+const GRUDGE_PHRASES = [
+    "I don't trust %TARGET%. Something's off about them.",
+    "Keep your distance from %TARGET%. They're not right.",
+    "%TARGET% has been acting strange. Watch yourself.",
+    "I've seen what %TARGET% does when no one's looking.",
+];
+
+function proposeGrudgeWhisper(state: KernelState, rng: RNG): Proposal[] {
+    const aliveCrew = Object.values(state.truth.crew).filter(c => c.alive);
+    if (aliveCrew.length < 2) return [];
+
+    const proposals: Proposal[] = [];
+    const whisperedTargets = new Set<NPCId>(); // Cap: 1 grudge whisper per target
+
+    for (const speaker of aliveCrew) {
+        const belief = state.perception.beliefs[speaker.id];
+        if (!belief) continue;
+
+        for (const [targetId, grudge] of Object.entries(belief.crewGrudge)) {
+            if (grudge < CONFIG.grudgeWhisperThreshold) continue;
+            if (whisperedTargets.has(targetId as NPCId)) continue;
+            if (targetId === speaker.id) continue;
+
+            // Find a listener in the same room or nearby
+            const listener = aliveCrew.find(
+                c => c.id !== speaker.id && c.id !== targetId
+            );
+            if (!listener) continue;
+
+            const phrase = rng.pick(GRUDGE_PHRASES).replace('%TARGET%', targetId.toUpperCase());
+
+            proposals.push(makeProposal(state, {
+                type: 'COMMS_MESSAGE',
+                actor: speaker.id,
+                place: speaker.place,
+                target: listener.id,
+                data: {
+                    message: makeCommsMessage({
+                        tick: state.truth.tick,
+                        kind: 'whisper',
+                        from: speaker.id,
+                        to: listener.id,
+                        place: speaker.place,
+                        topic: `${targetId}_hostile`,
+                        text: `[WHISPER] ${speaker.id.toUpperCase()}: ${phrase}`,
+                        confidence: 0.45,
+                    }),
+                },
+            }, ['reaction', 'choice', 'uncertainty']));
+
+            whisperedTargets.add(targetId as NPCId);
+        }
+    }
+
+    return proposals;
 }
 
 // ---------------------------------------------------------------------------
@@ -372,7 +479,7 @@ function proposeDoubtVoiced(state: KernelState, aliveCrew: CrewTruth[], rng: RNG
                 text: `[LOG] ${speaker.id.toUpperCase()}: ${phrase}`,
                 confidence: 0.5,
             }),
-            pressureSuspicion: { delta: 2, reason: 'DOUBT_VOICED', detail: `${speaker.id} expresses doubt about MOTHER` },
+            pressureSuspicion: { delta: 3, reason: 'DOUBT_VOICED', detail: `${speaker.id} expresses doubt about MOTHER` },
         },
     }, ['uncertainty'])];
 }

@@ -28,7 +28,8 @@ import { ACTIVITIES } from './activities.js';
 import { autosolve, solve } from './solver.js';
 import type { SolverMetrics } from './validators.js';
 import { generateBundle } from './bundle.js';
-import { findValidDailySeed, getTierForDate, type DailyCaseRecord } from './daily/index.js';
+import { findValidDailySeed, getTierForDate, scoreDailyCandidate, type DailyCaseRecord, type CandidateScore } from './daily/index.js';
+import { analyzeSignal } from './validators.js';
 import { readFileSync } from 'fs';
 
 function getDifficultyConfig(tier: DifficultyTier): DifficultyConfig {
@@ -641,6 +642,23 @@ function runTuner(
 }
 
 // ============================================================================
+function printVerboseScoring(
+    score: number,
+    breakdown: CandidateScore,
+    candidatesEvaluated: number,
+    seed: number,
+    offset: number,
+): void {
+    const plural = candidatesEvaluated === 1 ? 'candidate' : 'candidates';
+    console.error(`Evaluated ${candidatesEvaluated} ${plural} (offsets 0-${offset})`);
+    console.error(`Best: seed ${seed}, score ${score}/100`);
+    console.error(`  Playability:        ${breakdown.playability}/20`);
+    console.error(`  Difficulty Fit:     ${breakdown.difficultyFit}/20`);
+    console.error(`  Funness:            ${breakdown.funness}/20`);
+    console.error(`  Discoverability:    ${breakdown.discoverability}/20`);
+    console.error(`  Deduction Quality:  ${breakdown.deductionQuality}/20`);
+}
+
 // Main
 // ============================================================================
 
@@ -660,6 +678,8 @@ if (args.daily) {
             console.error('Failed to generate case for provided seed');
             process.exit(1);
         }
+        const scoreBreakdown = scoreDailyCandidate(caseData.sim, caseData.evidence, tier);
+        const signal = analyzeSignal(caseData.evidence, caseData.sim.config);
         const result = {
             seed: args.seed,
             tier,
@@ -668,7 +688,15 @@ if (args.daily) {
             crimeType: caseData.sim.config.crimeType,
             date: dateStr,
             rulesetVersion: RULESET_VERSION,
+            methodId: caseData.sim.config.crimeMethod.methodId,
+            signalType: signal.signalType,
+            score: scoreBreakdown.total,
+            scoreBreakdown,
+            candidatesEvaluated: 1,
         };
+        if (args.verbose) {
+            printVerboseScoring(result.score, scoreBreakdown, result.candidatesEvaluated, result.seed, result.offset);
+        }
         if (args.bundle) {
             const bundleData = generateBundle(args.seed, tier);
             if (!bundleData) {
@@ -687,6 +715,10 @@ if (args.daily) {
         if (!result) {
             console.error('Failed to find valid daily seed');
             process.exit(1);
+        }
+
+        if (args.verbose) {
+            printVerboseScoring(result.score, result.scoreBreakdown, result.candidatesEvaluated, result.seed, result.offset);
         }
 
         if (args.bundle) {

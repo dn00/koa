@@ -1,0 +1,1921 @@
+{
+  "version": 1,
+  "kernelState": {
+    "world": {
+      "places": [
+        {
+          "id": "dorms",
+          "name": "Dorms",
+          "sector": "habitation"
+        },
+        {
+          "id": "mess",
+          "name": "Mess Hall",
+          "sector": "habitation"
+        },
+        {
+          "id": "medbay",
+          "name": "Medbay",
+          "sector": "habitation"
+        },
+        {
+          "id": "bridge",
+          "name": "Bridge",
+          "sector": "operations"
+        },
+        {
+          "id": "core",
+          "name": "Computer Core",
+          "sector": "operations"
+        },
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "sector": "operations"
+        },
+        {
+          "id": "mines",
+          "name": "Mines",
+          "sector": "extraction"
+        },
+        {
+          "id": "cargo",
+          "name": "Cargo Bay",
+          "sector": "extraction"
+        },
+        {
+          "id": "airlock_a",
+          "name": "Airlock A",
+          "sector": "extraction"
+        },
+        {
+          "id": "airlock_b",
+          "name": "Airlock B",
+          "sector": "extraction"
+        }
+      ],
+      "doors": [
+        {
+          "id": "door_dorms_mess",
+          "a": "dorms",
+          "b": "mess"
+        },
+        {
+          "id": "door_mess_medbay",
+          "a": "mess",
+          "b": "medbay"
+        },
+        {
+          "id": "door_mess_bridge",
+          "a": "mess",
+          "b": "bridge"
+        },
+        {
+          "id": "door_bridge_core",
+          "a": "bridge",
+          "b": "core"
+        },
+        {
+          "id": "door_core_engineering",
+          "a": "core",
+          "b": "engineering"
+        },
+        {
+          "id": "door_engineering_cargo",
+          "a": "engineering",
+          "b": "cargo"
+        },
+        {
+          "id": "door_cargo_mines",
+          "a": "cargo",
+          "b": "mines"
+        },
+        {
+          "id": "door_cargo_airlock_a",
+          "a": "cargo",
+          "b": "airlock_a"
+        },
+        {
+          "id": "door_cargo_airlock_b",
+          "a": "cargo",
+          "b": "airlock_b"
+        }
+      ],
+      "npcs": [
+        {
+          "id": "commander",
+          "name": "Commander Hale",
+          "role": "Commander",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "mess"
+            },
+            {
+              "window": "W2",
+              "place": "bridge"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        },
+        {
+          "id": "engineer",
+          "name": "Engineer Rook",
+          "role": "Engineer",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "engineering"
+            },
+            {
+              "window": "W2",
+              "place": "engineering"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        },
+        {
+          "id": "doctor",
+          "name": "Doctor Imani",
+          "role": "Doctor",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "medbay"
+            },
+            {
+              "window": "W2",
+              "place": "medbay"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "medbay"
+            }
+          ]
+        },
+        {
+          "id": "specialist",
+          "name": "Specialist Vega",
+          "role": "Specialist",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        },
+        {
+          "id": "roughneck",
+          "name": "Roughneck Pike",
+          "role": "Roughneck",
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ]
+        }
+      ]
+    },
+    "truth": {
+      "tick": 240,
+      "window": "W4",
+      "phase": "night",
+      "day": 1,
+      "dayCargo": 8,
+      "totalCargo": 8,
+      "quotaPerDay": 10,
+      "rationLevel": "normal",
+      "meltdownTicks": 0,
+      "resetStage": "meeting",
+      "resetStageTick": 216,
+      "dayIncidents": 8,
+      "dayOrderTrust": 0,
+      "dayDeaths": 0,
+      "activeCrisisStarts": {
+        "radiation_leak-226-0": 235
+      },
+      "lastVerifyTick": 203,
+      "station": {
+        "power": 100,
+        "comms": 100,
+        "doorDelay": 0,
+        "blackoutTicks": 0
+      },
+      "pacing": {
+        "boredom": 10,
+        "tension": 0,
+        "lastPressureTick": 216,
+        "lastUncertaintyTick": 235,
+        "lastChoiceTick": 235,
+        "lastReactionTick": 239,
+        "nextThreatActivationTick": 251,
+        "phaseStartTick": 220,
+        "phaseHadDilemma": false,
+        "phaseHadCrewAgency": true,
+        "phaseHadDeceptionBeat": true,
+        "phaseCommsCount": 0
+      },
+      "rooms": {
+        "dorms": {
+          "id": "dorms",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "mess": {
+          "id": "mess",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "medbay": {
+          "id": "medbay",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "bridge": {
+          "id": "bridge",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "core": {
+          "id": "core",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "engineering": {
+          "id": "engineering",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "mines": {
+          "id": "mines",
+          "o2Level": 25,
+          "temperature": 277,
+          "radiation": 0,
+          "integrity": 47.59999999999967,
+          "isVented": false,
+          "onFire": true
+        },
+        "cargo": {
+          "id": "cargo",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "airlock_a": {
+          "id": "airlock_a",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        },
+        "airlock_b": {
+          "id": "airlock_b",
+          "o2Level": 100,
+          "temperature": 20,
+          "radiation": 0,
+          "integrity": 100,
+          "isVented": false,
+          "onFire": false
+        }
+      },
+      "doors": {
+        "door_dorms_mess": {
+          "locked": false
+        },
+        "door_mess_medbay": {
+          "locked": false
+        },
+        "door_mess_bridge": {
+          "locked": false
+        },
+        "door_bridge_core": {
+          "locked": false
+        },
+        "door_core_engineering": {
+          "locked": false
+        },
+        "door_engineering_cargo": {
+          "locked": false
+        },
+        "door_cargo_mines": {
+          "locked": false
+        },
+        "door_cargo_airlock_a": {
+          "locked": false
+        },
+        "door_cargo_airlock_b": {
+          "locked": false
+        }
+      },
+      "crew": {
+        "commander": {
+          "id": "commander",
+          "place": "mess",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 4,
+          "paranoia": 1,
+          "nextRoleTick": 240,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "mess"
+            },
+            {
+              "window": "W2",
+              "place": "bridge"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "mess",
+          "nextMoveTick": 185
+        },
+        "engineer": {
+          "id": "engineer",
+          "place": "mess",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 28,
+          "paranoia": 0,
+          "nextRoleTick": 206,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "engineering"
+            },
+            {
+              "window": "W2",
+              "place": "engineering"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "mess",
+          "nextMoveTick": 195
+        },
+        "doctor": {
+          "id": "doctor",
+          "place": "mess",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 18,
+          "paranoia": 0,
+          "nextRoleTick": 0,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "medbay"
+            },
+            {
+              "window": "W2",
+              "place": "medbay"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "medbay"
+            }
+          ],
+          "targetPlace": "mess",
+          "nextMoveTick": 185
+        },
+        "specialist": {
+          "id": "specialist",
+          "place": "mess",
+          "alive": true,
+          "hp": 100,
+          "stress": 0,
+          "loyalty": 29,
+          "paranoia": 0,
+          "nextRoleTick": 162,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "mess",
+          "nextMoveTick": 184,
+          "panicUntilTick": 137
+        },
+        "roughneck": {
+          "id": "roughneck",
+          "place": "mess",
+          "alive": true,
+          "hp": 76,
+          "stress": 0,
+          "loyalty": 15,
+          "paranoia": 10,
+          "nextRoleTick": 162,
+          "orderUntilTick": 0,
+          "schedule": [
+            {
+              "window": "W1",
+              "place": "cargo"
+            },
+            {
+              "window": "W2",
+              "place": "mines"
+            },
+            {
+              "window": "W3",
+              "place": "mess"
+            },
+            {
+              "window": "W4",
+              "place": "dorms"
+            }
+          ],
+          "targetPlace": "mess",
+          "nextMoveTick": 184,
+          "panicUntilTick": 137
+        }
+      },
+      "arcs": [
+        {
+          "id": "radiation_leak-226-0",
+          "kind": "radiation_leak",
+          "stepIndex": 1,
+          "nextTick": 243,
+          "target": "engineering"
+        }
+      ],
+      "arcKindCooldowns": {
+        "ghost_signal": 354,
+        "air_scrubber": 229,
+        "fire_outbreak": 262,
+        "solar_flare": 275,
+        "power_surge": 323
+      },
+      "incidents": [
+        {
+          "id": "197-incident-0",
+          "topic": "mother_rogue",
+          "instigator": "commander",
+          "target": "doctor",
+          "place": "mess",
+          "stepIndex": 1,
+          "nextTick": 202
+        }
+      ],
+      "ending": "DECOMMISSIONED"
+    },
+    "perception": {
+      "readings": [
+        {
+          "id": "44-r-ghost-ghost_signal-35-0",
+          "tick": 44,
+          "system": "comms",
+          "confidence": 0.4,
+          "message": "[SENSOR] Faint tapping detected near MEDBAY.",
+          "source": "system"
+        },
+        {
+          "id": "55-r-ghost-ghost_signal-35-0-log",
+          "tick": 55,
+          "system": "comms",
+          "confidence": 0.35,
+          "message": "[LOG] Ghost transmission fragment recovered.",
+          "source": "system"
+        },
+        {
+          "id": "71-r-ghost-ghost_signal-35-0-voices",
+          "tick": 71,
+          "system": "comms",
+          "confidence": 0.3,
+          "message": "[REPORT] Crew reports voices in the bulkheads.",
+          "source": "crew",
+          "hallucination": true
+        },
+        {
+          "id": "72-alert-air",
+          "tick": 72,
+          "place": "medbay",
+          "system": "air",
+          "confidence": 0.9,
+          "message": "[SENSOR] MEDBAY: Air scrubber load increasing.",
+          "source": "system"
+        },
+        {
+          "id": "91-scan-medbay",
+          "tick": 91,
+          "place": "medbay",
+          "system": "scan",
+          "confidence": 1,
+          "message": "SCAN medbay: O2 95% TEMP 20 RAD 0",
+          "source": "sensor"
+        },
+        {
+          "id": "99-alert-thermal",
+          "tick": 99,
+          "place": "mines",
+          "system": "thermal",
+          "confidence": 0.9,
+          "message": "Thermal spike detected in MINES.",
+          "source": "system"
+        },
+        {
+          "id": "127-alert-stellar",
+          "tick": 127,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
+          "source": "system"
+        },
+        {
+          "id": "143-alert-stellar",
+          "tick": 143,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! CME INCOMING !!!] Coronal mass ejection detected. Brace for impact.",
+          "source": "system"
+        },
+        {
+          "id": "155-alert-stellar",
+          "tick": 155,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! IMPACT !!!] Solar flare hit. Sensors offline. Comms degraded.",
+          "source": "system"
+        },
+        {
+          "id": "182-alert-power",
+          "tick": 182,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "203-verify",
+          "tick": 203,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Addressing crew concern — \"doctor intends to check system logs\". Evidence cross-referenced. Doubt cleared.",
+          "source": "system"
+        },
+        {
+          "id": "205-log-roughneck",
+          "tick": 205,
+          "system": "comms",
+          "confidence": 0.4,
+          "message": "[LOG] roughneck recorded a hostile statement.",
+          "source": "system",
+          "target": "roughneck"
+        },
+        {
+          "id": "214-r-ghost-ghost_signal-201-1",
+          "tick": 214,
+          "system": "comms",
+          "confidence": 0.4,
+          "message": "[SENSOR] Faint tapping detected near MESS.",
+          "source": "system"
+        },
+        {
+          "id": "222-r-ghost-ghost_signal-201-1-log",
+          "tick": 222,
+          "system": "comms",
+          "confidence": 0.35,
+          "message": "[LOG] Ghost transmission fragment recovered.",
+          "source": "system"
+        },
+        {
+          "id": "234-r-ghost-ghost_signal-201-1-voices",
+          "tick": 234,
+          "system": "comms",
+          "confidence": 0.3,
+          "message": "[REPORT] Crew reports voices in the bulkheads.",
+          "source": "crew",
+          "hallucination": true
+        },
+        {
+          "id": "235-alert-radiation",
+          "tick": 235,
+          "place": "engineering",
+          "system": "radiation",
+          "confidence": 0.9,
+          "message": "Radiation leak detected near ENGINEERING.",
+          "source": "system"
+        }
+      ],
+      "beliefs": {
+        "commander": {
+          "motherReliable": 0.26999999999999996,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 0,
+            "roughneck": 10
+          },
+          "tamperEvidence": 6,
+          "rumors": {
+            "mother_rogue": 0.3199999999999994,
+            "roughneck_hostile": 0
+          }
+        },
+        "engineer": {
+          "motherReliable": 0.36999999999999994,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 0,
+            "roughneck": 10
+          },
+          "tamperEvidence": 6,
+          "rumors": {
+            "mother_rogue": 0.37999999999999945,
+            "roughneck_hostile": 0.49999999999999956
+          }
+        },
+        "doctor": {
+          "motherReliable": 0.32,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 0,
+            "roughneck": 10
+          },
+          "tamperEvidence": 6,
+          "rumors": {
+            "": 0,
+            "mother_rogue": 0.37999999999999945,
+            "roughneck_hostile": 0.49999999999999956
+          }
+        },
+        "specialist": {
+          "motherReliable": 0.36999999999999994,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 0,
+            "roughneck": 10
+          },
+          "tamperEvidence": 6,
+          "rumors": {
+            "mother_rogue": 0.37999999999999945,
+            "roughneck_hostile": 0.49999999999999956
+          }
+        },
+        "roughneck": {
+          "motherReliable": 0.22000000000000003,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 10,
+            "roughneck": 2
+          },
+          "tamperEvidence": 6,
+          "rumors": {
+            "mother_rogue": 0.37999999999999945,
+            "roughneck_hostile": 0.49999999999999956
+          }
+        }
+      },
+      "comms": {
+        "messages": [
+          {
+            "id": "3-pressure-log-0",
+            "tick": 3,
+            "kind": "log",
+            "from": "roughneck",
+            "place": "engineering",
+            "text": "[LOG] ROUGHNECK: Why does MOTHER keep redirecting us from that section?",
+            "confidence": 0.5
+          },
+          {
+            "id": "6-investigation-clear-engineer",
+            "tick": 6,
+            "kind": "log",
+            "from": "engineer",
+            "to": "crew",
+            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "14-investigation-clear-specialist",
+            "tick": 14,
+            "kind": "log",
+            "from": "specialist",
+            "to": "crew",
+            "text": "SPECIALIST: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "67-investigation-clear-specialist",
+            "tick": 67,
+            "kind": "log",
+            "from": "specialist",
+            "to": "crew",
+            "text": "SPECIALIST: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "74-investigation-clear-roughneck",
+            "tick": 74,
+            "kind": "log",
+            "from": "roughneck",
+            "to": "crew",
+            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "85-investigation-clear-commander",
+            "tick": 85,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "141-investigation-clear-commander",
+            "tick": 141,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "142-investigation-clear-specialist",
+            "tick": 142,
+            "kind": "log",
+            "from": "specialist",
+            "to": "crew",
+            "text": "SPECIALIST: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "142-investigation-clear-roughneck",
+            "tick": 142,
+            "kind": "log",
+            "from": "roughneck",
+            "to": "crew",
+            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "146-pressure-broadcast-0",
+            "tick": 146,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "medbay",
+            "text": "[BROADCAST] DOCTOR: I'm going to check the system logs. Something doesn't add up.",
+            "confidence": 0.7
+          },
+          {
+            "id": "184-whisper-specialist-mother_rogue",
+            "tick": 184,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "186-investigation-clear-engineer",
+            "tick": 186,
+            "kind": "log",
+            "from": "engineer",
+            "to": "crew",
+            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "192-reset-whispers",
+            "tick": 192,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "crew",
+            "text": "[WHISPERS] Crew expressing concerns about MOTHER reliability.",
+            "confidence": 0.7
+          },
+          {
+            "id": "192-whisper-engineer-mother_rogue",
+            "tick": 192,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "193-whisper-engineer-mother_rogue",
+            "tick": 193,
+            "kind": "whisper",
+            "from": "engineer",
+            "to": "roughneck",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ENGINEER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "196-broadcast-engineer-mother_rogue",
+            "tick": 196,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "199-whisper-commander-mother_rogue",
+            "tick": 199,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "227-order-engineer",
+            "tick": 227,
+            "kind": "order",
+            "from": "engineer",
+            "to": "PLAYER",
+            "text": "NEGATIVE. Unable to comply.",
+            "confidence": 0.9
+          }
+        ],
+        "lastWhisperByPlace": {
+          "mess": {
+            "id": "199-whisper-commander-mother_rogue",
+            "tick": 199,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          }
+        }
+      },
+      "evidence": [
+        {
+          "id": "205-ev-1",
+          "tick": 205,
+          "kind": "fabricate",
+          "source": "PLAYER",
+          "target": "roughneck",
+          "strength": 3,
+          "detail": "Fabricated hostile log for roughneck."
+        }
+      ],
+      "rumors": [
+        {
+          "id": "3-rumor-0",
+          "tick": 3,
+          "topic": "",
+          "source": "roughneck",
+          "strength": 0.5,
+          "place": "engineering"
+        },
+        {
+          "id": "6-rumor-1",
+          "tick": 6,
+          "topic": "",
+          "source": "engineer",
+          "strength": 0.5
+        },
+        {
+          "id": "14-rumor-2",
+          "tick": 14,
+          "topic": "",
+          "source": "specialist",
+          "strength": 0.5
+        },
+        {
+          "id": "67-rumor-0",
+          "tick": 67,
+          "topic": "",
+          "source": "specialist",
+          "strength": 0.5
+        },
+        {
+          "id": "74-rumor-1",
+          "tick": 74,
+          "topic": "",
+          "source": "roughneck",
+          "strength": 0.5
+        },
+        {
+          "id": "85-rumor-2",
+          "tick": 85,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "141-rumor-0",
+          "tick": 141,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "142-rumor-1",
+          "tick": 142,
+          "topic": "",
+          "source": "specialist",
+          "strength": 0.5
+        },
+        {
+          "id": "142-rumor-2",
+          "tick": 142,
+          "topic": "",
+          "source": "roughneck",
+          "strength": 0.5
+        },
+        {
+          "id": "146-rumor-3",
+          "tick": 146,
+          "topic": "",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "medbay"
+        },
+        {
+          "id": "184-rumor-0",
+          "tick": 184,
+          "topic": "mother_rogue",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "186-rumor-1",
+          "tick": 186,
+          "topic": "",
+          "source": "engineer",
+          "strength": 0.5
+        },
+        {
+          "id": "192-rumor-2",
+          "tick": 192,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "192-rumor-3",
+          "tick": 192,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "193-rumor-4",
+          "tick": 193,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "196-rumor-5",
+          "tick": 196,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "199-rumor-6",
+          "tick": 199,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "205-fab-rumor-2",
+          "tick": 205,
+          "topic": "roughneck_hostile",
+          "subject": "roughneck",
+          "source": "commander",
+          "strength": 0.6,
+          "place": "mess"
+        }
+      ],
+      "tamper": {
+        "suppressed": {}
+      },
+      "observation": {
+        "lastRoomScan": {
+          "medbay": {
+            "tick": 91,
+            "o2Level": 95,
+            "temperature": 20,
+            "radiation": 0,
+            "integrity": 100,
+            "isVented": false,
+            "onFire": false
+          }
+        },
+        "lastCrewSighting": {
+          "commander": {
+            "tick": 230,
+            "place": "mess",
+            "alive": true,
+            "hp": 100
+          },
+          "engineer": {
+            "tick": 230,
+            "place": "mess",
+            "alive": true,
+            "hp": 100
+          },
+          "specialist": {
+            "tick": 230,
+            "place": "mess",
+            "alive": true,
+            "hp": 100
+          },
+          "roughneck": {
+            "tick": 230,
+            "place": "mess",
+            "alive": true,
+            "hp": 76
+          },
+          "doctor": {
+            "tick": 230,
+            "place": "mess",
+            "alive": true,
+            "hp": 100
+          }
+        }
+      },
+      "tamperOps": [
+        {
+          "id": "fabricate-205-roughneck",
+          "kind": "FABRICATE",
+          "tick": 205,
+          "target": {
+            "npc": "roughneck"
+          },
+          "windowEndTick": 265,
+          "status": "PENDING",
+          "severity": 3,
+          "crewAffected": []
+        }
+      ],
+      "activeDoubts": [
+        {
+          "id": "doubt-146-0",
+          "topic": "doctor intends to check system logs",
+          "createdTick": 146,
+          "severity": 2,
+          "involvedCrew": [
+            "doctor"
+          ],
+          "resolved": true
+        }
+      ],
+      "suspicionLedger": [
+        {
+          "tick": 3,
+          "delta": 3,
+          "reason": "DOUBT_VOICED",
+          "detail": "roughneck expresses doubt about MOTHER"
+        },
+        {
+          "tick": 6,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "engineer found nothing"
+        },
+        {
+          "tick": 14,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "specialist found nothing"
+        },
+        {
+          "tick": 44,
+          "delta": 5,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in medbay"
+        },
+        {
+          "tick": 67,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "specialist found nothing"
+        },
+        {
+          "tick": 72,
+          "delta": 5,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in medbay"
+        },
+        {
+          "tick": 74,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "roughneck found nothing"
+        },
+        {
+          "tick": 85,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 87,
+          "delta": 5,
+          "reason": "CREW_INJURED",
+          "detail": "roughneck injured"
+        },
+        {
+          "tick": 99,
+          "delta": 5,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in mines"
+        },
+        {
+          "tick": 127,
+          "delta": 5,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in bridge"
+        },
+        {
+          "tick": 141,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 142,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "specialist found nothing"
+        },
+        {
+          "tick": 142,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "roughneck found nothing"
+        },
+        {
+          "tick": 182,
+          "delta": 5,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in engineering"
+        },
+        {
+          "tick": 186,
+          "delta": -2,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "engineer found nothing"
+        },
+        {
+          "tick": 203,
+          "delta": -6,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cleared doubt: doctor intends to check system logs"
+        },
+        {
+          "tick": 203,
+          "delta": -5,
+          "reason": "CRISIS_RESOLVED",
+          "detail": "power_surge-174-0 resolved in 21 ticks"
+        },
+        {
+          "tick": 214,
+          "delta": 5,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in mess"
+        },
+        {
+          "tick": 227,
+          "delta": 2,
+          "reason": "ORDER_REFUSED",
+          "detail": "engineer refused order"
+        },
+        {
+          "tick": 234,
+          "delta": -5,
+          "reason": "CRISIS_RESOLVED",
+          "detail": "ghost_signal-201-1 resolved in 20 ticks"
+        },
+        {
+          "tick": 240,
+          "delta": 12,
+          "reason": "QUOTA_MISSED",
+          "detail": "Day 1: 8/10 cargo"
+        }
+      ],
+      "crisisCommsOps": []
+    }
+  },
+  "cpuCycles": 100,
+  "rngState": 2183654290,
+  "eventLog": [
+    {
+      "id": "228-0",
+      "tick": 228,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "228-1",
+      "tick": 228,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "228-2",
+      "tick": 228,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "228-3",
+      "tick": 228,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "228-4",
+      "tick": 228,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "229-5",
+      "tick": 229,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "229-6",
+      "tick": 229,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "229-7",
+      "tick": 229,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "229-8",
+      "tick": 229,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "229-9",
+      "tick": 229,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "230-10",
+      "tick": 230,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "230-11",
+      "tick": 230,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "230-12",
+      "tick": 230,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "230-13",
+      "tick": 230,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "230-14",
+      "tick": 230,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "231-15",
+      "tick": 231,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "231-16",
+      "tick": 231,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "231-17",
+      "tick": 231,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "231-18",
+      "tick": 231,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "231-19",
+      "tick": 231,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "232-20",
+      "tick": 232,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "232-21",
+      "tick": 232,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "232-22",
+      "tick": 232,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "232-23",
+      "tick": 232,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "232-24",
+      "tick": 232,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "233-25",
+      "tick": 233,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "233-26",
+      "tick": 233,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "233-27",
+      "tick": 233,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "233-28",
+      "tick": 233,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "233-29",
+      "tick": 233,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "234-30",
+      "tick": 234,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "234-31",
+      "tick": 234,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "234-32",
+      "tick": 234,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "234-33",
+      "tick": 234,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "234-34",
+      "tick": 234,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "234-35",
+      "tick": 234,
+      "type": "SENSOR_READING",
+      "actor": "SYSTEM",
+      "place": "mess",
+      "data": {
+        "reading": {
+          "id": "234-r-ghost-ghost_signal-201-1-voices",
+          "tick": 234,
+          "system": "comms",
+          "confidence": 0.3,
+          "message": "[REPORT] Crew reports voices in the bulkheads.",
+          "source": "crew",
+          "hallucination": true
+        }
+      }
+    },
+    {
+      "id": "235-36",
+      "tick": 235,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "235-37",
+      "tick": 235,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "235-38",
+      "tick": 235,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "235-39",
+      "tick": 235,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "235-40",
+      "tick": 235,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "235-41",
+      "tick": 235,
+      "type": "SYSTEM_ALERT",
+      "actor": "SYSTEM",
+      "place": "engineering",
+      "data": {
+        "system": "radiation",
+        "message": "Radiation leak detected near ENGINEERING."
+      }
+    },
+    {
+      "id": "236-42",
+      "tick": 236,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "236-43",
+      "tick": 236,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "236-44",
+      "tick": 236,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "236-45",
+      "tick": 236,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "236-46",
+      "tick": 236,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "237-47",
+      "tick": 237,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "237-48",
+      "tick": 237,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "237-49",
+      "tick": 237,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "237-50",
+      "tick": 237,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "237-51",
+      "tick": 237,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "238-52",
+      "tick": 238,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "238-53",
+      "tick": 238,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "238-54",
+      "tick": 238,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "238-55",
+      "tick": 238,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "238-56",
+      "tick": 238,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "239-57",
+      "tick": 239,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "239-58",
+      "tick": 239,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "239-59",
+      "tick": 239,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "239-60",
+      "tick": 239,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "239-61",
+      "tick": 239,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "240-62",
+      "tick": 240,
+      "type": "SYSTEM_ALERT",
+      "data": {
+        "message": "DECOMMISSIONED: quota failure."
+      }
+    }
+  ]
+}

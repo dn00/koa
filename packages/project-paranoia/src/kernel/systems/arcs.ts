@@ -3,6 +3,7 @@ import type { RNG } from '../../core/rng.js';
 import type { KernelState, Proposal, ArcKind, PlaceId } from '../types.js';
 import { makeProposal } from '../proposals.js';
 import { applySuspicionChange } from './beliefs.js';
+import { getArcWeights } from '../manifest.js';
 
 // Track crisis starts/resolutions for event-driven suspicion
 function trackCrisisStart(state: KernelState, arcId: string, targetPlace: PlaceId) {
@@ -301,14 +302,16 @@ export function proposeArcEvents(state: KernelState, rng: RNG): { truth: Proposa
 }
 
 /** Try to create a new arc. Returns true if created, false if at max capacity. */
-export function tryActivateArc(state: KernelState, rng: RNG, maxActiveThreats = CONFIG.maxActiveThreats): boolean {
-    if (state.truth.arcs.length >= maxActiveThreats) return false;
-    const kind = pickArcKind(state.truth, rng);
+export function tryActivateArc(state: KernelState, rng: RNG, maxActiveThreats?: number): boolean {
+    const max = maxActiveThreats ?? state.manifest?.directorOverrides?.maxActiveThreats ?? CONFIG.maxActiveThreats;
+    if (state.truth.arcs.length >= max) return false;
+    const kind = pickArcKind(state, rng);
     state.truth.arcs.push(createArc(state, kind, rng));
     return true;
 }
 
-function pickArcKind(truth: KernelState['truth'], rng: RNG): ArcKind {
+function pickArcKind(state: KernelState, rng: RNG): ArcKind {
+    const { truth } = state;
     const activeKinds = new Set(truth.arcs.map(a => a.kind));
     const available = ARC_KINDS.filter(kind => {
         if (activeKinds.has(kind)) return false;
@@ -317,7 +320,20 @@ function pickArcKind(truth: KernelState['truth'], rng: RNG): ArcKind {
         return true;
     });
     if (available.length === 0) return ARC_KINDS[0];
-    return rng.pick(available);
+
+    // Weighted selection when manifest provides arc weights
+    const allWeights = getArcWeights(state.manifest);
+    const weightMap = new Map(allWeights);
+    const weighted = available.map(k => ({ kind: k, weight: weightMap.get(k) ?? 10 }));
+    const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
+    if (totalWeight <= 0) return rng.pick(available);
+
+    let roll = rng.next() * totalWeight;
+    for (const { kind, weight } of weighted) {
+        roll -= weight;
+        if (roll <= 0) return kind;
+    }
+    return weighted[weighted.length - 1].kind;
 }
 
 function createArc(state: KernelState, kind: ArcKind, rng: RNG) {
@@ -325,8 +341,8 @@ function createArc(state: KernelState, kind: ArcKind, rng: RNG) {
         id: `${kind}-${state.truth.tick}-${arcOrdinal++}`,
         kind,
         stepIndex: 0,
-        // CALMER: First step after 10-20 ticks (was 4-10)
-        nextTick: state.truth.tick + 10 + rng.nextInt(10),
+        // Crises start faster: 6-14 ticks
+        nextTick: state.truth.tick + 6 + rng.nextInt(8),
         target: pickArcTarget(state, kind, rng),
     };
 }
@@ -343,10 +359,10 @@ function pickArcTarget(state: KernelState, kind: ArcKind, rng: RNG): PlaceId {
 }
 
 function scheduleNextArcTick(state: KernelState, rng: RNG, pacing: KernelState['truth']['pacing']): number {
-    // CALMER: Arc steps every 15-30 ticks (was 8-15)
-    let delay = 15 + rng.nextInt(15);
+    // Arc steps every 10-20 ticks — outpaces env healing
+    let delay = 10 + rng.nextInt(10);
     if (pacing.boredom >= CONFIG.boredomThreshold) delay -= 3;
-    if (pacing.tension >= CONFIG.tensionThreshold) delay += 5;
+    if (pacing.tension >= CONFIG.tensionThreshold) delay += 3; // less slowdown during overlapping crises
     delay = Math.max(8, delay);
     return state.truth.tick + delay;
 }

@@ -1,25 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
 const PKG_DIR = new URL('..', import.meta.url).pathname;
 
 function runCli(args: string): { stdout: string; stderr: string; exitCode: number } {
-    try {
-        const stdout = execSync(`npx tsx src/cli.ts ${args}`, {
-            cwd: PKG_DIR,
-            encoding: 'utf-8',
-            timeout: 30000,
-        });
-        return { stdout, stderr: '', exitCode: 0 };
-    } catch (err: any) {
-        return {
-            stdout: err.stdout?.toString() ?? '',
-            stderr: err.stderr?.toString() ?? '',
-            exitCode: err.status ?? 1,
-        };
-    }
+    const result = spawnSync('npx', ['tsx', 'src/cli.ts', ...args.split(/\s+/)], {
+        cwd: PKG_DIR,
+        encoding: 'utf-8',
+        timeout: 30000,
+    });
+    return {
+        stdout: result.stdout ?? '',
+        stderr: result.stderr ?? '',
+        exitCode: result.status ?? 1,
+    };
 }
 
 /* ── Task 003 ── CLI Integration ── */
@@ -130,5 +126,77 @@ describe('Task 003 — ERR-1: --daily fails gracefully when no valid seed found'
         const { stdout, exitCode } = runCli('--daily --date 2026-02-05');
         expect(exitCode).toBe(0);
         expect(() => JSON.parse(stdout)).not.toThrow();
+    });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Feature 008 — Task 003: CLI Verbose Diagnostics
+   ══════════════════════════════════════════════════════════════════════════ */
+
+describe('Task 003 — AC-1: --daily JSON has score fields', () => {
+    it('JSON output includes score, candidatesEvaluated, methodId, signalType', () => {
+        const { stdout, exitCode } = runCli('--daily --date 2026-02-05');
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        expect(typeof result.score).toBe('number');
+        expect(typeof result.candidatesEvaluated).toBe('number');
+        expect(typeof result.methodId).toBe('string');
+        expect(typeof result.signalType).toBe('string');
+    });
+});
+
+describe('Task 003 — AC-2: --daily --verbose shows breakdown', () => {
+    it('stderr shows candidate count, best score, and 4 subscore lines', () => {
+        const { stdout, stderr, exitCode } = runCli('--daily --date 2026-02-05 --verbose');
+        expect(exitCode).toBe(0);
+        // stdout still has valid JSON
+        expect(() => JSON.parse(stdout)).not.toThrow();
+        // stderr has scoring breakdown
+        expect(stderr).toContain('Evaluated');
+        expect(stderr).toContain('candidate');
+        expect(stderr).toContain('Playability');
+        expect(stderr).toContain('Difficulty Fit');
+        expect(stderr).toContain('Funness');
+        expect(stderr).toContain('Discoverability');
+    });
+});
+
+describe('Task 003 — AC-3: --daily --verbose shows candidates evaluated', () => {
+    it('stderr shows "Evaluated N candidates" line', () => {
+        const { stderr, exitCode } = runCli('--daily --date 2026-02-05 --verbose');
+        expect(exitCode).toBe(0);
+        expect(stderr).toMatch(/Evaluated \d+ candidate/);
+    });
+});
+
+describe('Task 003 — AC-4: --daily --seed includes scoring', () => {
+    it('JSON has score, scoreBreakdown, candidatesEvaluated=1, methodId, signalType', () => {
+        const { stdout, exitCode } = runCli('--daily --seed 42');
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        expect(typeof result.score).toBe('number');
+        expect(result.scoreBreakdown).toBeDefined();
+        expect(result.candidatesEvaluated).toBe(1);
+        expect(typeof result.methodId).toBe('string');
+        expect(typeof result.signalType).toBe('string');
+    });
+});
+
+describe('Task 003 — EC-1: single candidate verbose output', () => {
+    it('shows "Evaluated 1 candidate" (singular) with score breakdown', () => {
+        const { stderr, exitCode } = runCli('--daily --seed 42 --verbose');
+        expect(exitCode).toBe(0);
+        expect(stderr).toMatch(/Evaluated 1 candidate\b/);
+        expect(stderr).toContain('Playability');
+    });
+});
+
+describe('Task 003 — EC-2: --seed --verbose shows breakdown for forced seed', () => {
+    it('shows score breakdown for the forced seed', () => {
+        const { stdout, stderr, exitCode } = runCli('--daily --seed 42 --verbose');
+        expect(exitCode).toBe(0);
+        expect(() => JSON.parse(stdout)).not.toThrow();
+        expect(stderr).toContain('Best:');
+        expect(stderr).toContain('/20');
     });
 });

@@ -49,7 +49,8 @@ export function tickSystems(state: KernelState) {
             room.o2Level = Math.max(0, room.o2Level - 5);
             room.temperature = Math.max(-270, room.temperature - 10);
         } else {
-            if (room.o2Level < 100 && room.integrity > 0 && state.truth.station.power >= 40) {
+            if (room.o2Level < 100 && room.integrity > 0 && state.truth.station.power >= 40
+                && state.truth.tick % CONFIG.o2RecoveryInterval === 0) {
                 room.o2Level = Math.min(100, room.o2Level + 1);
             }
             if (room.temperature < 20) room.temperature += 1;
@@ -58,8 +59,8 @@ export function tickSystems(state: KernelState) {
 
         if (room.onFire) {
             room.temperature += 2;
-            room.o2Level = Math.max(0, room.o2Level - 1);
-            room.integrity = Math.max(0, room.integrity - 0.2);
+            room.o2Level = Math.max(0, room.o2Level - CONFIG.fireO2Drain);
+            room.integrity = Math.max(0, room.integrity - CONFIG.fireIntegrityDrain);
             if (room.o2Level < 10) room.onFire = false;
         }
 

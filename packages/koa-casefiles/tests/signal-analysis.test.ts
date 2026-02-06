@@ -130,7 +130,8 @@ describe('AC-2: Device contradiction detection', () => {
 
     expect(result.hasSignal).toBe(true);
     expect(result.signalType).toBe('device_contradiction');
-    expect(result.signalStrength).toBe('strong');
+    // Door sensor = movement evidence → medium strength (not HARD)
+    expect(result.signalStrength).toBe('medium');
   });
 });
 

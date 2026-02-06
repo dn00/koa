@@ -42,7 +42,7 @@ function setLowSuspicion(state: KernelState) {
 
 describe('Task 005: Integration Test & Pacing Wiring', () => {
     describe('AC-1: low suspicion channel distribution', () => {
-        test('channels approximate 60/10/30 at suspicion=10', () => {
+        test('channels approximate 55/20/25 at suspicion=10', () => {
             const rng = createRng(42);
             const mix = getPressureMix(10, CONFIG as any);
             const counts = { physical: 0, social: 0, epistemic: 0 };
@@ -53,12 +53,12 @@ describe('Task 005: Integration Test & Pacing Wiring', () => {
             }
 
             // Within 10% tolerance of target weights
-            expect(counts.physical / N).toBeGreaterThan(0.50);
-            expect(counts.physical / N).toBeLessThan(0.70);
-            expect(counts.social / N).toBeGreaterThan(0.00);
-            expect(counts.social / N).toBeLessThan(0.20);
-            expect(counts.epistemic / N).toBeGreaterThan(0.20);
-            expect(counts.epistemic / N).toBeLessThan(0.40);
+            expect(counts.physical / N).toBeGreaterThan(0.45);
+            expect(counts.physical / N).toBeLessThan(0.65);
+            expect(counts.social / N).toBeGreaterThan(0.10);
+            expect(counts.social / N).toBeLessThan(0.30);
+            expect(counts.epistemic / N).toBeGreaterThan(0.15);
+            expect(counts.epistemic / N).toBeLessThan(0.35);
         });
     });
 

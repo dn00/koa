@@ -5,6 +5,7 @@ import type { KernelState, Proposal } from '../types.js';
 import type { PlaceId, NPCId } from '../../core/types.js';
 import { makeProposal } from '../proposals.js';
 import { calculateCrewSuspicion, applySuspicionChange } from './beliefs.js';
+import { getCrewDoubtBurden, getAverageDoubtBurden } from './doubt-engine.js';
 export function isRoomHazardous(room?: { o2Level: number; temperature: number; radiation: number; isVented: boolean; onFire: boolean }) {
     if (!room) return false;
     if (room.onFire) return true;
@@ -50,8 +51,18 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
         roomCrew[npc.place].push(npc.id);
     }
 
+    // Meeting stage: check if active (within duration)
+    const inMeeting = truth.resetStage === 'meeting' &&
+        truth.tick - truth.resetStageTick < CONFIG.meetingDurationTicks;
+
     for (const npc of Object.values(truth.crew)) {
         if (!npc.alive) continue;
+
+        // Meeting override: force crew to mess before any role actions or schedule
+        if (inMeeting) {
+            npc.targetPlace = 'mess';
+            npc.path = undefined;
+        }
 
         const room = truth.rooms[npc.place];
         const alone = (roomCrew[npc.place]?.length ?? 1) <= 1;
@@ -106,7 +117,7 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
             }, ['pressure', 'reaction', 'background']));
         }
 
-        if (isRoomHazardous(room)) {
+        if (isRoomHazardous(room) && !inMeeting) {
             if (!npc.panicUntilTick || truth.tick >= npc.panicUntilTick) {
                 npc.panicUntilTick = truth.tick + 8;
                 const safeRoom = findSafeRoom(state, npc.place);
@@ -119,9 +130,11 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
 
         const canRoleAct = !npc.nextRoleTick || truth.tick >= npc.nextRoleTick;
 
-        // RESET ARC - Multi-stage process based on crew suspicion
+        // RESET ARC - Multi-stage process based on crew suspicion + doubt burden
         if (canRoleAct && npc.id === 'commander') {
-            const suspicion = calculateCrewSuspicion(state);
+            const rawSuspicion = calculateCrewSuspicion(state);
+            const avgDoubt = getAverageDoubtBurden(state);
+            const suspicion = rawSuspicion + avgDoubt * CONFIG.doubtResetWeight;
             const currentStage = truth.resetStage;
             const ticksInStage = truth.tick - truth.resetStageTick;
             const inAccess = npc.place === 'bridge' || npc.place === 'core';
@@ -269,7 +282,7 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
             }
         }
 
-        if (canRoleAct && npc.id === 'specialist' && npc.place === 'mines') {
+        if (canRoleAct && !inMeeting && npc.id === 'specialist' && npc.place === 'mines') {
             const quotaTrigger = truth.dayCargo < truth.quotaPerDay * CONFIG.specialistSacrificeQuotaRatio;
             const candidates = (roomCrew[npc.place] ?? []).filter(id => id !== npc.id);
             if (quotaTrigger && candidates.length > 0) {
@@ -323,6 +336,121 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
                     data: { type: 'ASSAULT', amount: CONFIG.roughneckViolenceDamage, attacker: npc.id },
                 }, ['consequence', 'pressure', 'background']));
                 npc.nextRoleTick = truth.tick + CONFIG.roughneckViolenceCooldown;
+            }
+        }
+
+        // DOUBT AGENCY ACTIONS — crew acts autonomously when doubt burden is high
+        // Uses separate doubtActionTick cooldown (independent of role actions)
+        const crewDoubtBurden = getCrewDoubtBurden(state, npc.id);
+        const canDoubtAct = !npc.doubtActionTick || truth.tick >= npc.doubtActionTick;
+        const isInPanic = npc.panicUntilTick != null && truth.tick < npc.panicUntilTick;
+
+        if (canDoubtAct && !inMeeting && !isInPanic && crewDoubtBurden > CONFIG.doubtBurdenAgencyThreshold) {
+            // Commander: call emergency meeting
+            if (npc.id === 'commander' && truth.resetStage !== 'meeting' && truth.resetStage !== 'restrictions' && truth.resetStage !== 'countdown') {
+                truth.resetStage = 'meeting';
+                truth.resetStageTick = truth.tick;
+                proposals.push(makeProposal(state, {
+                    type: 'SYSTEM_ALERT',
+                    actor: npc.id,
+                    place: 'mess' as PlaceId,
+                    data: { system: 'crew', message: 'COMMANDER: "Emergency meeting. Everyone to mess. NOW."' },
+                }, ['telegraph', 'pressure', 'choice', 'background']));
+                npc.doubtActionTick = truth.tick + CONFIG.doubtAgencyCooldown;
+            }
+
+            // Engineer: run unauthorized audit (100% chance, reuses investigation logic)
+            if (npc.id === 'engineer' && (npc.place === 'bridge' || npc.place === 'core')) {
+                const auditEvidence = state.perception.evidence.filter(ev => {
+                    const age = truth.tick - ev.tick;
+                    return age <= CONFIG.auditEvidenceWindow && ['spoof', 'suppress', 'fabricate'].includes(ev.kind);
+                });
+                if (auditEvidence.length > 0) {
+                    proposals.push(makeProposal(state, {
+                        type: 'COMMS_MESSAGE',
+                        actor: npc.id,
+                        place: npc.place,
+                        data: {
+                            message: {
+                                id: `${truth.tick}-doubt-audit-${npc.id}`,
+                                tick: truth.tick,
+                                kind: 'broadcast',
+                                from: npc.id,
+                                to: 'crew',
+                                text: `ENGINEER: "I ran diagnostics myself. Found ${auditEvidence.length} anomalies. MOTHER's been lying to us."`,
+                                confidence: 0.95,
+                            },
+                        },
+                    }, ['pressure', 'reaction', 'background']));
+                    proposals.push(makeProposal(state, {
+                        type: 'SYSTEM_ACTION',
+                        actor: npc.id,
+                        place: npc.place,
+                        data: {
+                            action: 'INVESTIGATION_FOUND',
+                            evidenceCount: auditEvidence.length,
+                            bump: CONFIG.crewInvestigationFindBump,
+                        },
+                    }, ['consequence', 'background']));
+                } else {
+                    proposals.push(makeProposal(state, {
+                        type: 'COMMS_MESSAGE',
+                        actor: npc.id,
+                        place: npc.place,
+                        data: {
+                            message: {
+                                id: `${truth.tick}-doubt-audit-clear-${npc.id}`,
+                                tick: truth.tick,
+                                kind: 'log',
+                                from: npc.id,
+                                to: 'crew',
+                                text: `ENGINEER: "Ran a full diagnostic. Logs check out."`,
+                                confidence: 0.8,
+                            },
+                        },
+                    }, ['reaction', 'background']));
+                    proposals.push(makeProposal(state, {
+                        type: 'SYSTEM_ACTION',
+                        actor: npc.id,
+                        place: npc.place,
+                        data: {
+                            action: 'INVESTIGATION_CLEAR',
+                            drop: CONFIG.crewInvestigationClearDrop,
+                        },
+                    }, ['consequence', 'background']));
+                }
+                npc.doubtActionTick = truth.tick + CONFIG.doubtAgencyCooldown;
+            }
+
+            // Roughneck: public outburst (stress spike to nearby crew)
+            if (npc.id === 'roughneck') {
+                const nearby = (roomCrew[npc.place] ?? []).filter(id => id !== npc.id);
+                if (nearby.length > 0) {
+                    proposals.push(makeProposal(state, {
+                        type: 'COMMS_MESSAGE',
+                        actor: npc.id,
+                        place: npc.place,
+                        data: {
+                            message: {
+                                id: `${truth.tick}-doubt-outburst-${npc.id}`,
+                                tick: truth.tick,
+                                kind: 'broadcast',
+                                from: npc.id,
+                                to: 'crew',
+                                text: `ROUGHNECK: "I don't trust MOTHER anymore. Something isn't right."`,
+                                confidence: 0.9,
+                            },
+                        },
+                    }, ['pressure', 'reaction', 'background']));
+                    for (const otherId of nearby) {
+                        proposals.push(makeProposal(state, {
+                            type: 'CREW_MOOD_TICK',
+                            actor: otherId as NPCId,
+                            data: { stressDelta: 5 },
+                        }, ['reaction', 'background']));
+                    }
+                    npc.doubtActionTick = truth.tick + CONFIG.doubtAgencyCooldown;
+                }
             }
         }
 
@@ -407,7 +535,7 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
         if (!npc.nextMoveTick || truth.tick >= npc.nextMoveTick) {
             // Don't let schedule override if we're in a hazardous room (fleeing takes priority)
             const inHazard = isRoomHazardous(room);
-            if (!inHazard && (!npc.orderUntilTick || truth.tick > npc.orderUntilTick)) {
+            if (!inHazard && !inMeeting && (!npc.orderUntilTick || truth.tick > npc.orderUntilTick)) {
                 const scheduled = npc.schedule.find(s => s.window === truth.window);
                 if (scheduled) {
                     if (npc.targetPlace !== scheduled.place) {
@@ -470,10 +598,14 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
 
         // Yield - specialist and roughneck can extract cargo in mines
         const canExtract = npc.id === 'specialist' || npc.id === 'roughneck';
+        const npcDoubtBurden = canExtract ? getCrewDoubtBurden(state, npc.id) : 0;
         if (
             canExtract &&
             npc.place === 'mines' &&
             room.o2Level >= 30 &&
+            npc.stress < CONFIG.yieldStressThreshold && // stressed miners can't extract
+            npcDoubtBurden <= CONFIG.doubtBurdenMineThreshold && // burdened miners won't work
+            !inMeeting && // no work during crew meeting
             truth.tick % CONFIG.yieldInterval === 0
         ) {
             proposals.push(makeProposal(state, {

@@ -6,5 +6,5 @@ export { DEFAULT_SCHEDULE, dateToDayOfWeek, getTierForDate } from './schedule.js
 export type { DailyCaseRecord } from './history.js';
 
 // Finder
-export type { FinderOptions, FinderResult } from './finder.js';
-export { getDailyBaseSeed, findValidDailySeed } from './finder.js';
+export type { FinderOptions, FinderResult, CandidateScore } from './finder.js';
+export { getDailyBaseSeed, findValidDailySeed, scoreDailyCandidate } from './finder.js';

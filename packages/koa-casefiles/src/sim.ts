@@ -57,7 +57,7 @@ import {
     type GossipState,
     type CaseHistory,
 } from './gossip/index.js';
-import { ACTIVITIES, type ActivityType } from './activities.js';
+import { ACTIVITIES, type ActivityType, ESCALATION_ACTIVITIES, type EscalationActivityType } from './activities.js';
 import { CaseDirector, type DirectorConfig } from './director.js';
 
 // ============================================================================
@@ -65,14 +65,14 @@ import { CaseDirector, type DirectorConfig } from './director.js';
 // ============================================================================
 
 /**
- * Inject a minimal device event that catches the culprit.
+ * Inject a minimal solvability signal into the event log.
  * Called when analyzeSignal() returns hasSignal: false.
  *
- * Strategy: Add a door event during crime window at an adjacent room.
+ * Strategy: Add a MOTION_DETECTED event during crime window at an adjacent room.
+ * MOTION_DETECTED creates presence evidence (semantic: 'presence') which forms
+ * a HARD contradiction against the culprit's false STAY claim.
  * We place the event at the adjacent room (not the crime scene) so that
  * anti-anticlimax rules don't strip the actor from the evidence.
- * This creates a device_contradiction signal when combined with the
- * culprit's scheduled presence elsewhere.
  */
 export function injectMinimalSignal(
     world: World,
@@ -87,27 +87,58 @@ export function injectMinimalSignal(
     const crimePlace = world.places.find(p => p.id === config.crimePlace);
     if (!crimePlace) return null;
 
-    // Find candidate doors adjacent to crime scene
-    type DoorCandidate = { door: Device; adjacentPlace: string };
-    const candidates: DoorCandidate[] = [];
+    // Compute the alibi place (same logic as deriveCulpritAlibiClaim) so we
+    // exclude it from injection candidates. Placing the signal at the alibi
+    // location would create same-place evidence that can't contradict the STAY claim.
+    const culprit = world.npcs.find(n => n.id === config.culpritId);
+    const culpritScheduledPlace = culprit?.schedule.find(s => s.window === config.crimeWindow)?.place;
+    const alibiLocations = world.places.filter(
+        p => p.id !== config.crimePlace && p.id !== config.hiddenPlace && p.id !== culpritScheduledPlace
+    );
+    const fallbackAlibi = world.places.filter(
+        p => p.id !== config.crimePlace && p.id !== config.hiddenPlace
+    );
+    const alibiPlace = alibiLocations.length > 0
+        ? alibiLocations[0].id
+        : (fallbackAlibi.length > 0 ? fallbackAlibi[0].id : 'bedroom');
+
+    // Find candidate devices at adjacent rooms for MOTION_DETECTED event.
+    // Prefer motion sensors, fall back to any device at the adjacent place.
+    // Exclude the alibi place — signal there can't contradict the STAY claim.
+    type DeviceCandidate = { device: Device; adjacentPlace: string };
+    const candidates: DeviceCandidate[] = [];
 
     for (const adjId of crimePlace.adjacent) {
+        if (adjId === alibiPlace) continue; // Skip alibi location
+
+        // Prefer motion sensor at adjacent place
+        const motionSensor = world.devices.find(d => d.type === 'motion_sensor' && d.place === adjId);
+        if (motionSensor) {
+            candidates.push({ device: motionSensor, adjacentPlace: adjId });
+            continue;
+        }
+        // Fallback: door sensor between crime place and adjacent
         const door = getDoorBetween(config.crimePlace, adjId, world.devices);
         if (door) {
-            candidates.push({ door, adjacentPlace: adjId });
+            candidates.push({ device: door, adjacentPlace: adjId });
         }
     }
 
-    // EC-1: If no doors at crime scene, check 1-hop neighbors
+    // EC-1: If no devices at adjacent rooms, check 1-hop neighbors
     if (candidates.length === 0) {
         for (const adjId of crimePlace.adjacent) {
             const adjPlace = world.places.find(p => p.id === adjId);
             if (!adjPlace) continue;
+            const motionSensor = world.devices.find(d => d.type === 'motion_sensor' && d.place === adjId);
+            if (motionSensor) {
+                candidates.push({ device: motionSensor, adjacentPlace: adjId });
+                break;
+            }
             for (const nextAdjId of adjPlace.adjacent) {
                 if (nextAdjId === config.crimePlace) continue;
                 const door = getDoorBetween(adjId, nextAdjId, world.devices);
                 if (door) {
-                    candidates.push({ door, adjacentPlace: adjId });
+                    candidates.push({ device: door, adjacentPlace: adjId });
                     break;
                 }
             }
@@ -115,10 +146,10 @@ export function injectMinimalSignal(
         }
     }
 
-    // EC-2: No reachable doors
+    // EC-2: No reachable devices
     if (candidates.length === 0) return null;
 
-    // EC-3: Pick door using RNG for determinism
+    // EC-3: Pick device using RNG for determinism
     const chosen = candidates.length === 1
         ? candidates[0]
         : candidates[rng.nextInt(candidates.length)];
@@ -128,26 +159,25 @@ export function injectMinimalSignal(
     if (!windowDef) return null;
     const tick = windowDef.startTick + rng.nextInt(windowDef.endTick - windowDef.startTick + 1);
 
-    // Create event at the adjacent room (not crimePlace) to preserve actor
-    // in evidence derivation. Anti-anticlimax strips actor from events at
-    // crimePlace+crimeWindow+culpritId, so we place it on the other side.
+    // Create MOTION_DETECTED at the adjacent room (not crimePlace) to preserve actor.
+    // Anti-anticlimax strips actor from events at crimePlace+crimeWindow+culpritId.
     const ordinal = events.length;
     const event: SimEvent = {
         id: '',
         tick,
         window: config.crimeWindow,
-        type: 'DOOR_OPENED',
+        type: 'MOTION_DETECTED',
         actor: config.culpritId,
         place: chosen.adjacentPlace,
-        target: chosen.door.id,
+        target: chosen.device.id,
     };
     event.id = computeEventId({
         tick,
         ordinal,
-        type: 'DOOR_OPENED',
+        type: 'MOTION_DETECTED',
         actor: config.culpritId,
         place: chosen.adjacentPlace,
-        target: chosen.door.id,
+        target: chosen.device.id,
     });
 
     // ERR-1: Push to events (throws if frozen)
@@ -380,6 +410,95 @@ function simulateActivity(npc: NPC, place: PlaceId, tick: number, rng: RNG): Sim
                 fromActivity: activity.id
             }
         }));
+    }
+
+    return events;
+}
+
+// ============================================================================
+// Petty Escalation Events
+// ============================================================================
+
+/**
+ * Generate petty escalation events from NPCs with grudges.
+ * NPCs retaliate against rivals in aftermath windows.
+ *
+ * Rate limits: max 1 event on tier 1-2, max 2 on tier 3-4.
+ * Culprit is excluded from retaliator pool.
+ */
+function simulateEscalations(
+    world: World,
+    culpritId: NPCId,
+    aftermathWindows: WindowId[],
+    tier: DifficultyTier,
+    rng: RNG
+): SimEvent[] {
+    if (aftermathWindows.length === 0) return [];
+
+    const maxEscalations = tier >= 3 ? 2 : 1;
+    const events: SimEvent[] = [];
+
+    // Find NPCs with grudges (intensity >= 6) excluding culprit
+    const retaliators: { npc: NPC; target: NPCId; intensity: number }[] = [];
+    for (const rel of world.relationships) {
+        if (rel.type !== 'grudge' && rel.type !== 'rivalry') continue;
+        if (rel.intensity < 6) continue;
+        if (rel.from === culpritId) continue;
+
+        const npc = world.npcs.find(n => n.id === rel.from);
+        if (!npc) continue;
+
+        retaliators.push({ npc, target: rel.to, intensity: rel.intensity });
+    }
+
+    if (retaliators.length === 0) return [];
+
+    // Sort by intensity (deterministic tiebreak by NPC id)
+    retaliators.sort((a, b) => b.intensity - a.intensity || a.npc.id.localeCompare(b.npc.id));
+
+    // Pick retaliators up to max
+    const selected = retaliators.slice(0, maxEscalations);
+    const escalationTypes = Object.keys(ESCALATION_ACTIVITIES) as EscalationActivityType[];
+
+    for (let i = 0; i < selected.length; i++) {
+        const { npc } = selected[i];
+        // Pick a window and activity deterministically
+        const windowIdx = rng.nextInt(aftermathWindows.length);
+        const window = aftermathWindows[windowIdx];
+        const windowDef = WINDOWS.find(w => w.id === window);
+        const tick = windowDef ? windowDef.startTick + 5 + i * 3 : 0;
+
+        // Pick escalation activity
+        const actIdx = rng.nextInt(escalationTypes.length);
+        const actType = escalationTypes[actIdx];
+        const actDef = ESCALATION_ACTIVITIES[actType];
+
+        // Find the NPC's current place for this window
+        const scheduled = npc.schedule.find(s => s.window === window);
+        const place = scheduled?.place ?? 'living';
+
+        // Create ACTIVITY_STARTED event
+        events.push(createEvent(tick, 'ACTIVITY_STARTED', {
+            actor: npc.id,
+            place,
+            data: {
+                activity: actType,
+                description: actDef.visualDescription,
+                sound: rng.pick(actDef.audioClues),
+            },
+        }));
+
+        // Leave traces
+        if (actDef.physicalTraces.length > 0) {
+            events.push(createEvent(tick, 'TRACE_FOUND', {
+                actor: npc.id,
+                place,
+                data: {
+                    trace: rng.pick(actDef.physicalTraces),
+                    fromActivity: actType,
+                },
+            }));
+        }
     }
 
     return events;
@@ -954,6 +1073,61 @@ function generateMotive(
 // Twist Rules - Optional complexity
 // ============================================================================
 
+function buildTwistForActor(
+    type: TwistType,
+    culpritId: NPCId,
+    culprit: NPC,
+    innocents: NPC[],
+    rng: RNG
+): TwistRule {
+    switch (type) {
+        case 'false_alibi': {
+            // On medium/hard, false_alibi targets an innocent (red herring)
+            const decoy = rng.pick(innocents);
+            return {
+                type: 'false_alibi',
+                actor: decoy.id,
+                description: `${decoy.name} lies about whereabouts (hiding something innocent)`,
+                affectsEvidence: [],
+            };
+        }
+        case 'unreliable_witness': {
+            const witness = rng.pick(innocents);
+            return {
+                type: 'unreliable_witness',
+                actor: witness.id,
+                description: `${witness.name}'s testimony is off by one time window (lost track of time)`,
+                affectsEvidence: [],
+            };
+        }
+        case 'tampered_device':
+            return {
+                type: 'tampered_device',
+                actor: culpritId,
+                description: `${culprit.name} tried to edit the smart home logs (not as tech-savvy as they think)`,
+                affectsEvidence: [],
+            };
+        case 'planted_evidence': {
+            const patsy = rng.pick(innocents);
+            return {
+                type: 'planted_evidence',
+                actor: patsy.id,
+                description: `Suspicious items were "found" near ${patsy.name}'s stuff (someone's setting them up)`,
+                affectsEvidence: [],
+            };
+        }
+        case 'accomplice': {
+            const helper = rng.pick(innocents);
+            return {
+                type: 'accomplice',
+                actor: helper.id,
+                description: `${helper.name} is covering for ${culprit.name} (they owe them a favor)`,
+                affectsEvidence: [],
+            };
+        }
+    }
+}
+
 function maybeGenerateTwist(
     world: World,
     culpritId: NPCId,
@@ -969,6 +1143,8 @@ function maybeGenerateTwist(
         switch (difficulty) {
             case 'easy':
                 // Force culprit to have false_alibi → guaranteed self-contradiction
+                // But only if twists are allowed at this tier (T1 tutorial has none)
+                if (!allowedTwists || allowedTwists.length === 0) return undefined;
                 return {
                     type: 'false_alibi',
                     actor: culpritId,
@@ -976,33 +1152,20 @@ function maybeGenerateTwist(
                     affectsEvidence: [],
                 };
 
-            case 'medium':
-                // No false_alibi for culprit - give twist to innocent or none
-                // Culprit only has crime scene lie (from testimony), no self-contradiction
-                if (innocents.length > 0 && rng.nextInt(100) < 50) {
-                    const witness = rng.pick(innocents);
-                    return {
-                        type: 'unreliable_witness',
-                        actor: witness.id,
-                        description: `${witness.name}'s testimony is off (they lost track of time)`,
-                        affectsEvidence: [],
-                    };
-                }
-                return undefined; // No twist - culprit tells truth about location
+            case 'medium': {
+                // No false_alibi for culprit - pick from allowed twists for innocents
+                if (!allowedTwists || allowedTwists.length === 0 || innocents.length === 0) return undefined;
+                if (rng.nextInt(100) >= 75) return undefined; // 75% chance of twist
+                const type = rng.pick(allowedTwists);
+                return buildTwistForActor(type, culpritId, culprit, innocents, rng);
+            }
 
-            case 'hard':
-                // Culprit tells truth - only motive/opportunity signal
-                // Maybe give innocent a false_alibi to create red herring
-                if (innocents.length > 0 && rng.nextInt(100) < 40) {
-                    const decoy = rng.pick(innocents);
-                    return {
-                        type: 'false_alibi',
-                        actor: decoy.id,
-                        description: `${decoy.name} lies about whereabouts (hiding something innocent)`,
-                        affectsEvidence: [],
-                    };
-                }
-                return undefined; // No twist
+            case 'hard': {
+                // Full twist roster — guaranteed twist on hard
+                if (!allowedTwists || allowedTwists.length === 0 || innocents.length === 0) return undefined;
+                const type = rng.pick(allowedTwists);
+                return buildTwistForActor(type, culpritId, culprit, innocents, rng);
+            }
         }
     }
 
@@ -1247,10 +1410,12 @@ export function simulate(
         allEvents.push(...events);
     }
 
+    // Petty escalation events (grudge-based retaliation in aftermath)
+    const escalationEvents = simulateEscalations(world, chosen.npc.id, aftermathWindows, validTier, rng);
+    allEvents.push(...escalationEvents);
+
     // Sort events by tick
     allEvents.sort((a, b) => a.tick - b.tick);
-
-
 
     // Harvest Suspicious Acts from the simulation (Emergent Red Herrings)
     const suspiciousActs: SuspiciousAct[] = [];
@@ -1258,9 +1423,10 @@ export function simulate(
     for (const event of activityEvents) {
         if (!event.data || !event.actor || !event.place) continue;
 
-        // Lookup definition
-        const actId = (event.data as any).activity as ActivityType;
-        const actDef = ACTIVITIES[actId];
+        // Lookup definition (check both regular and escalation activities)
+        const actId = (event.data as any).activity as string;
+        const actDef = ACTIVITIES[actId as ActivityType] ??
+            ESCALATION_ACTIVITIES[actId as EscalationActivityType];
 
         if (actDef) {
             suspiciousActs.push({
@@ -1418,6 +1584,10 @@ function simulateWithBlueprints(
         allEvents.push(...events);
     }
 
+    // Petty escalation events (grudge-based retaliation in aftermath)
+    const bpEscalationEvents = simulateEscalations(world, plan.culprit, aftermathWindows, validTier, rng);
+    allEvents.push(...bpEscalationEvents);
+
     // Sort events by tick
     allEvents.sort((a, b) => a.tick - b.tick);
 
@@ -1426,8 +1596,9 @@ function simulateWithBlueprints(
     const activityEvents = allEvents.filter(e => e.type === 'ACTIVITY_STARTED');
     for (const event of activityEvents) {
         if (!event.data || !event.actor || !event.place) continue;
-        const actId = (event.data as any).activity as ActivityType;
-        const actDef = ACTIVITIES[actId];
+        const actId = (event.data as any).activity as string;
+        const actDef = ACTIVITIES[actId as ActivityType] ??
+            ESCALATION_ACTIVITIES[actId as EscalationActivityType];
         if (actDef) {
             suspiciousActs.push({
                 npc: event.actor,
@@ -1512,7 +1683,19 @@ export function generateValidatedCase(
     if (!sim) return null;
 
     let evidence = deriveEvidence(sim.world, sim.eventLog, sim.config);
-    const signal = analyzeSignal(evidence, sim.config);
+
+    // Check for a signal the solver can actually discover.
+    // Filter to (a) crime-window only — solver's AP budget only covers crime window,
+    // and (b) solver-discoverable kinds — presence evidence is NOT discoverable through
+    // any player action (interview/logs/search), so we exclude it to avoid false positives
+    // where analyzeSignal sees a signal the solver can never find.
+    const discoverableKinds = new Set(['testimony', 'device_log', 'physical', 'motive']);
+    const solverVisibleEvidence = evidence.filter(e => {
+        if (!discoverableKinds.has(e.kind)) return false;
+        const w = (e as any).window;
+        return !w || w === sim.config.crimeWindow;
+    });
+    const signal = analyzeSignal(solverVisibleEvidence, sim.config);
 
     if (!signal.hasSignal) {
         // Signal missing — inject minimal device event
@@ -1525,6 +1708,11 @@ export function generateValidatedCase(
             // EC-1: No suitable door — seed unsalvageable
             return null;
         }
+
+        // Sort event log so injected event is in tick order (ensures
+        // its device_log evidence appears among other crime-window logs,
+        // not at the very end where log-slice limits might miss it)
+        sim.eventLog.sort((a, b) => a.tick - b.tick);
 
         // Re-derive evidence with updated event log
         evidence = deriveEvidence(sim.world, sim.eventLog, sim.config);

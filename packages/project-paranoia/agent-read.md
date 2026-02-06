@@ -63,6 +63,12 @@ node --import tsx src/index.ts --cmd="status" --save=my-game.json
 | `order [npc] hold` | 2 | Order crew to stay put |
 | `rations [low/normal/high]` | 0 | Adjust rations (affects morale) |
 
+**Crisis Communication:**
+| Command | CPU | Description |
+|---------|-----|-------------|
+| `announce [system]` | 4 | Warn crew about crisis. Causes evacuation + panic. Earns trust. |
+| `downplay [system]` | 2 | Minimize crisis to crew. Keeps them working. Backfires if they're harmed. |
+
 **Manipulation (Leaves Evidence):**
 | Command | CPU | Description |
 |---------|-----|-------------|

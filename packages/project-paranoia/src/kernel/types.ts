@@ -55,6 +55,7 @@ export interface CrewTruth {
     nextRoleTick?: number;
     orderUntilTick?: number;
     trappedSuspicionTick?: number; // Last tick when trapped-by-door suspicion was applied
+    doubtActionTick?: number; // Last tick a doubt-triggered agency action fired
     schedule: NPC['schedule'];
 }
 
@@ -102,6 +103,8 @@ export interface TamperOp {
     relatedArcId?: string;
 }
 
+export type DoubtSource = 'witness' | 'backfire' | 'spread' | 'pressure';
+
 export interface ActiveDoubt {
     id: string;
     topic: string;
@@ -111,6 +114,7 @@ export interface ActiveDoubt {
     relatedOpId?: string;
     system?: string;
     resolved: boolean;
+    source?: DoubtSource; // Optional for backwards compat with existing doubts
 }
 
 export interface SuspicionLedgerEntry {
@@ -249,6 +253,21 @@ export type IntentLabel =
     | 'NOMINAL'
     | 'UNKNOWN';
 
+export type CrisisCommsKind = 'ANNOUNCE' | 'DOWNPLAY';
+export type CrisisCommsStatus = 'PENDING' | 'BACKFIRED' | 'VINDICATED' | 'EXPIRED';
+
+export interface CrisisCommsOp {
+    id: string;
+    kind: CrisisCommsKind;
+    tick: number;
+    system: string;
+    arcId: string;
+    windowEndTick: number;
+    status: CrisisCommsStatus;
+    crewSnapshot: Array<{ id: NPCId; hp: number }>;
+    lastStepIndex: number;
+}
+
 export interface PerceptionState {
     readings: SensorReading[];
     beliefs: Record<NPCId, BeliefState>;
@@ -270,12 +289,15 @@ export interface PerceptionState {
     tamperOps: TamperOp[];
     activeDoubts: ActiveDoubt[];
     suspicionLedger: SuspicionLedgerEntry[];
+    // Crisis communication tracking (ANNOUNCE/DOWNPLAY)
+    crisisCommsOps: CrisisCommsOp[];
 }
 
 export interface KernelState {
     truth: TruthState;
     perception: PerceptionState;
     world: World;
+    manifest?: import('./manifest.js').RunManifest;
 }
 
 export interface KernelOutput {

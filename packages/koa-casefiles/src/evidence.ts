@@ -23,10 +23,13 @@ import type {
     NPC,
     Item,
     MethodId,
+    EvidenceSemantic,
 } from './types.js';
-import { WINDOWS, DIFFICULTY_PROFILES } from './types.js';
+import { WINDOWS, DIFFICULTY_PROFILES, getSliceForTick } from './types.js';
 import { sha256 } from './kernel/canonical.js';
-import { ACTIVITIES, type ActivityType } from './activities.js';
+import { ACTIVITIES, type ActivityType, ESCALATION_ACTIVITIES, type EscalationActivityType } from './activities.js';
+import { NPC_ARCHETYPES } from './blueprints/cast/archetypes.js';
+import type { NPCArchetype } from './blueprints/types.js';
 
 // ============================================================================
 // Evidence ID Generation
@@ -92,6 +95,7 @@ function derivePresence(
             evidence.push({
                 id: makeEvidenceId('presence'),
                 kind: 'presence',
+                semantic: 'presence',
                 npc: npcId,
                 window: windowId,
                 place,
@@ -154,6 +158,8 @@ function deriveDeviceLogs(
                 evidence.push({
                     id: makeEvidenceId('device'),
                     kind: 'device_log',
+                    semantic: 'movement',
+                    slice: getSliceForTick(event.tick, event.window),
                     device: device.id,
                     deviceType: device.type,
                     window: event.window,
@@ -168,14 +174,23 @@ function deriveDeviceLogs(
         if (event.type === 'MOTION_DETECTED') {
             const device = world.devices.find(d => d.id === event.target);
             if (device) {
+                // Anti-anticlimax: don't identify culprit at crime scene
+                const isMotionCrimeEvent = config &&
+                    event.actor === config.culpritId &&
+                    event.window === config.crimeWindow &&
+                    event.place === config.crimePlace;
+
                 evidence.push({
                     id: makeEvidenceId('device'),
                     kind: 'device_log',
+                    semantic: 'presence',
+                    slice: getSliceForTick(event.tick, event.window),
                     device: device.id,
                     deviceType: device.type,
                     window: event.window,
                     place: event.place ?? device.place,
                     detail: 'Motion detected',
+                    actor: isMotionCrimeEvent ? undefined : event.actor,
                     cites: [event.id],
                 });
             }
@@ -191,6 +206,8 @@ function deriveDeviceLogs(
                 evidence.push({
                     id: makeEvidenceId('device'),
                     kind: 'device_log',
+                    semantic: 'presence',
+                    slice: getSliceForTick(event.tick, event.window),
                     device: device.id,
                     deviceType: 'camera',
                     window: event.window,
@@ -290,6 +307,36 @@ function getCameraDescription(npc: NPC | undefined, carrying?: string): string {
 // Testimony Evidence
 // ============================================================================
 
+// ============================================================================
+// Archetype Helpers (Comedy System)
+// ============================================================================
+
+/** Get archetype for an NPC, returns null if not available */
+function getArchetypeForNPC(npc: NPC): NPCArchetype | null {
+    if (!npc.archetypeId) return null;
+    return NPC_ARCHETYPES[npc.archetypeId] ?? null;
+}
+
+/**
+ * Modulate confidence based on witness reliability.
+ * Formula: factor = 0.4 + (reliability / 100) * 1.2
+ * Bounded [0.2, 0.9].
+ */
+function modulateConfidence(baseConfidence: number, archetype: NPCArchetype | null): number {
+    if (!archetype) return baseConfidence;
+    const factor = 0.4 + (archetype.witnessReliability / 100) * 1.2;
+    return Math.max(0.2, Math.min(0.9, baseConfidence * factor));
+}
+
+/**
+ * Check if an NPC is distracted during a given window.
+ * Uses deterministic hash: (npc.id.charCodeAt(0) + event.tick) % 100 < distractibility * 0.75
+ */
+function isDistracted(npc: NPC, archetype: NPCArchetype, tick: number): boolean {
+    const hash = (npc.id.charCodeAt(0) + tick) % 100;
+    return hash < archetype.distractibility * 0.75;
+}
+
 /**
  * Derive what NPCs could have observed.
  *
@@ -340,6 +387,14 @@ function deriveTestimony(
                 continue;
             }
 
+            // Distractibility gating: distracted NPCs may miss events
+            const witnessArchetype = getArchetypeForNPC(npc);
+            if (witnessArchetype &&
+                witnessArchetype.peakDistractedWindows.includes(event.window) &&
+                isDistracted(npc, witnessArchetype, event.tick)) {
+                continue; // NPC too distracted to notice
+            }
+
             const witnessPlace = locationMap.get(npc.id);
             if (!witnessPlace) continue;
 
@@ -353,6 +408,7 @@ function deriveTestimony(
             let observable: string;
             let confidence: number;
             let subjectHint: string | undefined;
+            let semantic: EvidenceSemantic = 'presence';
 
             if (event.type === 'NPC_MOVE') {
                 const actorNpc = world.npcs.find(n => n.id === event.actor);
@@ -368,6 +424,7 @@ function deriveTestimony(
                     subjectHint = actorName.toLowerCase();
                 }
             } else if (event.type === 'DOOR_OPENED' || event.type === 'DOOR_CLOSED') {
+                semantic = 'movement';
                 const actorNpc = world.npcs.find(n => n.id === event.actor);
                 const actorName = actorNpc?.name ?? 'someone';
                 if (isSameRoom || isAdjacent) {
@@ -402,7 +459,9 @@ function deriveTestimony(
             } else if (event.type === 'ACTIVITY_STARTED') {
                 const activityId = (event.data as any)?.activity as ActivityType | undefined;
                 const sound = (event.data as any)?.sound;
-                const actDef = activityId ? ACTIVITIES[activityId] : undefined;
+                const actDef = activityId
+                    ? (ACTIVITIES[activityId] ?? ESCALATION_ACTIVITIES[activityId as unknown as EscalationActivityType])
+                    : undefined;
                 const actorNpc = world.npcs.find(n => n.id === event.actor);
                 const actorName = actorNpc?.name ?? 'someone';
 
@@ -429,6 +488,47 @@ function deriveTestimony(
                 continue; // Skip other event types
             }
 
+            // Archetype: modulate confidence by witness reliability
+            confidence = modulateConfidence(confidence, witnessArchetype);
+
+            // Archetype: embarrassment vagueness
+            // If NPC is doing an embarrassing activity and has low threshold, give vague testimony
+            if (witnessArchetype && witnessArchetype.embarrassmentThreshold <= 40) {
+                const npcActivity = npc.schedule.find(s => s.window === event.window);
+                const embarrassingActivities = ['reading_fanfic', 'talking_to_self', 'napping', 'snacking'];
+                if (npcActivity && embarrassingActivities.includes(npcActivity.activity)) {
+                    observable = `was... busy. Don't ask.`;
+                    confidence = Math.max(0.2, confidence * 0.5);
+                    subjectHint = undefined;
+                }
+            }
+
+            // Archetype: comedy flavor observables (only on non-crime events)
+            if (witnessArchetype &&
+                witnessArchetype.comedyTraits.length > 0 &&
+                !(event.actor === config.culpritId && event.window === config.crimeWindow)) {
+                const traitIdx = (npc.id.charCodeAt(0) + event.tick) % witnessArchetype.comedyTraits.length;
+                const trait = witnessArchetype.comedyTraits[traitIdx];
+                // Add comedy flavor to some observables (deterministic ~30% chance)
+                if ((npc.id.charCodeAt(1) + event.tick) % 10 < 3) {
+                    const comedyPrefixes: Record<string, string> = {
+                        'conspiracy_theories': 'suspiciously,',
+                        'mentions_work_constantly': 'while muttering about deadlines,',
+                        'elaborate_excuses': 'very casually,',
+                        'tangential_observations': 'dramatically,',
+                        'explains_everything_technically': 'technically speaking,',
+                        'embellishes_everything': 'conspicuously,',
+                        'reluctant_witness': 'reluctantly admitted they',
+                        'suspiciously_helpful': 'helpfully reported that they',
+                        'vague_answers': 'vaguely mentioned something about',
+                    };
+                    const prefix = comedyPrefixes[trait];
+                    if (prefix) {
+                        observable = `${prefix} ${observable}`;
+                    }
+                }
+            }
+
             // Anti-anticlimax: If this is the crime event used by culprit,
             // NEVER give high confidence identification
             let subject: NPCId | undefined = event.actor;
@@ -441,6 +541,8 @@ function deriveTestimony(
             evidence.push({
                 id: makeEvidenceId('testimony'),
                 kind: 'testimony',
+                semantic,
+                slice: getSliceForTick(event.tick, event.window),
                 witness: npc.id,
                 window: event.window,
                 place: witnessPlace,
@@ -465,6 +567,14 @@ function deriveTestimony(
             const witnessPlace = locationMap.get(witness.id);
             if (!witnessPlace) continue;
 
+            // Distractibility gating for presence sightings
+            const presenceArchetype = getArchetypeForNPC(witness);
+            if (presenceArchetype &&
+                presenceArchetype.peakDistractedWindows.includes(windowId) &&
+                isDistracted(witness, presenceArchetype, timeWindow.startTick)) {
+                continue; // Too distracted to notice neighbors
+            }
+
             const witnessRoom = world.places.find(p => p.id === witnessPlace);
             if (!witnessRoom) continue;
 
@@ -486,17 +596,22 @@ function deriveTestimony(
                     const adjRoom = world.places.find(p => p.id === adjPlaceId);
                     const roomName = adjRoom?.name ?? adjPlaceId;
 
+                    // Modulate confidence by witness reliability
+                    const presenceConfidence = modulateConfidence(0.7, presenceArchetype);
+
                     evidence.push({
                         id: makeEvidenceId('testimony'),
                         kind: 'testimony',
+                        semantic: 'presence',
                         witness: witness.id,
                         window: windowId,
                         place: witnessPlace,
                         observable: `noticed ${other.name} was in the ${roomName}`,
-                        confidence: 0.7,
+                        confidence: presenceConfidence,
                         subjectHint: other.name.toLowerCase(),
                         subject: other.id,
                         subjectPlace: adjPlaceId,
+                        claimType: 'STAY',
                         cites: [],
                     });
                 }
@@ -722,31 +837,39 @@ function generateGossipText(
     const targetName = world.npcs.find(n => n.id === target)?.name ?? target;
 
     // Natural gossip phrases based on relationship type
+    // NOTE: Some templates deliberately use accusatory-sounding language (matching
+    // culprit motive templates) so innocents occasionally sound guilty too.
+    // This creates motive ambiguity — the player can't identify WHO from gossip alone.
     const templates: Record<RelationshipType, string[]> = {
         rivalry: [
             `${suspectName} and ${targetName} have been at each other's throats lately`,
             `${suspectName} is always trying to one-up ${targetName}`,
             `There's serious competition between ${suspectName} and ${targetName}`,
+            `${suspectName} is in fierce competition with ${targetName}`,
         ],
         grudge: [
             `${suspectName} is still salty about ${targetName} - you know, ${backstory.toLowerCase()}`,
             `${suspectName} hasn't forgiven ${targetName} for the whole "${backstory.toLowerCase()}" thing`,
             `${suspectName} brings up ${targetName} and the ${backstory.toLowerCase()} constantly`,
+            `${suspectName} has been plotting payback against ${targetName}`,
         ],
         annoyance: [
             `${suspectName} has been complaining about ${targetName} again`,
             `${suspectName} gets visibly irritated whenever ${targetName} is mentioned`,
             `You know how ${suspectName} feels about ${targetName}... ${backstory.toLowerCase()}`,
+            `${suspectName} has been acting shady whenever ${targetName} comes up`,
         ],
         crush: [
             `${suspectName} gets weird around ${targetName}, have you noticed?`,
             `I think ${suspectName} has a thing for ${targetName}`,
             `${suspectName} always perks up when ${targetName} walks in`,
+            `${suspectName} has been desperate for attention from ${targetName}`,
         ],
         alliance: [
             `${suspectName} and ${targetName} are thick as thieves lately`,
             `Those two - ${suspectName} and ${targetName} - always cover for each other`,
             `${suspectName} would probably help ${targetName} hide a body, honestly`,
+            `${suspectName} has been acting shady - covering for ${targetName}`,
         ],
     };
 
@@ -1045,6 +1168,7 @@ function deriveContradictoryEvidence(
                 kind: 'device_log',
                 device: `door_${config.crimePlace}_tampered`,
                 deviceType: 'door_sensor',
+                actor: scapegoat.id,
                 window: config.crimeWindow,
                 place: config.crimePlace,
                 detail: `Door opened by ${scapegoat.name} (log seems... edited?)`,
@@ -1191,11 +1315,11 @@ export function deriveEvidence(
     return [
         ...derivePresence(world, events),
         ...deriveDeviceLogs(world, events, config),
+        ...deriveCulpritAlibiClaim(world, config),      // Before testimony: STAY claim discovered first
         ...deriveTestimony(world, events, config),
         ...derivePhysical(world, events, config),
         ...deriveMotiveEvidence(world, config),
         ...deriveContradictoryEvidence(world, events, config),
-        ...deriveCulpritAlibiClaim(world, config),
     ];
 }
 
@@ -1206,14 +1330,14 @@ export function deriveEvidence(
 /**
  * Generate culprit's alibi testimony based on difficulty setting.
  *
- * Key insight: Keep self-contradiction at ALL difficulties, but change discoverability.
+ * All tiers: Culprit always makes a false STAY claim for the crime window.
+ * This is the keystone: the STAY claim + presence/device evidence elsewhere
+ * creates the guaranteed HARD contradiction that lets deduction work.
  *
- * - EASY: Culprit lies about CRIME WINDOW → direct, obvious contradiction
- * - MEDIUM: Culprit lies about DIFFERENT WINDOW → contradiction exists but off-axis
- * - HARD: Culprit lies + sparse device coverage → requires constraint logic
- *
- * This teaches players that COMPARE is powerful (easy), then requires them to
- * localize before they can dunk (medium), then requires synthesis (hard).
+ * Difficulty varies the noise around the keystone:
+ * - EASY: Just the STAY claim (direct, obvious contradiction)
+ * - MEDIUM: STAY claim + off-axis lie in adjacent window (requires localization)
+ * - HARD: STAY claim + competing narrative (requires synthesis)
  */
 function deriveCulpritAlibiClaim(
     world: World,
@@ -1227,41 +1351,53 @@ function deriveCulpritAlibiClaim(
     const profile = config.tier ? DIFFICULTY_PROFILES[config.tier] : DIFFICULTY_PROFILES[2];
     const difficulty = profile?.puzzleDifficulty ?? 'easy';
 
-    // Find a plausible alibi location (not the crime scene or hidden place)
+    // Find a plausible alibi location: not crime scene, not hidden place,
+    // and not where the culprit is actually scheduled (so the STAY claim
+    // contradicts the culprit's real tracked presence).
+    const culpritScheduledPlace = culprit.schedule.find(s => s.window === config.crimeWindow)?.place;
     const alibiLocations = world.places.filter(
+        p => p.id !== config.crimePlace && p.id !== config.hiddenPlace && p.id !== culpritScheduledPlace
+    );
+    // Fallback: if no valid alibi locations, exclude only crime/hidden
+    const fallbackLocations = world.places.filter(
         p => p.id !== config.crimePlace && p.id !== config.hiddenPlace
     );
-    const alibiPlace = alibiLocations.length > 0 ? alibiLocations[0].id : 'bedroom';
+    const alibiPlace = alibiLocations.length > 0
+        ? alibiLocations[0].id
+        : (fallbackLocations.length > 0 ? fallbackLocations[0].id : 'bedroom');
+
+    // ── BASE: Crime-window STAY claim (ALL tiers) ──
+    // This is the keystone that creates the guaranteed HARD contradiction.
+    evidence.push({
+        id: makeEvidenceId('testimony'),
+        kind: 'testimony',
+        semantic: 'claim',
+        claimType: 'STAY',
+        witness: config.culpritId,
+        subject: config.culpritId,
+        subjectPlace: alibiPlace,
+        window: config.crimeWindow,
+        place: alibiPlace,
+        observable: `${culprit.name} claims to have been in ${alibiPlace} during ${config.crimeWindow}`,
+        confidence: 0.7,
+        cites: [],
+    } as TestimonyEvidence);
+
+    evidence.push({
+        id: makeEvidenceId('presence'),
+        kind: 'presence',
+        semantic: 'claim',
+        npc: config.culpritId,
+        window: config.crimeWindow,
+        place: alibiPlace,
+        isSelfReported: true,
+        cites: ['self_reported_alibi'],
+    } as PresenceEvidence);
+
+    // ── DIFFICULTY-SPECIFIC ADDITIONS ──
 
     if (difficulty === 'hard') {
-        // HARD: Culprit lies about crime window (contradiction exists)
-        // BUT there's ONE competing narrative (rotates per case)
-        // AND device coverage is sparse
-        // This requires synthesis, not just contradiction hunting
-
-        // Culprit's lie (keystone - always present, always catchable)
-        evidence.push({
-            id: makeEvidenceId('testimony'),
-            kind: 'testimony',
-            witness: config.culpritId,
-            window: config.crimeWindow,
-            place: alibiPlace,
-            observable: `${culprit.name} claims to have been in ${alibiPlace} during ${config.crimeWindow}`,
-            confidence: 0.7,
-            cites: [],
-        } as TestimonyEvidence);
-
-        evidence.push({
-            id: makeEvidenceId('presence'),
-            kind: 'presence',
-            npc: config.culpritId,
-            window: config.crimeWindow,
-            place: alibiPlace,
-            cites: ['self_reported_alibi'],
-        } as PresenceEvidence);
-
-        // COMPETING NARRATIVE: Rotate type per case (keeps hard mode varied)
-        // Types: MISREMEMBER, LOOKALIKE, TWO_STEP, CONSTRAINT
+        // HARD: Competing narrative adds noise (rotates per case)
         const seed = config.seed ?? 0;
         const narrativeTypes = ['misremember', 'lookalike', 'two_step', 'constraint'] as const;
         const narrativeType = narrativeTypes[seed % narrativeTypes.length];
@@ -1275,10 +1411,10 @@ function deriveCulpritAlibiClaim(
 
             switch (narrativeType) {
                 case 'misremember':
-                    // Innocent has uncertain memory (low confidence, ⚠️ flagged)
                     evidence.push({
                         id: makeEvidenceId('testimony'),
                         kind: 'testimony',
+                        semantic: 'presence',
                         witness: confusedInnocent.id,
                         window: adjacentWindow,
                         place: wrongPlace,
@@ -1289,6 +1425,7 @@ function deriveCulpritAlibiClaim(
                     evidence.push({
                         id: makeEvidenceId('presence'),
                         kind: 'presence',
+                        semantic: 'presence',
                         npc: confusedInnocent.id,
                         window: adjacentWindow,
                         place: wrongPlace,
@@ -1297,11 +1434,10 @@ function deriveCulpritAlibiClaim(
                     break;
 
                 case 'lookalike':
-                    // Identity ambiguity: witness saw "someone tall" at crime scene
-                    // Could match multiple NPCs - player must use other evidence
                     evidence.push({
                         id: makeEvidenceId('testimony'),
                         kind: 'testimony',
+                        semantic: 'presence',
                         witness: confusedInnocent.id,
                         window: config.crimeWindow,
                         place: config.crimePlace,
@@ -1312,13 +1448,12 @@ function deriveCulpritAlibiClaim(
                     } as TestimonyEvidence);
                     break;
 
-                case 'two_step':
-                    // Setup happened earlier: suspicious activity in prior window
-                    // Red herring - someone was "casing" the scene but didn't do it
+                case 'two_step': {
                     const setupWindow = getAdjacentWindow(config.crimeWindow, -1) || 'W2';
                     evidence.push({
                         id: makeEvidenceId('testimony'),
                         kind: 'testimony',
+                        semantic: 'presence',
                         witness: confusedInnocent.id,
                         window: setupWindow,
                         place: config.crimePlace,
@@ -1329,13 +1464,13 @@ function deriveCulpritAlibiClaim(
                         cites: [],
                     } as TestimonyEvidence);
                     break;
+                }
 
                 case 'constraint':
-                    // Physics constraint: innocent claims to have done something
-                    // that would have been impossible given other evidence
                     evidence.push({
                         id: makeEvidenceId('testimony'),
                         kind: 'testimony',
+                        semantic: 'presence',
                         witness: confusedInnocent.id,
                         window: config.crimeWindow,
                         place: wrongPlace,
@@ -1343,7 +1478,6 @@ function deriveCulpritAlibiClaim(
                         confidence: 0.5,
                         cites: [],
                     } as TestimonyEvidence);
-                    // Add note: wrongPlace is NOT adjacent to crimePlace = impossible
                     break;
             }
         }
@@ -1352,75 +1486,41 @@ function deriveCulpritAlibiClaim(
     }
 
     if (difficulty === 'medium') {
-        // MEDIUM: Culprit lies about a DIFFERENT window (off-axis)
-        // Contradiction exists but requires asking the right question first
-        // Player must localize the crime window, THEN find the lie in adjacent window
+        // MEDIUM: Additional off-axis lie makes player localize first
         const offAxisWindow = getAdjacentWindow(config.crimeWindow, -1) || getAdjacentWindow(config.crimeWindow, 1);
         const lieWindow = offAxisWindow || config.crimeWindow;
 
-        evidence.push({
-            id: makeEvidenceId('testimony'),
-            kind: 'testimony',
-            witness: config.culpritId,
-            window: lieWindow,
-            place: alibiPlace,
-            observable: `${culprit.name} claims to have been in ${alibiPlace} during ${lieWindow}`,
-            confidence: 0.8,
-            cites: [],
-        } as TestimonyEvidence);
+        if (lieWindow !== config.crimeWindow) {
+            evidence.push({
+                id: makeEvidenceId('testimony'),
+                kind: 'testimony',
+                semantic: 'claim',
+                claimType: 'STAY',
+                witness: config.culpritId,
+                window: lieWindow,
+                place: alibiPlace,
+                observable: `${culprit.name} claims to have been in ${alibiPlace} during ${lieWindow}`,
+                confidence: 0.8,
+                cites: [],
+            } as TestimonyEvidence);
 
-        evidence.push({
-            id: makeEvidenceId('presence'),
-            kind: 'presence',
-            npc: config.culpritId,
-            window: lieWindow,
-            place: alibiPlace,
-            cites: ['self_reported_alibi'],
-        } as PresenceEvidence);
-
-        // Culprit is vague about crime window itself (doesn't directly lie about it)
-        evidence.push({
-            id: makeEvidenceId('testimony'),
-            kind: 'testimony',
-            witness: config.culpritId,
-            window: config.crimeWindow,
-            place: config.crimePlace,
-            observable: `${culprit.name} doesn't remember exactly where they were during ${config.crimeWindow}`,
-            confidence: 0.3, // Evasive
-            cites: [],
-        } as TestimonyEvidence);
+            evidence.push({
+                id: makeEvidenceId('presence'),
+                kind: 'presence',
+                semantic: 'claim',
+                npc: config.culpritId,
+                window: lieWindow,
+                place: alibiPlace,
+                isSelfReported: true,
+                cites: ['self_reported_alibi'],
+            } as PresenceEvidence);
+        }
 
         return evidence;
     }
 
-    // EASY (default): Usually crime window, sometimes off-axis (teaches localization)
-    // 70% crime window, 30% off-axis - but full device coverage makes both easy
-    const seed = config.seed ?? 0;
-    const useOffAxis = (seed % 10) < 3; // 30% chance based on seed
-    const lieWindow = useOffAxis
-        ? (getAdjacentWindow(config.crimeWindow, -1) || config.crimeWindow)
-        : config.crimeWindow;
-
-    evidence.push({
-        id: makeEvidenceId('testimony'),
-        kind: 'testimony',
-        witness: config.culpritId,
-        window: lieWindow,
-        place: alibiPlace,
-        observable: `${culprit.name} claims to have been here during ${lieWindow}`,
-        confidence: 0.8, // Confident lie
-        cites: [],
-    } as TestimonyEvidence);
-
-    evidence.push({
-        id: makeEvidenceId('presence'),
-        kind: 'presence',
-        npc: config.culpritId,
-        window: lieWindow,
-        place: alibiPlace,
-        cites: ['self_reported_alibi'],
-    } as PresenceEvidence);
-
+    // EASY (default): Base STAY claim is sufficient.
+    // Full device coverage makes the contradiction obvious.
     return evidence;
 }
 

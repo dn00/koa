@@ -10,11 +10,11 @@
  * Manages AP budget: 4 days × 3 AP = 12 AP total
  */
 
-import { simulate } from './sim.js';
+import { simulate, generateValidatedCase } from './sim.js';
 import { deriveEvidence } from './evidence.js';
 import { PlayerSession } from './player.js';
 import { performSearch, performInterview, checkLogs, compareEvidence } from './actions.js';
-import type { EvidenceItem, MotiveEvidence, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, SignalAnalysis, DifficultyTier } from './types.js';
+import type { EvidenceItem, MotiveEvidence, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, SignalAnalysis, DifficultyTier, ContradictionLevel } from './types.js';
 import { analyzeSignal } from './validators.js';
 
 export interface SolveResult {
@@ -46,6 +46,11 @@ export interface SolveResult {
         maxInnocentContradictions: number;  // False positive risk
         totalContradictions: number;
         difficultyTier: 'easy' | 'medium' | 'hard' | 'unsolvable';
+        // HARD/SOFT semantic metrics (Task 006)
+        culpritHardContradictions: number;
+        maxInnocentHardContradictions: number;
+        culpritIsMostCaught: boolean;
+        totalSoftContradictions: number;
     };
 }
 
@@ -59,6 +64,7 @@ interface Contradiction {
     evidence1: EvidenceItem;
     evidence2: EvidenceItem;
     rule: string;
+    level: ContradictionLevel;
     suspect: string | null;
 }
 
@@ -129,10 +135,14 @@ function findAllContradictions(session: PlayerSession): Contradiction[] {
                     suspect = (e2 as TestimonyEvidence).witness;
                 }
 
+                // Capture HARD/SOFT level from compareEvidence (backward compat: default HARD)
+                const level: ContradictionLevel = 'level' in result ? result.level : 'HARD_CONTRADICTION';
+
                 contradictions.push({
                     evidence1: e1,
                     evidence2: e2,
                     rule: result.rule,
+                    level,
                     suspect
                 });
             }
@@ -199,198 +209,80 @@ function buildSmartAccusation(
         suspectsWithMotive.set(suspect, mList[0]);
     }
 
-    // Get liars from contradictions, prioritizing:
-    // 1. Self-contradiction (witness_location_conflict) = highest
-    // 2. Contradiction involving CRIME SCENE = very high (they lied about being at the scene!)
-    // 3. Other device contradictions = medium
-    // Also COUNT contradictions - more lies = more suspicious
-    const selfContradictorCounts = new Map<string, number>();
-    const crimeSceneContradictorCounts = new Map<string, number>();
-    const deviceContradictorCounts = new Map<string, number>();
+    // ── WHO: Rank by HARD contradictions (evidence-only deduction) ──
+    // Count HARD and SOFT contradictions per suspect
+    const hardCounts = new Map<string, number>();
+    const softCounts = new Map<string, number>();
 
     for (const c of contradictions) {
-        if (c.suspect) {
-            if (c.rule === 'witness_location_conflict' || c.rule === 'false_alibi') {
-                selfContradictorCounts.set(c.suspect, (selfContradictorCounts.get(c.suspect) || 0) + 1);
-            } else if (c.rule === 'device_vs_testimony') {
-                // Check if this contradiction involves the crime scene
-                const involvesScene =
-                    (c.evidence1.kind === 'device_log' && (c.evidence1 as DeviceLogEvidence).device.includes(crimeInfo.place)) ||
-                    (c.evidence2.kind === 'device_log' && (c.evidence2 as DeviceLogEvidence).device.includes(crimeInfo.place)) ||
-                    (c.evidence1.kind === 'testimony' && (c.evidence1 as TestimonyEvidence).place === crimeInfo.place) ||
-                    (c.evidence2.kind === 'testimony' && (c.evidence2 as TestimonyEvidence).place === crimeInfo.place);
-
-                if (involvesScene) {
-                    crimeSceneContradictorCounts.set(c.suspect, (crimeSceneContradictorCounts.get(c.suspect) || 0) + 1);
-                } else {
-                    deviceContradictorCounts.set(c.suspect, (deviceContradictorCounts.get(c.suspect) || 0) + 1);
-                }
-            }
+        if (!c.suspect) continue;
+        if (c.level === 'HARD_CONTRADICTION') {
+            hardCounts.set(c.suspect, (hardCounts.get(c.suspect) || 0) + 1);
+        } else if (c.level === 'SOFT_TENSION') {
+            softCounts.set(c.suspect, (softCounts.get(c.suspect) || 0) + 1);
         }
     }
 
     // Log summary
-    for (const [suspect, count] of selfContradictorCounts) {
-        log(`  SELF-CONTRADICTION: ${suspect} (${count}x)`);
+    for (const [suspect, count] of hardCounts) {
+        log(`  HARD: ${suspect} (${count}x)`);
     }
-    for (const [suspect, count] of crimeSceneContradictorCounts) {
-        log(`  CRIME SCENE LIE: ${suspect} (${count}x)`);
+    for (const [suspect, count] of softCounts) {
+        log(`  SOFT: ${suspect} (${count}x)`);
     }
 
-    // WHO: Prioritize by signal strength, picking the MOST suspicious within each tier
     let who: string | null = null;
 
-    // Check which suspects have a SIGNATURE motive (the actual crime motive template)
-    const motiveSignatures: Record<string, string[]> = {
-        envy: ['green with envy'],
-        embarrassment: ['mortified', 'cover it up'],
-        cover_up: ['acting shady', 'hiding something'],
-        rivalry: ['fierce competition'],
-        attention: ['desperate for attention', 'nobody pays'],
-        revenge: ['plotting payback'],
-        chaos: ['chaotic mood', 'watching it all burn'],
-    };
+    // 1. Most HARD contradictions
+    if (hardCounts.size > 0) {
+        const sortedByHard = [...hardCounts.entries()].sort((a, b) => b[1] - a[1]);
+        const maxHard = sortedByHard[0][1];
+        const tiedAtMax = sortedByHard.filter(([_, count]) => count === maxHard);
 
-    const suspectsWithSignatureMotive = new Set<string>();
-    for (const [suspect, motiveList] of suspectMotives) {
-        for (const m of motiveList) {
-            const hint = m.hint.toLowerCase();
-            for (const signatures of Object.values(motiveSignatures)) {
-                if (signatures.some(sig => hint.includes(sig.toLowerCase()))) {
-                    suspectsWithSignatureMotive.add(suspect);
-                    break;
-                }
-            }
+        if (tiedAtMax.length === 1) {
+            who = tiedAtMax[0][0];
+            log(`  WHO: ${who} (most HARD contradictions: ${maxHard})`);
+        } else {
+            // Tiebreak: SOFT count, then motive, then alphabetical
+            const ranked = tiedAtMax.map(([suspect]) => ({
+                suspect,
+                soft: softCounts.get(suspect) || 0,
+                hasMotive: suspectsWithMotive.has(suspect),
+            })).sort((a, b) => {
+                if (b.soft !== a.soft) return b.soft - a.soft;
+                if (a.hasMotive && !b.hasMotive) return -1;
+                if (b.hasMotive && !a.hasMotive) return 1;
+                return a.suspect.localeCompare(b.suspect);
+            });
+            who = ranked[0].suspect;
+            log(`  WHO: ${who} (tied HARD: ${maxHard}, tiebreak by SOFT/motive)`);
         }
     }
 
-    // Helper: find suspect with highest count who also has motive
-    // Priority: signature motive > scene lie > count
-    const findMostSuspiciousWithMotive = (counts: Map<string, number>): string | null => {
-        let best: string | null = null;
-        let bestCount = 0;
-        let bestHasSignature = false;
-        let bestHasSceneLie = false;
-        for (const [suspect, count] of counts) {
-            if (!suspectsWithMotive.has(suspect)) continue;
-            const hasSignature = suspectsWithSignatureMotive.has(suspect);
-            const hasSceneLie = crimeSceneContradictorCounts.has(suspect);
+    // 2. If no HARD, fall back to SOFT count
+    if (!who && softCounts.size > 0) {
+        const sortedBySoft = [...softCounts.entries()].sort((a, b) => b[1] - a[1]);
+        const maxSoft = sortedBySoft[0][1];
+        const tiedAtMax = sortedBySoft.filter(([_, count]) => count === maxSoft);
+        const withMotive = tiedAtMax.filter(([suspect]) => suspectsWithMotive.has(suspect));
 
-            // Scoring: signature motive is strongest, then scene lie, then count
-            const isBetter =
-                (hasSignature && !bestHasSignature) ||  // Has signature when best doesn't
-                (hasSignature === bestHasSignature && hasSceneLie && !bestHasSceneLie) ||  // Same sig, has scene lie
-                (hasSignature === bestHasSignature && hasSceneLie === bestHasSceneLie && count > bestCount);  // Same sig+scene, higher count
-
-            if (isBetter) {
-                best = suspect;
-                bestCount = count;
-                bestHasSignature = hasSignature;
-                bestHasSceneLie = hasSceneLie;
-            }
+        if (withMotive.length > 0) {
+            who = withMotive[0][0];
+            log(`  WHO: ${who} (SOFT fallback: ${maxSoft} + motive)`);
+        } else {
+            who = tiedAtMax[0][0];
+            log(`  WHO: ${who} (SOFT fallback: ${maxSoft})`);
         }
-        return best;
-    };
-
-    // Helper: find suspect with highest count
-    // On ties, prefer suspects who ALSO have crime scene lies
-    const findMostSuspicious = (counts: Map<string, number>): string | null => {
-        let best: string | null = null;
-        let bestCount = 0;
-        let bestHasSceneLie = false;
-        for (const [suspect, count] of counts) {
-            const hasSceneLie = crimeSceneContradictorCounts.has(suspect);
-            if (count > bestCount || (count === bestCount && hasSceneLie && !bestHasSceneLie)) {
-                best = suspect;
-                bestCount = count;
-                bestHasSceneLie = hasSceneLie;
-            }
-        }
-        return best;
-    };
-
-    // 0. SIGNATURE MOTIVE - The strongest signal on medium/hard difficulty
-    // If someone has a signature motive phrase (e.g., "desperate for attention"),
-    // they're likely the culprit even without contradictions.
-    // On easy mode, self-contradiction trumps this. On medium/hard, this is primary.
-    if (!who && suspectsWithSignatureMotive.size === 1) {
-        // Only one person has signature motive - high confidence
-        who = Array.from(suspectsWithSignatureMotive)[0];
-        log(`  WHO: ${who} (unique signature motive)`);
     }
 
-    // 1. Self-contradictor with motive - pick the one with MOST contradictions
+    // 3. If no contradictions, fall back to motive + scene presence
     if (!who) {
-        who = findMostSuspiciousWithMotive(selfContradictorCounts);
-        if (who) {
-            log(`  WHO: ${who} (self-contradiction + motive, ${selfContradictorCounts.get(who)}x)`);
-        }
-    }
-
-    // 2. Any self-contradictor - pick the one with MOST contradictions
-    if (!who && selfContradictorCounts.size > 0) {
-        who = findMostSuspicious(selfContradictorCounts);
-        if (who) log(`  WHO: ${who} (self-contradiction, ${selfContradictorCounts.get(who)}x)`);
-    }
-
-    // 2.5. Signature motive holder (even if not unique) - beats crime scene liars
-    if (!who && suspectsWithSignatureMotive.size > 0) {
-        // Multiple signature motive holders - pick one with any contradiction
-        for (const suspect of suspectsWithSignatureMotive) {
-            const hasAnyContradiction =
-                selfContradictorCounts.has(suspect) ||
-                crimeSceneContradictorCounts.has(suspect) ||
-                deviceContradictorCounts.has(suspect);
-            if (hasAnyContradiction) {
-                who = suspect;
-                log(`  WHO: ${who} (signature motive + contradiction)`);
-                break;
-            }
-        }
-        // If none have contradictions, just pick first signature motive holder
-        if (!who) {
-            who = Array.from(suspectsWithSignatureMotive)[0];
-            log(`  WHO: ${who} (signature motive, no contradictions)`);
-        }
-    }
-
-    // 3. Crime scene liar with motive
-    if (!who) {
-        who = findMostSuspiciousWithMotive(crimeSceneContradictorCounts);
-        if (who) log(`  WHO: ${who} (crime scene lie + motive, ${crimeSceneContradictorCounts.get(who)}x)`);
-    }
-
-    // 4. Any crime scene liar
-    if (!who && crimeSceneContradictorCounts.size > 0) {
-        who = findMostSuspicious(crimeSceneContradictorCounts);
-        if (who) log(`  WHO: ${who} (crime scene lie, ${crimeSceneContradictorCounts.get(who)}x)`);
-    }
-
-    // 5. Device contradictor with motive
-    if (!who) {
-        who = findMostSuspiciousWithMotive(deviceContradictorCounts);
-        if (who) log(`  WHO: ${who} (device contradiction + motive, ${deviceContradictorCounts.get(who)}x)`);
-    }
-
-    // 6. Any device contradictor
-    if (!who && deviceContradictorCounts.size > 0) {
-        who = findMostSuspicious(deviceContradictorCounts);
-        if (who) log(`  WHO: ${who} (device contradiction, ${deviceContradictorCounts.get(who)}x)`);
-    }
-
-
-    // Third: suspect with motive who was at crime scene
-    if (!who) {
-        const physical = evidence.filter(e => e.kind === 'physical') as PhysicalEvidence[];
-
-        // Check door logs for who was at the crime location
         const doorLogs = evidence.filter(e =>
             e.kind === 'device_log' &&
             (e as DeviceLogEvidence).window === crimeInfo.window
         ) as DeviceLogEvidence[];
 
         for (const [suspect, _motive] of suspectsWithMotive) {
-            // Check if this suspect was at the crime scene via door logs
             const wasAtScene = doorLogs.some(dl =>
                 dl.actor === suspect &&
                 (dl.place === crimeInfo.place || dl.device.includes(crimeInfo.place))
@@ -403,13 +295,13 @@ function buildSmartAccusation(
         }
     }
 
-    // Fourth: any suspect with motive
+    // 4. Any suspect with motive
     if (!who && suspectsWithMotive.size > 0) {
         who = Array.from(suspectsWithMotive.keys())[0];
         log(`  WHO: ${who} (has motive)`);
     }
 
-    // Last resort: first suspect
+    // 5. Last resort: first suspect
     if (!who) {
         who = session.config.suspects[0];
         log(`  WHO: ${who} (fallback)`);
@@ -454,16 +346,37 @@ function buildSmartAccusation(
             chaos: ['chaotic mood', 'watching it all burn'],
         };
 
-        // Look for signature phrases in the gossip
-        outer: for (const m of culpritMotives) {
+        // Look for signature phrases in the gossip.
+        // Score each candidate: aligned phrase+motiveHint is better, and motiveHints
+        // that are unlikely to come from generic relationships rank higher.
+        // Relationship-derived motiveHints (rivalry, revenge, cover_up) are common for
+        // innocents too, while attention, embarrassment, chaos, envy are more specific.
+        const RELATIONSHIP_MOTIVES = new Set(['rivalry', 'revenge', 'cover_up']);
+        let bestWhy: string | null = null;
+        let bestScore = 0;
+        let bestLen = 0;
+        for (const m of culpritMotives) {
             const hint = m.hint.toLowerCase();
             for (const [motiveType, signatures] of Object.entries(motiveSignatures)) {
                 if (signatures.some(sig => hint.includes(sig.toLowerCase()))) {
-                    why = motiveType;
-                    log(`  WHY: ${why} (signature phrase found: "${signatures.find(s => hint.includes(s.toLowerCase()))}")`);
-                    break outer;
+                    const aligned = m.motiveHint === motiveType;
+                    // Score: aligned=2, non-relationship motive=1 (more likely real crime motive)
+                    let score = aligned ? 2 : 0;
+                    if (!RELATIONSHIP_MOTIVES.has(motiveType)) score += 1;
+                    // Tiebreak: real motive gossip is longer (includes funnyReason, qualifiers)
+                    if (score > bestScore || (score === bestScore && hint.length > bestLen)) {
+                        bestScore = score;
+                        bestLen = hint.length;
+                        bestWhy = motiveType;
+                        log(`  WHY candidate: ${motiveType} (score=${score}, len=${hint.length}, aligned=${aligned}, hint="${m.motiveHint}")`);
+                    }
+                    break;
                 }
             }
+        }
+        if (bestWhy) {
+            why = bestWhy;
+            log(`  WHY: ${why} (signature phrase, score=${bestScore})`);
         }
 
         // Fallback: use most frequent if no signature found
@@ -501,13 +414,14 @@ export function solve(seed: number, verbose: boolean = false, tier?: DifficultyT
         if (verbose) console.log(`  ${msg}`);
     };
 
-    // Generate case
-    const result = simulate(seed, tier ?? 2);
-    if (!result) {
+    // Generate case using validated pipeline (includes signal injection)
+    const gv = generateValidatedCase(seed, (tier ?? 2) as DifficultyTier);
+    if (!gv) {
         return { seed, solved: false, correct: false, coreCorrect: false, apUsed: 0, failReason: 'sim_failed', trace };
     }
+    const result = gv.sim;
+    const evidence = gv.evidence;
 
-    const evidence = deriveEvidence(result.world, result.eventLog, result.config);
     const session = new PlayerSession(result.world, result.config, evidence, result.eventLog);
     const suspects = session.config.suspects;
 
@@ -543,17 +457,18 @@ export function solve(seed: number, verbose: boolean = false, tier?: DifficultyT
     const physicalFound = searchResult.evidence.filter(e => e.kind === 'physical').length;
     log(`Found ${physicalFound} physical evidence`);
 
-    // ===== PHASE 3: DEVICE LOGS (1-3 AP) =====
+    // ===== PHASE 3: DEVICE LOGS — MOTION FIRST (2 AP) =====
+    // Motion sensors provide presence-semantic evidence needed for HARD contradictions.
+    // Prioritize motion over door (door = movement semantic = SOFT only).
     log('=== Phase 3: Device Logs ===');
-    const windowsToCheck = [crimeInfo.window, ...getAdjacentWindows(crimeInfo.window)];
-    for (const w of windowsToCheck) {
+    for (const dtype of ['motion', 'door']) {
         if (!ensureAP(session, 1, log)) break;
-        log(`LOGS door ${w}`);
-        checkLogs(session, 'door', w);
+        log(`LOGS ${dtype} ${crimeInfo.window}`);
+        checkLogs(session, dtype, crimeInfo.window);
         apUsed++;
     }
 
-    // ===== PHASE 4: TESTIMONY FROM ALL SUSPECTS (5 AP) =====
+    // ===== PHASE 4: TESTIMONY FROM ALL SUSPECTS (4 AP) =====
     log('=== Phase 4: Gathering Testimony ===');
     for (const suspect of suspects) {
         if (!ensureAP(session, 1, log)) break;
@@ -562,12 +477,22 @@ export function solve(seed: number, verbose: boolean = false, tier?: DifficultyT
         apUsed++;
     }
 
-    // ===== PHASE 5: MORE GOSSIP FOR MOTIVES (remaining AP) =====
+    // ===== PHASE 5: GOSSIP FOR MOTIVES (2 AP) =====
     log('=== Phase 5: More Gossip ===');
-    for (const suspect of suspects.slice(1)) {  // Skip first, already got their gossip
+    for (const suspect of suspects.slice(1, 3)) {  // 2 more gossip sources (skip first)
         if (!ensureAP(session, 1, log)) break;
         log(`INTERVIEW ${suspect} gossip`);
         performInterview(session, suspect, '', 'gossip');
+        apUsed++;
+    }
+
+    // ===== PHASE 6: SECOND ROUND DEVICE LOGS (2 AP) =====
+    // Get more motion + camera logs to increase HARD contradiction discovery.
+    log('=== Phase 6: More Device Logs ===');
+    for (const dtype of ['motion', 'camera']) {
+        if (!ensureAP(session, 1, log)) break;
+        log(`LOGS ${dtype} ${crimeInfo.window} (round 2)`);
+        checkLogs(session, dtype, crimeInfo.window);
         apUsed++;
     }
 
@@ -656,6 +581,24 @@ export function solve(seed: number, verbose: boolean = false, tier?: DifficultyT
         difficultyTier = 'unsolvable';  // No clear signal
     }
 
+    // HARD/SOFT semantic metrics (Task 006)
+    const hardCountsMetrics = new Map<string, number>();
+    for (const c of contradictions) {
+        if (!c.suspect) continue;
+        if (c.level === 'HARD_CONTRADICTION') {
+            hardCountsMetrics.set(c.suspect, (hardCountsMetrics.get(c.suspect) || 0) + 1);
+        }
+    }
+    const culpritHardContradictions = hardCountsMetrics.get(culpritId) || 0;
+    let maxInnocentHardContradictions = 0;
+    for (const suspect of session.config.suspects) {
+        if (suspect === culpritId) continue;
+        const hard = hardCountsMetrics.get(suspect) || 0;
+        if (hard > maxInnocentHardContradictions) maxInnocentHardContradictions = hard;
+    }
+    const culpritIsMostCaught = culpritHardContradictions > maxInnocentHardContradictions;
+    const totalSoftContradictions = contradictions.filter(c => c.level === 'SOFT_TENSION').length;
+
     const metrics = {
         culpritHasSelfContradiction: culpritSelfContradictions > 0,
         culpritHasCrimeSceneLie: culpritCrimeSceneLies > 0,
@@ -664,6 +607,10 @@ export function solve(seed: number, verbose: boolean = false, tier?: DifficultyT
         maxInnocentContradictions,
         totalContradictions: contradictions.length,
         difficultyTier,
+        culpritHardContradictions,
+        maxInnocentHardContradictions,
+        culpritIsMostCaught,
+        totalSoftContradictions,
     };
 
     // ===== PHASE 7: BUILD ACCUSATION =====
@@ -830,12 +777,30 @@ export function autosolve(count: number, startSeed: number = 1, verbose: boolean
         console.log(`  No liar found: ${casesWithoutLiar.length}`);
     }
 
-    // ===== TUNING METRICS =====
+    // ===== HARD/SOFT CONTRADICTION METRICS =====
     const withMetrics = results.filter(r => r.metrics);
     if (withMetrics.length > 0) {
         console.log(`\n${'='.repeat(60)}`);
-        console.log('TUNING METRICS');
+        console.log('HARD/SOFT CONTRADICTION METRICS');
         console.log('='.repeat(60));
+
+        const avgVal = (arr: number[]) => arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+
+        const hasAtLeast1Hard = withMetrics.filter(r => (r.metrics?.culpritHardContradictions ?? 0) >= 1).length;
+        const culpritMostCaught = withMetrics.filter(r => r.metrics?.culpritIsMostCaught).length;
+
+        console.log(`\nCulprit has >= 1 HARD:     ${hasAtLeast1Hard}/${withMetrics.length} (${(hasAtLeast1Hard/withMetrics.length*100).toFixed(0)}%)  target: 100%`);
+        console.log(`Culprit most caught HARD:  ${culpritMostCaught}/${withMetrics.length} (${(culpritMostCaught/withMetrics.length*100).toFixed(0)}%)  target: >= 90%`);
+        console.log(`Avg HARD culprit:          ${avgVal(withMetrics.map(r => r.metrics?.culpritHardContradictions ?? 0)).toFixed(1)}`);
+        console.log(`Avg HARD max innocent:     ${avgVal(withMetrics.map(r => r.metrics?.maxInnocentHardContradictions ?? 0)).toFixed(1)}`);
+        console.log(`Avg SOFT per case:         ${avgVal(withMetrics.map(r => r.metrics?.totalSoftContradictions ?? 0)).toFixed(1)}`);
+
+        // HARD false positive risk
+        const fpRiskHard = withMetrics.filter(r =>
+            r.metrics && r.metrics.maxInnocentHardContradictions >= r.metrics.culpritHardContradictions
+            && r.metrics.culpritHardContradictions > 0
+        ).length;
+        console.log(`HARD false positive risk:  ${fpRiskHard}/${withMetrics.length} (${(fpRiskHard/withMetrics.length*100).toFixed(0)}%)`);
 
         // Difficulty distribution
         const difficultyCount = { easy: 0, medium: 0, hard: 0, unsolvable: 0 };
@@ -856,29 +821,5 @@ export function autosolve(count: number, startSeed: number = 1, verbose: boolean
             const rate = total > 0 ? (solved / total * 100).toFixed(0) : '-';
             console.log(`  ${tier.padEnd(11)} | ${String(total).padStart(5)} | ${String(solved).padStart(6)} | ${rate}%`);
         }
-
-        // Signal availability
-        const hasSelfContradiction = withMetrics.filter(r => r.metrics?.culpritHasSelfContradiction).length;
-        const hasCrimeSceneLie = withMetrics.filter(r => r.metrics?.culpritHasCrimeSceneLie).length;
-        const hasSignatureMotive = withMetrics.filter(r => r.metrics?.culpritHasSignatureMotive).length;
-
-        console.log('\nSignal Availability (culprit has...):');
-        console.log(`  Self-contradiction:  ${hasSelfContradiction}/${withMetrics.length} (${(hasSelfContradiction/withMetrics.length*100).toFixed(0)}%)`);
-        console.log(`  Crime scene lie:     ${hasCrimeSceneLie}/${withMetrics.length} (${(hasCrimeSceneLie/withMetrics.length*100).toFixed(0)}%)`);
-        console.log(`  Signature motive:    ${hasSignatureMotive}/${withMetrics.length} (${(hasSignatureMotive/withMetrics.length*100).toFixed(0)}%)`);
-
-        // False positive risk
-        const falsePositiveRisk = withMetrics.filter(r =>
-            r.metrics && r.metrics.maxInnocentContradictions >= r.metrics.culpritContradictionCount
-        ).length;
-        console.log('\nFalse Positive Risk:');
-        console.log(`  Cases where innocent has >= culprit contradictions: ${falsePositiveRisk}/${withMetrics.length} (${(falsePositiveRisk/withMetrics.length*100).toFixed(0)}%)`);
-
-        // Average contradictions
-        const avgCulpritContradictions = withMetrics.reduce((sum, r) => sum + (r.metrics?.culpritContradictionCount || 0), 0) / withMetrics.length;
-        const avgInnocentContradictions = withMetrics.reduce((sum, r) => sum + (r.metrics?.maxInnocentContradictions || 0), 0) / withMetrics.length;
-        console.log('\nContradiction Counts (avg):');
-        console.log(`  Culprit:  ${avgCulpritContradictions.toFixed(1)}`);
-        console.log(`  Innocent: ${avgInnocentContradictions.toFixed(1)} (max per case)`);
     }
 }

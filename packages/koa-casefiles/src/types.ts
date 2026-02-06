@@ -117,6 +117,22 @@ export function getWindowForTick(tick: number): WindowId {
     return 'W6'; // Default to last window
 }
 
+// ── Micro-slices (subdivide each window into thirds for time precision) ──
+
+export type Slice = 'a' | 'b' | 'c';
+export type SlicedWindowId = `${WindowId}.${Slice}`;
+
+/** Divide a window's tick range into 3 equal slices. */
+export function getSliceForTick(tick: number, windowId: WindowId): SlicedWindowId {
+    const w = WINDOWS.find(ww => ww.id === windowId);
+    if (!w) return `${windowId}.c` as SlicedWindowId;
+    const range = w.endTick - w.startTick + 1;
+    const third = range / 3;
+    const offset = tick - w.startTick;
+    const slice: Slice = offset < third ? 'a' : offset < third * 2 ? 'b' : 'c';
+    return `${windowId}.${slice}` as SlicedWindowId;
+}
+
 // ============================================================================
 // World - Places
 // ============================================================================
@@ -166,6 +182,7 @@ export interface NPC {
     name: string;
     role: string;
     schedule: ScheduleEntry[];
+    archetypeId?: string;
 }
 
 // ============================================================================
@@ -272,6 +289,19 @@ export interface CaseConfig {
 }
 
 // ============================================================================
+// Evidence Semantics
+// ============================================================================
+
+/** What an evidence item asserts: location, boundary crossing, or self-report. */
+export type EvidenceSemantic = 'presence' | 'movement' | 'claim';
+
+/** Self-report sub-type: stayed whole window vs briefly passing through. */
+export type ClaimType = 'STAY' | 'PASSING';
+
+/** Contradiction severity between two evidence items. */
+export type ContradictionLevel = 'HARD_CONTRADICTION' | 'SOFT_TENSION' | 'NO_CONTRADICTION';
+
+// ============================================================================
 // Evidence
 // ============================================================================
 
@@ -281,6 +311,8 @@ export interface BaseEvidence {
     id: string;
     kind: EvidenceKind;
     cites: EventId[];
+    semantic?: EvidenceSemantic;
+    slice?: SlicedWindowId;
 }
 
 export interface PresenceEvidence extends BaseEvidence {
@@ -311,6 +343,7 @@ export interface TestimonyEvidence extends BaseEvidence {
     subjectHint?: string;  // "tall", "wearing red", etc. (NOT NPCId)
     subject?: NPCId;       // Who was seen (if identifiable)
     subjectPlace?: PlaceId; // Where the subject was seen (may differ from witness place)
+    claimType?: ClaimType; // STAY = was there whole window, PASSING = briefly visited
 }
 
 export interface PhysicalEvidence extends BaseEvidence {
@@ -444,6 +477,7 @@ export interface CaseValidation {
     redHerrings: ValidationResult;
     difficulty?: DifficultyValidation;
     funness?: ValidationResult;
+    comedy?: ValidationResult;
     passed: boolean;
     culprit: NPCId;
     evidenceCount: number;

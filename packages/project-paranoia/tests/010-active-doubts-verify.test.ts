@@ -41,7 +41,7 @@ describe('AC-1: Backfires create doubts', () => {
         expect(state.perception.activeDoubts.length).toBe(1);
         const doubt = state.perception.activeDoubts[0];
         expect(doubt.topic).toContain('thermal');
-        expect(doubt.severity).toBe(2);
+        expect(doubt.severity).toBe(3); // Task 003: All backfire doubts have max severity
         expect(doubt.relatedOpId).toBe('suppress-test');
         expect(doubt.system).toBe('thermal');
         expect(doubt.resolved).toBe(false);

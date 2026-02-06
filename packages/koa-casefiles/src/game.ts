@@ -774,18 +774,55 @@ async function main() {
                             }
                         );
                     } else {
-                        // No contradiction in known evidence yet - hint at what to look for
-                        print(
-                            `┌─────────────────────────────────────────────────────┐\n` +
-                            `│ 🔍 KOA ANALYSIS                                     │\n` +
-                            `├─────────────────────────────────────────────────────┤\n` +
-                            `│ I don't see an obvious contradiction yet.           │\n` +
-                            `│ Someone's story should conflict with the logs...    │\n` +
-                            `│ Keep investigating.                                 │\n` +
-                            `└─────────────────────────────────────────────────────┘`,
-                            agentMode,
-                            { type: 'compare_suggest', noContradiction: true }
-                        );
+                        // No keystone found — scan all known pairs for any contradiction
+                        const known = session.knownEvidence;
+                        let bestPair: { a: string; b: string; level: 'HARD_CONTRADICTION' | 'SOFT_TENSION' } | null = null;
+                        for (let i = 0; i < known.length; i++) {
+                            for (let j = i + 1; j < known.length; j++) {
+                                const cmp = compareEvidence(session, known[i].id, known[j].id);
+                                if (cmp.success && 'contradiction' in cmp && cmp.contradiction) {
+                                    const lvl = cmp.level as 'HARD_CONTRADICTION' | 'SOFT_TENSION';
+                                    if (!bestPair || (lvl === 'HARD_CONTRADICTION' && bestPair.level !== 'HARD_CONTRADICTION')) {
+                                        bestPair = { a: known[i].id, b: known[j].id, level: lvl };
+                                    }
+                                }
+                            }
+                        }
+
+                        if (bestPair) {
+                            const hint = bestPair.level === 'HARD_CONTRADICTION'
+                                ? `These two pieces of evidence are directly contradictory!`
+                                : `Something's slightly off between these two... not proof yet, but worth digging into.`;
+                            print(
+                                `┌─────────────────────────────────────────────────────┐\n` +
+                                `│ 🔍 KOA ANALYSIS                                     │\n` +
+                                `├─────────────────────────────────────────────────────┤\n` +
+                                `│ ${hint.padEnd(52)}│\n` +
+                                `│                                                     │\n` +
+                                `│ Try: COMPARE ${bestPair.a} ${bestPair.b}\n` +
+                                `└─────────────────────────────────────────────────────┘`,
+                                agentMode,
+                                {
+                                    type: 'compare_suggest',
+                                    evidenceA: bestPair.a,
+                                    evidenceB: bestPair.b,
+                                    hint,
+                                    fallback: true,
+                                }
+                            );
+                        } else {
+                            print(
+                                `┌─────────────────────────────────────────────────────┐\n` +
+                                `│ 🔍 KOA ANALYSIS                                     │\n` +
+                                `├─────────────────────────────────────────────────────┤\n` +
+                                `│ I don't see an obvious contradiction yet.           │\n` +
+                                `│ Someone's story should conflict with the logs...    │\n` +
+                                `│ Keep investigating.                                 │\n` +
+                                `└─────────────────────────────────────────────────────┘`,
+                                agentMode,
+                                { type: 'compare_suggest', noContradiction: true }
+                            );
+                        }
                     }
                     return;
                 }

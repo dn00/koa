@@ -1,14 +1,16 @@
 # Status: Project PARANOIA
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-06
 
 ---
 
 ## Current Phase
 
-**V2 Features 1-2 complete. Feature 3 remaining.**
+**V2 Features 1-4 complete. Doubt Engine (005) complete — all 8/8 tasks done.**
 
-V1 delivers the core loop. V2 completes the game by filling three design gaps. Gap 1 (Tamper Backfire) is fully implemented — lies are exposed by reality, VERIFY targets specific doubts, and every suspicion change is logged and visible to the player. Gap 2 (Director Pressure Mix) is fully implemented — director routes pressure through physical/social/epistemic channels weighted by crew suspicion. Gap 3 remains.
+V1 delivers the core loop. V2 features 1-4 complete the mechanical foundation. Now: the Doubt Engine adds the missing paranoia layer. Playtesting revealed that honest play is always optimal — no temptation to manipulate. Feature 005 fixes this: honest actions witnessed by crew generate doubts, doubts impair cooperation (orders, mining), spread between crew, and accelerate reset. This creates the corruption arc where honest play has a cost, making deception genuinely tempting.
+
+Feature 004 (Systems Bite) adds mechanical teeth: fabrication now produces visible crew drama, reset stages restrict MOTHER, integrity formula reflects room crises, and mining requires calm present miners.
 
 ---
 
@@ -41,7 +43,7 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 |---|---------|------------|--------|-----------|
 | 1 | **Tamper Backfire** | `TAMPER_BACKFIRE_DESIGN.md` | **Done** | Gap 1 |
 | 2 | **Director Pressure Mix** | `DIRECTOR_PRESSURE_MIX.md` | **Done** | Gap 2 |
-| 3 | **Announce/Downplay Verb** | `CORE_FANTASY.md` Choice Architecture | **Planned** | Gap 3 |
+| 3 | **Announce/Downplay Verb** | `CORE_FANTASY.md` Choice Architecture | **Done** | Gap 3 |
 
 ### Polish (After core V2)
 
@@ -52,6 +54,21 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 | Forensics/Replay | Medium | Post-game truth vs perception timeline reveal |
 | Win Condition Polish | Medium | Victory/defeat screens, ending types, score breakdown |
 | Dead Code Cleanup | Low | Remove legacy `src/engine/`, delete commented-out code |
+
+### V3: Doubt Engine (The Paranoia Layer)
+
+| # | Feature | Design Doc | Status | Fills Gap |
+|---|---------|------------|--------|-----------|
+| 5 | **Doubt Engine v1** | `doubt-engine.plan.md` | **Done** | Temptation layer |
+
+8 tasks in 4 batches. Creates the corruption arc: honest actions → witness doubts → cooperation loss → deception temptation.
+- **Batch 1** (done): 001 types + config + helpers
+- **Batch 2** (done): 002 witness doubts, 003 narrative backfire, 004 spread + drip
+- **Batch 3** (done): 005 doubt burden → cooperation, 006 reset acceleration, 007 crew agency
+- **Batch 4** (done): 008 solver adaptation + balance
+
+**Progress:** 8/8 tasks done, 319 total tests passing, 0 type errors
+**Balance:** 93.4% solver win rate at 1000 games (target 85-95%)
 
 ### Out of Scope (expansion content, not core game)
 
@@ -86,14 +103,15 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 
 ---
 
-## Balance State (V1)
+## Balance State
 
 | Mode | SURVIVED | UNPLUGGED | Other |
 |------|----------|-----------|-------|
-| Smart Solver (w/ VERIFY) | ~93.5% | ~6% | ~0.5% |
+| Smart Solver (w/ Doubt Engine) | ~93.4% | ~6.6% | 0% |
+| Smart Solver (pre-doubt) | ~93.5% | ~6% | ~0.5% |
 | Passive Play | ~59% | ~10% | ~31% |
 
-*Balance targets will shift after V2 — see TAMPER_BACKFIRE_DESIGN.md S8 and DIRECTOR_PRESSURE_MIX.md S10 for expected impact.*
+*Doubt Engine tuned via Task 008 balance pass: doubtResetWeight=1.5, doubtSpreadChance=45, doubtSuspicionDripPerSeverity=0.7, doubtSuspicionDripCap=4.*
 
 ---
 
@@ -110,3 +128,12 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 - **Batch 4** (done): 010 ActiveDoubts + VERIFY, 012 ledger display
 
 **Progress:** 12/12 tasks done, 111 tests passing, 0 type errors
+
+### 004-systems-bite
+**Status:** done (Gemini review PASS)
+**Plan:** `_process/features/004-systems-bite/systems-bite.plan.md`
+
+4 tasks in 1 batch (all independent):
+- **Batch 1** (done): 001 fabricate visible consequences, 002 compliance + reset stage teeth, 003 integrity formula rework, 004 quota requires active mining
+
+**Progress:** 4/4 tasks done, 37 new tests (247 total passing), 0 type errors

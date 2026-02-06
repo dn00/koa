@@ -181,18 +181,43 @@ describe('Task 003: Social Event Generators', () => {
         });
     });
 
-    describe('EC-1: no suspicious crew returns empty', () => {
-        test('all normal crew returns empty proposals', () => {
-            const state = makeTestState();
-            // All crew normal
-            for (const npcId of Object.keys(state.perception.beliefs) as NPCId[]) {
-                state.perception.beliefs[npcId].motherReliable = 0.8;
-                state.perception.beliefs[npcId].tamperEvidence = 5;
+    describe('EC-1: uneasy crew produces proposals even without high suspicion', () => {
+        test('stressed crew triggers social pressure (justified unease)', () => {
+            let generated = false;
+            for (let seed = 0; seed < 50; seed++) {
+                const s = makeTestState();
+                for (const npcId of Object.keys(s.perception.beliefs) as NPCId[]) {
+                    s.perception.beliefs[npcId].motherReliable = 0.8;
+                    s.perception.beliefs[npcId].tamperEvidence = 5;
+                }
+                // Give one crew member high stress — justified unease
+                s.truth.crew['engineer'].stress = 50;
+                s.truth.tick = 50;
+                const r = createRng(seed);
+                const proposals = proposeSocialPressure(s, r);
+                if (proposals.length > 0) {
+                    generated = true;
+                    break;
+                }
             }
-            state.truth.tick = 50;
-            const rng = createRng(42);
+            expect(generated).toBe(true);
+        });
 
-            const proposals = proposeSocialPressure(state, rng);
+        test('calm healthy crew in safe station returns empty', () => {
+            const s = makeTestState();
+            for (const npcId of Object.keys(s.perception.beliefs) as NPCId[]) {
+                s.perception.beliefs[npcId].motherReliable = 0.8;
+                s.perception.beliefs[npcId].tamperEvidence = 5;
+            }
+            // All crew calm, healthy, not near crises
+            for (const crew of Object.values(s.truth.crew)) {
+                crew.stress = 0;
+                crew.hp = 100;
+            }
+            s.truth.arcs = [];
+            s.truth.tick = 50;
+            const r = createRng(42);
+            const proposals = proposeSocialPressure(s, r);
             expect(proposals).toEqual([]);
         });
     });

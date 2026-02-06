@@ -1,7 +1,7 @@
 # Plan: Announce/Downplay Verb
 
 **Discovery:** Inline (CORE_FANTASY.md Choice Architecture, Gap 3 in STATUS.md)
-**Status:** active
+**Status:** done
 
 ---
 
@@ -76,11 +76,11 @@ Add two new player commands — ANNOUNCE and DOWNPLAY — that let the player pr
 
 | ID | Name | Complexity | Status |
 |----|------|------------|--------|
-| 001 | CrisisCommsOp types + config + state | S | ready |
-| 002 | ANNOUNCE command + vindication | M | backlog |
-| 003 | DOWNPLAY command | M | backlog |
-| 004 | DOWNPLAY backfire | M | backlog |
-| 005 | CLI wiring + integration test | M | backlog |
+| 001 | CrisisCommsOp types + config + state | S | done |
+| 002 | ANNOUNCE command + vindication | M | done |
+| 003 | DOWNPLAY command | M | done |
+| 004 | DOWNPLAY backfire | M | done |
+| 005 | CLI wiring + integration test | M | done |
 
 ---
 
@@ -216,6 +216,14 @@ downplayBackfireCap: 25
 ```
 
 **CPU costs:** Hardcoded in `index.ts` (ANNOUNCE=4, DOWNPLAY=2), matching existing pattern where SUPPRESS=6, SPOOF=8, etc. NOT in config.ts.
+
+#### Implementation Notes
+- `CrisisCommsOp`, `CrisisCommsKind`, `CrisisCommsStatus` types added to `src/kernel/types.ts`
+- `crisisCommsOps: CrisisCommsOp[]` added to `PerceptionState`
+- `ARC_SYSTEM_MAP`, `findArcBySystem`, `hasExistingComms` created in `src/kernel/systems/crisis-comms.ts`
+- 12 config params added to `src/config.ts` with `PARANOIA_` prefix env overrides
+- `crisisCommsOps: []` initialized in `src/kernel/state.ts`
+- All 13 tests passing in `tests/crisis-comms-types.test.ts`
 
 ---
 
@@ -364,6 +372,15 @@ Adjacent rooms determined via `state.world.doors` — filter doors where `d.a ==
 
 **lastStepIndex tracking:** `checkAnnounceVindication` does double duty — each tick for PENDING ops, it finds the arc by `op.arcId` and updates `op.lastStepIndex = arc.stepIndex`. When the arc disappears (resolved), it reads `op.lastStepIndex` to determine severity. This avoids losing the stepIndex when the arc is removed from the array.
 
+#### Implementation Notes
+- `ANNOUNCE` added to Command union in `commands.ts`
+- `proposeCommandEvents` if-block validates arc exists via `findArcBySystem`, checks no existing comms via `hasExistingComms`
+- Produces COMMS_MESSAGE (broadcast, confidence 0.95, evacuation text) + SYSTEM_ACTION (ANNOUNCE_CRISIS)
+- `applyEvent` ANNOUNCE_CRISIS handler: stress spike all crew, forced evacuation for crew in/adjacent to crisis room (panicUntilTick + orderUntilTick + safe room target), suspicion drop via ledger, CrisisCommsOp creation with crew snapshot
+- `checkAnnounceVindication` in crisis-comms.ts: tracks lastStepIndex each tick, sets VINDICATED when arc removed, bonus suspicion drop only if lastStepIndex >= 2
+- `findSafeRoom` imported from crew.ts (already exported)
+- All 11 tests passing in `tests/announce.test.ts`
+
 ---
 
 ### Task 003: DOWNPLAY Command
@@ -464,6 +481,15 @@ None (rejection via empty proposals, not errors).
 
 #### Notes
 **Downplay vs Suppress:** SUPPRESS hides ALL alerts for a system (automated sensor readings). DOWNPLAY is a manual broadcast that acknowledges the crisis exists but minimizes it. They're orthogonal — player can suppress thermal alerts AND then downplay thermal, or downplay without suppressing.
+
+#### Implementation Notes
+- `DOWNPLAY` added to Command union in `commands.ts`
+- `proposeCommandEvents` if-block mirrors ANNOUNCE pattern: validates arc + no existing comms
+- Produces COMMS_MESSAGE (broadcast, confidence 0.8, calming "minor...monitoring" text) + SYSTEM_ACTION (DOWNPLAY_CRISIS)
+- Tags intentionally lighter than ANNOUNCE: `['choice', 'background']` (no 'consequence' — DOWNPLAY doesn't cause evacuation)
+- `applyEvent` DOWNPLAY_CRISIS handler: mild stress bump all crew, suspicion drop via ledger, CrisisCommsOp creation with crew snapshot of crew in crisis room. NO evacuation (no panicUntilTick, no targetPlace changes)
+- All 10 tests passing in `tests/downplay.test.ts`
+- Gemini review: fixed AC-3 test to include actual assertions (was missing)
 
 ---
 
@@ -604,6 +630,16 @@ for each PENDING downplay op:
 
 **Location note:** checkDownplayBackfire and cleanupCrisisCommsOps live in `crisis-comms.ts` rather than `backfire.ts`. This diverges from the existing backfire pattern but is justified: CrisisCommsOp lifecycle (creation, vindication, backfire, expiry, cleanup) is self-contained, and splitting it across files would scatter related logic.
 
+#### Implementation Notes
+- `checkDownplayBackfire` and `cleanupCrisisCommsOps` added to `crisis-comms.ts`
+- Wired into `stepKernel` after `checkAnnounceVindication`, before `cleanupTamperOps`
+- Backfire checks: (1) arc gone → check snapshot harm → EXPIRED or BACKFIRED, (2) arc present + room hazardous + snapshot crew in room with lower hp → BACKFIRE
+- `calculateDownplaySpike`: base + per-crew injury/death bonuses, capped at downplayBackfireCap
+- `createDownplayDoubt`: ActiveDoubt with topic referencing system + "downplayed", severity 2
+- `cleanupCrisisCommsOps`: removes non-PENDING ops older than 240 ticks
+- All 10 tests passing in `tests/downplay-backfire.test.ts`
+- Gemini review: rate-limited (429), skipped
+
 ---
 
 ### Task 005: CLI Wiring + Integration Test
@@ -704,6 +740,15 @@ None.
 announce <system>  — Warn crew about crisis. Causes evacuation + panic. Earns trust.
 downplay <system>  — Minimize crisis to crew. Keeps them working. Backfires if they're harmed.
 ```
+
+#### Implementation Notes
+- `announce` and `downplay` commands added to `index.ts` executeCommand function
+- CPU costs: ANNOUNCE=4, DOWNPLAY=2 (hardcoded, matching existing pattern)
+- Help text updated in both `help` command and interactive mode prompt
+- `agent-read.md` updated with Crisis Communication section
+- Full integration tests: announce→evacuate→vindicate, downplay→stay→backfire, mutual exclusion, 200-tick stability
+- Playtested: ANNOUNCE shows "[EMERGENCY]" broadcast + -7 suspicion + vindication on arc resolve; DOWNPLAY shows "[ADVISORY]" broadcast + -2 suspicion + 2 CPU cost
+- All 9 tests passing in `tests/announce-downplay-integration.test.ts`
 
 ---
 

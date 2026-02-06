@@ -58,10 +58,10 @@ describe('AC-2: Each tier achieves >=95% solvability over 200 seeds', () => {
     }
 });
 
-describe('AC-3: Tier 1 signal distribution >= 80% self_contradiction', () => {
-    test('tier 1 generates >= 80% self_contradiction signals', () => {
+describe('AC-3: Tier 1 strong signal distribution >= 95%', () => {
+    test('tier 1 generates >= 95% strong signals (self_contradiction or device_contradiction)', () => {
         let generated = 0;
-        let selfContradiction = 0;
+        let strongSignal = 0;
 
         for (let seed = 1; seed <= SEED_COUNT; seed++) {
             const result = generateValidatedCase(seed, 1);
@@ -69,14 +69,14 @@ describe('AC-3: Tier 1 signal distribution >= 80% self_contradiction', () => {
 
             generated++;
             const signal = analyzeSignal(result.evidence, result.sim.config);
-            if (signal.signalType === 'self_contradiction') {
-                selfContradiction++;
+            if (signal.signalStrength === 'strong') {
+                strongSignal++;
             }
         }
 
         expect(generated).toBeGreaterThan(0);
-        const rate = selfContradiction / generated;
-        expect(rate).toBeGreaterThanOrEqual(0.80);
+        const rate = strongSignal / generated;
+        expect(rate).toBeGreaterThanOrEqual(0.95);
     }, 30000);
 });
 

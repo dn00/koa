@@ -225,35 +225,35 @@
       "phase": "night",
       "day": 4,
       "dayCargo": 0,
-      "totalCargo": 38,
+      "totalCargo": 40,
       "quotaPerDay": 10,
       "rationLevel": "normal",
       "meltdownTicks": 0,
       "resetStage": "meeting",
-      "resetStageTick": 695,
+      "resetStageTick": 678,
       "dayIncidents": 0,
       "dayOrderTrust": 0,
       "dayDeaths": 0,
       "activeCrisisStarts": {},
-      "lastVerifyTick": 570,
+      "lastVerifyTick": 700,
       "station": {
-        "power": 100,
+        "power": 87,
         "comms": 100,
         "doorDelay": 0,
         "blackoutTicks": 0
       },
       "pacing": {
-        "boredom": 9,
+        "boredom": 10,
         "tension": 0,
-        "lastPressureTick": 695,
-        "lastUncertaintyTick": 719,
-        "lastChoiceTick": 695,
+        "lastPressureTick": 713,
+        "lastUncertaintyTick": 691,
+        "lastChoiceTick": 717,
         "lastReactionTick": 719,
-        "nextThreatActivationTick": 744,
+        "nextThreatActivationTick": 742,
         "phaseStartTick": 700,
         "phaseHadDilemma": false,
         "phaseHadCrewAgency": true,
-        "phaseHadDeceptionBeat": true,
+        "phaseHadDeceptionBeat": false,
         "phaseCommsCount": 0
       },
       "rooms": {
@@ -262,7 +262,7 @@
           "o2Level": 100,
           "temperature": 20,
           "radiation": 0,
-          "integrity": 37.9999999999997,
+          "integrity": 60.79999999999962,
           "isVented": false,
           "onFire": false
         },
@@ -307,7 +307,7 @@
           "o2Level": 100,
           "temperature": 20,
           "radiation": 0,
-          "integrity": 72.79999999999973,
+          "integrity": 100,
           "isVented": false,
           "onFire": false
         },
@@ -322,12 +322,12 @@
         },
         "cargo": {
           "id": "cargo",
-          "o2Level": 100,
-          "temperature": 20,
+          "o2Level": 15,
+          "temperature": 309,
           "radiation": 0,
-          "integrity": 100,
+          "integrity": 41.19999999999969,
           "isVented": false,
-          "onFire": false
+          "onFire": true
         },
         "airlock_a": {
           "id": "airlock_a",
@@ -380,14 +380,15 @@
       "crew": {
         "commander": {
           "id": "commander",
-          "place": "mess",
+          "place": "dorms",
           "alive": true,
           "hp": 100,
           "stress": 0,
           "loyalty": 0,
           "paranoia": 1,
-          "nextRoleTick": 719,
-          "orderUntilTick": 0,
+          "nextRoleTick": 702,
+          "orderUntilTick": 112,
+          "doubtActionTick": 0,
           "schedule": [
             {
               "window": "W1",
@@ -406,19 +407,21 @@
               "place": "dorms"
             }
           ],
-          "targetPlace": "mess",
-          "nextMoveTick": 665
+          "targetPlace": "dorms",
+          "nextMoveTick": 713,
+          "path": []
         },
         "engineer": {
           "id": "engineer",
-          "place": "mess",
+          "place": "dorms",
           "alive": true,
           "hp": 100,
           "stress": 0,
           "loyalty": 0,
           "paranoia": 1,
-          "nextRoleTick": 661,
-          "orderUntilTick": 0,
+          "nextRoleTick": 681,
+          "orderUntilTick": 113,
+          "doubtActionTick": 0,
           "schedule": [
             {
               "window": "W1",
@@ -437,12 +440,14 @@
               "place": "dorms"
             }
           ],
-          "targetPlace": "mess",
-          "nextMoveTick": 675
+          "targetPlace": "dorms",
+          "nextMoveTick": 713,
+          "panicUntilTick": 426,
+          "path": []
         },
         "doctor": {
           "id": "doctor",
-          "place": "mess",
+          "place": "medbay",
           "alive": true,
           "hp": 100,
           "stress": 0,
@@ -450,6 +455,7 @@
           "paranoia": 1,
           "nextRoleTick": 0,
           "orderUntilTick": 0,
+          "doubtActionTick": 0,
           "schedule": [
             {
               "window": "W1",
@@ -468,19 +474,21 @@
               "place": "medbay"
             }
           ],
-          "targetPlace": "mess",
-          "nextMoveTick": 665
+          "targetPlace": "medbay",
+          "nextMoveTick": 713,
+          "path": []
         },
         "specialist": {
           "id": "specialist",
-          "place": "mess",
+          "place": "mines",
           "alive": true,
           "hp": 100,
           "stress": 0,
           "loyalty": 0,
           "paranoia": 1,
-          "nextRoleTick": 600,
-          "orderUntilTick": 198,
+          "nextRoleTick": 599,
+          "orderUntilTick": 114,
+          "doubtActionTick": 0,
           "schedule": [
             {
               "window": "W1",
@@ -499,19 +507,20 @@
               "place": "dorms"
             }
           ],
-          "targetPlace": "mess",
-          "nextMoveTick": 685
+          "targetPlace": "dorms",
+          "nextMoveTick": 720
         },
         "roughneck": {
           "id": "roughneck",
-          "place": "mess",
+          "place": "mines",
           "alive": true,
-          "hp": 4,
+          "hp": 28,
           "stress": 0,
           "loyalty": 0,
           "paranoia": 1,
-          "nextRoleTick": 568,
-          "orderUntilTick": 199,
+          "nextRoleTick": 566,
+          "orderUntilTick": 115,
+          "doubtActionTick": 0,
           "schedule": [
             {
               "window": "W1",
@@ -530,17 +539,18 @@
               "place": "dorms"
             }
           ],
-          "targetPlace": "mess",
-          "nextMoveTick": 685
+          "targetPlace": "dorms",
+          "nextMoveTick": 720
         }
       },
       "arcs": [],
       "arcKindCooldowns": {
-        "fire_outbreak": 439,
-        "power_surge": 782,
-        "solar_flare": 277,
-        "air_scrubber": 322,
-        "radiation_leak": 579
+        "radiation_leak": 795,
+        "fire_outbreak": 725,
+        "power_surge": 833,
+        "air_scrubber": 607,
+        "solar_flare": 479,
+        "ghost_signal": 640
       },
       "incidents": [],
       "ending": "SURVIVED"
@@ -548,12 +558,12 @@
     "perception": {
       "readings": [
         {
-          "id": "19-alert-thermal",
-          "tick": 19,
+          "id": "18-alert-radiation",
+          "tick": 18,
           "place": "engineering",
-          "system": "thermal",
+          "system": "radiation",
           "confidence": 0.9,
-          "message": "Thermal spike detected in ENGINEERING.",
+          "message": "Radiation leak detected near ENGINEERING.",
           "source": "system"
         },
         {
@@ -566,139 +576,8 @@
           "source": "sensor"
         },
         {
-          "id": "82-scan-engineering",
-          "tick": 82,
-          "place": "engineering",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN engineering: O2 77% TEMP 123 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "83-scan-cargo",
-          "tick": 83,
-          "place": "cargo",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN cargo: O2 100% TEMP 20 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "84-scan-core",
-          "tick": 84,
-          "place": "core",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN core: O2 100% TEMP 20 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "91-scan-engineering",
-          "tick": 91,
-          "place": "engineering",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN engineering: O2 39% TEMP 81 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "102-scan-engineering",
-          "tick": 102,
-          "place": "engineering",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN engineering: O2 0% TEMP -19 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "107-alert-power",
-          "tick": 107,
-          "place": "engineering",
-          "system": "power",
-          "confidence": 0.9,
-          "message": "Power harmonics unstable near ENGINEERING.",
-          "source": "system"
-        },
-        {
-          "id": "120-scan-engineering",
-          "tick": 120,
-          "place": "engineering",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN engineering: O2 21% TEMP -12 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "131-scan-engineering",
-          "tick": 131,
-          "place": "engineering",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN engineering: O2 24% TEMP -1 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "134-alert-stellar",
-          "tick": 134,
-          "system": "stellar",
-          "confidence": 0.9,
-          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
-          "source": "system"
-        },
-        {
-          "id": "137-scan-engineering",
-          "tick": 137,
-          "place": "engineering",
-          "system": "scan",
-          "confidence": 1,
-          "message": "SCAN engineering: O2 26% TEMP 5 RAD 0",
-          "source": "sensor"
-        },
-        {
-          "id": "144-alert-stellar",
-          "tick": 144,
-          "system": "stellar",
-          "confidence": 0.9,
-          "message": "[!!! CME INCOMING !!!] Coronal mass ejection detected. Brace for impact.",
-          "source": "system"
-        },
-        {
-          "id": "157-alert-stellar",
-          "tick": 157,
-          "system": "stellar",
-          "confidence": 0.9,
-          "message": "[!!! IMPACT !!!] Solar flare hit. Sensors offline. Comms degraded.",
-          "source": "system"
-        },
-        {
-          "id": "165-alert-air",
-          "tick": 165,
-          "place": "mines",
-          "system": "air",
-          "confidence": 0.9,
-          "message": "[SENSOR] MINES: Air scrubber load increasing.",
-          "source": "system"
-        },
-        {
-          "id": "183-r-conflict-0",
-          "tick": 183,
-          "place": "mines",
-          "system": "thermal",
-          "confidence": 0.5336748286578047,
-          "message": "[SENSOR] MINES: thermal readings conflict with expected baseline. Discrepancy unresolved.",
-          "source": "sensor"
-        },
-        {
-          "id": "195-verify",
-          "tick": 195,
-          "system": "verify",
-          "confidence": 0.95,
-          "message": "VERIFY: Addressing crew concern — \"Conflicting thermal readings in mines\". Evidence cross-referenced. Doubt cleared.",
-          "source": "system"
-        },
-        {
-          "id": "285-alert-thermal",
-          "tick": 285,
+          "id": "38-alert-thermal",
+          "tick": 38,
           "place": "dorms",
           "system": "thermal",
           "confidence": 0.9,
@@ -706,51 +585,119 @@
           "source": "system"
         },
         {
-          "id": "288-scan-dorms",
-          "tick": 288,
+          "id": "65-scan-dorms",
+          "tick": 65,
           "place": "dorms",
           "system": "scan",
           "confidence": 1,
-          "message": "SCAN dorms: O2 100% TEMP 20 RAD 0",
+          "message": "SCAN dorms: O2 61% TEMP 13 RAD 0",
           "source": "sensor"
         },
         {
-          "id": "289-verify",
-          "tick": 289,
+          "id": "82-verify",
+          "tick": 82,
           "system": "verify",
           "confidence": 0.95,
-          "message": "VERIFY: Addressing crew concern — \"engineer intends to check system logs\". Evidence cross-referenced. Doubt cleared.",
+          "message": "VERIFY: Addressing crew concern — \"MOTHER ordered commander\". Evidence cross-referenced. Doubt cleared.",
           "source": "system"
         },
         {
-          "id": "340-scan-mines",
-          "tick": 340,
-          "place": "mines",
+          "id": "82-r-conflict-0",
+          "tick": 82,
+          "place": "cargo",
+          "system": "thermal",
+          "confidence": 0.4496366631238806,
+          "message": "[SENSOR] CARGO: thermal readings conflict with expected baseline. Discrepancy unresolved.",
+          "source": "sensor"
+        },
+        {
+          "id": "115-scan-engineering",
+          "tick": 115,
+          "place": "engineering",
           "system": "scan",
           "confidence": 1,
-          "message": "SCAN mines: O2 100% TEMP 20 RAD 0",
+          "message": "SCAN engineering: O2 100% TEMP 20 RAD 0",
           "source": "sensor"
         },
         {
-          "id": "365-alert-power",
-          "tick": 365,
-          "place": "engineering",
-          "system": "power",
-          "confidence": 0.9,
-          "message": "Power relays overridden in engineering.",
+          "id": "116-scan-cargo",
+          "tick": 116,
+          "place": "cargo",
+          "system": "scan",
+          "confidence": 1,
+          "message": "SCAN cargo: O2 100% TEMP 20 RAD 0",
+          "source": "sensor"
+        },
+        {
+          "id": "147-verify",
+          "tick": 147,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Addressing crew concern — \"MOTHER ordered engineer\". Evidence cross-referenced. Doubt cleared.",
           "source": "system"
         },
         {
-          "id": "371-verify",
-          "tick": 371,
+          "id": "183-alert-power",
+          "tick": 183,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "218-verify",
+          "tick": 218,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Addressing crew concern — \"roughneck intends to check system logs\". Evidence cross-referenced. Doubt cleared.",
+          "source": "system"
+        },
+        {
+          "id": "277-alert-air",
+          "tick": 277,
+          "place": "medbay",
+          "system": "air",
+          "confidence": 0.9,
+          "message": "[SENSOR] MEDBAY: Air scrubber load increasing.",
+          "source": "system"
+        },
+        {
+          "id": "320-verify",
+          "tick": 320,
           "system": "verify",
           "confidence": 0.95,
           "message": "VERIFY: Addressing crew concern — \"engineer intends to check system logs\". Evidence cross-referenced. Doubt cleared.",
           "source": "system"
         },
         {
-          "id": "387-alert-power",
-          "tick": 387,
+          "id": "332-alert-stellar",
+          "tick": 332,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! STELLAR OBSERVATORY !!!] Anomalous stellar activity detected.",
+          "source": "system"
+        },
+        {
+          "id": "345-alert-stellar",
+          "tick": 345,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! CME INCOMING !!!] Coronal mass ejection detected. Brace for impact.",
+          "source": "system"
+        },
+        {
+          "id": "352-alert-power",
+          "tick": 352,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power harmonics unstable near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "355-alert-power",
+          "tick": 355,
           "place": "engineering",
           "system": "power",
           "confidence": 0.9,
@@ -758,8 +705,16 @@
           "source": "system"
         },
         {
-          "id": "409-alert-power",
-          "tick": 409,
+          "id": "359-alert-stellar",
+          "tick": 359,
+          "system": "stellar",
+          "confidence": 0.9,
+          "message": "[!!! IMPACT !!!] Solar flare hit. Sensors offline. Comms degraded.",
+          "source": "system"
+        },
+        {
+          "id": "377-alert-power",
+          "tick": 377,
           "place": "engineering",
           "system": "power",
           "confidence": 0.9,
@@ -767,8 +722,8 @@
           "source": "system"
         },
         {
-          "id": "422-alert-radiation",
-          "tick": 422,
+          "id": "388-alert-radiation",
+          "tick": 388,
           "place": "engineering",
           "system": "radiation",
           "confidence": 0.9,
@@ -776,51 +731,75 @@
           "source": "system"
         },
         {
-          "id": "458-verify",
-          "tick": 458,
-          "system": "verify",
-          "confidence": 0.95,
-          "message": "VERIFY: Addressing crew concern — \"roughneck intends to check system logs\". Evidence cross-referenced. Doubt cleared.",
+          "id": "399-alert-power",
+          "tick": 399,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
           "source": "system"
         },
         {
-          "id": "465-r-conflict-0",
-          "tick": 465,
-          "place": "medbay",
-          "system": "thermal",
-          "confidence": 0.3715092942867217,
-          "message": "[SENSOR] MEDBAY: thermal readings conflict with expected baseline. Discrepancy unresolved.",
-          "source": "sensor"
+          "id": "411-verify",
+          "tick": 411,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Addressing crew concern — \"roughneck questions MOTHER reliability\". Evidence cross-referenced. Doubt cleared.",
+          "source": "system"
         },
         {
-          "id": "541-r-conflict-0",
-          "tick": 541,
-          "place": "bridge",
+          "id": "460-alert-air",
+          "tick": 460,
+          "place": "mess",
           "system": "air",
-          "confidence": 0.4115726548273984,
-          "message": "[SENSOR] BRIDGE: air readings conflict with expected baseline. Discrepancy unresolved.",
-          "source": "sensor"
-        },
-        {
-          "id": "551-alert-power",
-          "tick": 551,
-          "place": "engineering",
-          "system": "power",
           "confidence": 0.9,
-          "message": "Power relays overridden in engineering.",
+          "message": "[SENSOR] MESS: Air scrubber load increasing.",
           "source": "system"
         },
         {
-          "id": "570-verify",
-          "tick": 570,
+          "id": "477-verify",
+          "tick": 477,
           "system": "verify",
           "confidence": 0.95,
-          "message": "VERIFY: Addressing crew concern — \"Conflicting air readings in bridge\". Evidence cross-referenced. Doubt cleared.",
+          "message": "VERIFY: Cross-referencing telemetry... Full integrity confirmed. Crew notified.",
           "source": "system"
         },
         {
-          "id": "573-alert-power",
-          "tick": 573,
+          "id": "494-r-ghost-ghost_signal-481-0",
+          "tick": 494,
+          "system": "comms",
+          "confidence": 0.4,
+          "message": "[SENSOR] Faint tapping detected near DORMS.",
+          "source": "system"
+        },
+        {
+          "id": "509-r-ghost-ghost_signal-481-0-log",
+          "tick": 509,
+          "system": "comms",
+          "confidence": 0.35,
+          "message": "[LOG] Ghost transmission fragment recovered.",
+          "source": "system"
+        },
+        {
+          "id": "520-r-ghost-ghost_signal-481-0-voices",
+          "tick": 520,
+          "system": "comms",
+          "confidence": 0.3,
+          "message": "[REPORT] Crew reports voices in the bulkheads.",
+          "source": "crew",
+          "hallucination": true
+        },
+        {
+          "id": "538-verify",
+          "tick": 538,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Cross-referencing telemetry... Full integrity confirmed. Crew notified.",
+          "source": "system"
+        },
+        {
+          "id": "571-alert-power",
+          "tick": 571,
           "place": "engineering",
           "system": "power",
           "confidence": 0.9,
@@ -828,8 +807,17 @@
           "source": "system"
         },
         {
-          "id": "595-alert-power",
-          "tick": 595,
+          "id": "571-alert-thermal",
+          "tick": 571,
+          "place": "cargo",
+          "system": "thermal",
+          "confidence": 0.9,
+          "message": "Thermal spike detected in CARGO.",
+          "source": "system"
+        },
+        {
+          "id": "593-alert-power",
+          "tick": 593,
           "place": "engineering",
           "system": "power",
           "confidence": 0.9,
@@ -837,8 +825,8 @@
           "source": "system"
         },
         {
-          "id": "617-alert-power",
-          "tick": 617,
+          "id": "615-alert-power",
+          "tick": 615,
           "place": "engineering",
           "system": "power",
           "confidence": 0.9,
@@ -846,151 +834,197 @@
           "source": "system"
         },
         {
-          "id": "639-alert-power",
+          "id": "619-verify",
+          "tick": 619,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Cross-referencing telemetry... Full integrity confirmed. Crew notified.",
+          "source": "system"
+        },
+        {
+          "id": "637-alert-power",
+          "tick": 637,
+          "place": "engineering",
+          "system": "power",
+          "confidence": 0.9,
+          "message": "Power relays overridden in engineering.",
+          "source": "system"
+        },
+        {
+          "id": "639-alert-radiation",
           "tick": 639,
           "place": "engineering",
+          "system": "radiation",
+          "confidence": 0.9,
+          "message": "Radiation leak detected near ENGINEERING.",
+          "source": "system"
+        },
+        {
+          "id": "658-r-conflict-0",
+          "tick": 658,
+          "place": "mines",
+          "system": "air",
+          "confidence": 0.42431020601054426,
+          "message": "[SENSOR] MINES: air readings conflict with expected baseline. Discrepancy unresolved.",
+          "source": "sensor"
+        },
+        {
+          "id": "659-alert-power",
+          "tick": 659,
+          "place": "engineering",
           "system": "power",
           "confidence": 0.9,
           "message": "Power relays overridden in engineering.",
           "source": "system"
         },
         {
-          "id": "644-alert-power",
-          "tick": 644,
+          "id": "691-alert-power",
+          "tick": 691,
           "place": "engineering",
           "system": "power",
           "confidence": 0.9,
           "message": "Power harmonics unstable near ENGINEERING.",
           "source": "system"
+        },
+        {
+          "id": "700-verify",
+          "tick": 700,
+          "system": "verify",
+          "confidence": 0.95,
+          "message": "VERIFY: Addressing crew concern — \"Conflicting air readings in mines\". Evidence cross-referenced. Doubt cleared.",
+          "source": "system"
         }
       ],
       "beliefs": {
         "commander": {
-          "motherReliable": 0.20500000000000018,
+          "motherReliable": 0.015,
           "crewGrudge": {
             "commander": 0,
             "engineer": 0,
             "doctor": 0,
-            "specialist": 12,
-            "roughneck": 0
+            "specialist": 0,
+            "roughneck": 4
           },
           "tamperEvidence": 0,
           "rumors": {
-            "specialist_sacrifice": 0,
-            "": 0.23,
-            "mother_rogue": 0.3199999999999994,
-            "specialist_hostile": 0.3299999999999994
+            "roughneck_violence": 0,
+            "": 0,
+            "mother_rogue": 0.32999999999999935
           }
         },
         "engineer": {
-          "motherReliable": 0.35500000000000026,
+          "motherReliable": 0.015,
           "crewGrudge": {
             "commander": 0,
             "engineer": 0,
-            "doctor": 0,
-            "specialist": 8,
-            "roughneck": 0
-          },
-          "tamperEvidence": 0,
-          "rumors": {
-            "specialist_sacrifice": 0,
-            "mother_rogue": 0.3199999999999994,
-            "": 0.23,
-            "specialist_hostile": 0.07999999999999984
-          }
-        },
-        "doctor": {
-          "motherReliable": 0.30500000000000016,
-          "crewGrudge": {
-            "commander": 0,
-            "engineer": 0,
-            "doctor": 0,
-            "specialist": 12,
-            "roughneck": 0
-          },
-          "tamperEvidence": 0,
-          "rumors": {
-            "specialist_sacrifice": 0,
-            "mother_rogue": 0,
-            "specialist_hostile": 0.07999999999999984,
-            "": 0.23
-          }
-        },
-        "specialist": {
-          "motherReliable": 0.2550000000000002,
-          "crewGrudge": {
-            "commander": 0,
-            "engineer": 4,
             "doctor": 0,
             "specialist": 0,
             "roughneck": 0
           },
           "tamperEvidence": 0,
           "rumors": {
-            "engineer_sabotage": 0,
-            "": 0.23,
-            "mother_rogue": 0.3199999999999994,
-            "specialist_hostile": 0.07999999999999984
+            "roughneck_violence": 0,
+            "mother_rogue": 0.42999999999999927,
+            "": 0
           }
         },
-        "roughneck": {
-          "motherReliable": 0.30500000000000027,
+        "doctor": {
+          "motherReliable": 0.0565,
           "crewGrudge": {
             "commander": 0,
             "engineer": 0,
-            "doctor": 4,
-            "specialist": 40,
+            "doctor": 0,
+            "specialist": 0,
+            "roughneck": 8
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "roughneck_violence": 0,
+            "mother_rogue": 0.17999999999999938,
+            "": 0
+          }
+        },
+        "specialist": {
+          "motherReliable": 0.1635000000000002,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 0,
             "roughneck": 0
           },
           "tamperEvidence": 0,
           "rumors": {
-            "doctor_sedate": 0,
-            "": 0.23,
-            "mother_rogue": 0.29999999999999916
+            "": 0,
+            "mother_rogue": 0
+          }
+        },
+        "roughneck": {
+          "motherReliable": 0.0565,
+          "crewGrudge": {
+            "commander": 0,
+            "engineer": 0,
+            "doctor": 0,
+            "specialist": 30,
+            "roughneck": 0
+          },
+          "tamperEvidence": 0,
+          "rumors": {
+            "": 0,
+            "mother_rogue": 0.23999999999999935
           }
         }
       },
       "comms": {
         "messages": [
           {
-            "id": "13-investigation-clear-roughneck",
-            "tick": 13,
-            "kind": "log",
-            "from": "roughneck",
-            "to": "crew",
-            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "69-investigation-clear-roughneck",
-            "tick": 69,
-            "kind": "log",
-            "from": "roughneck",
-            "to": "crew",
-            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "110-investigation-clear-roughneck",
-            "tick": 110,
-            "kind": "log",
-            "from": "roughneck",
-            "to": "crew",
-            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "112-investigation-clear-commander",
-            "tick": 112,
-            "kind": "log",
+            "id": "52-order-commander",
+            "tick": 52,
+            "kind": "order",
             "from": "commander",
+            "to": "PLAYER",
+            "text": "ACKNOWLEDGED. MOVING TO MESS.",
+            "confidence": 0.9
+          },
+          {
+            "id": "53-order-engineer",
+            "tick": 53,
+            "kind": "order",
+            "from": "engineer",
+            "to": "PLAYER",
+            "text": "ACKNOWLEDGED. MOVING TO ENGINEERING.",
+            "confidence": 0.9
+          },
+          {
+            "id": "54-order-specialist",
+            "tick": 54,
+            "kind": "order",
+            "from": "specialist",
+            "to": "PLAYER",
+            "text": "ACKNOWLEDGED. MOVING TO CARGO.",
+            "confidence": 0.9
+          },
+          {
+            "id": "55-order-roughneck",
+            "tick": 55,
+            "kind": "order",
+            "from": "roughneck",
+            "to": "PLAYER",
+            "text": "ACKNOWLEDGED. MOVING TO CARGO.",
+            "confidence": 0.9
+          },
+          {
+            "id": "62-investigation-clear-roughneck",
+            "tick": 62,
+            "kind": "log",
+            "from": "roughneck",
             "to": "crew",
-            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
             "confidence": 0.8
           },
           {
-            "id": "114-investigation-clear-specialist",
-            "tick": 114,
+            "id": "65-investigation-clear-specialist",
+            "tick": 65,
             "kind": "log",
             "from": "specialist",
             "to": "crew",
@@ -998,142 +1032,35 @@
             "confidence": 0.8
           },
           {
-            "id": "138-order-specialist",
-            "tick": 138,
+            "id": "83-order-specialist",
+            "tick": 83,
             "kind": "order",
             "from": "specialist",
             "to": "PLAYER",
-            "text": "ACKNOWLEDGED. MOVING TO MINES.",
+            "text": "NEGATIVE. Unable to comply.",
             "confidence": 0.9
           },
           {
-            "id": "139-order-roughneck",
-            "tick": 139,
+            "id": "84-order-roughneck",
+            "tick": 84,
             "kind": "order",
             "from": "roughneck",
             "to": "PLAYER",
-            "text": "ACKNOWLEDGED. MOVING TO MINES.",
+            "text": "NEGATIVE. Unable to comply.",
             "confidence": 0.9
           },
           {
-            "id": "184-whisper-specialist-doctor_sedate",
-            "tick": 184,
-            "kind": "whisper",
-            "from": "specialist",
-            "to": "roughneck",
-            "place": "mines",
-            "topic": "doctor_sedate",
-            "text": "[WHISPER] SPECIALIST: Imani is sedating people at night.",
-            "confidence": 0.45,
-            "blocked": false
-          },
-          {
-            "id": "192-whisper-roughneck-engineer_sabotage",
-            "tick": 192,
-            "kind": "whisper",
-            "from": "roughneck",
-            "to": "specialist",
-            "place": "mines",
-            "topic": "engineer_sabotage",
-            "text": "[WHISPER] ROUGHNECK: Rook is going to sabotage the power.",
-            "confidence": 0.45,
-            "blocked": false
-          },
-          {
-            "id": "194-whisper-doctor-specialist_sacrifice",
-            "tick": 194,
-            "kind": "whisper",
-            "from": "doctor",
-            "to": "engineer",
-            "place": "mess",
-            "topic": "specialist_sacrifice",
-            "text": "[WHISPER] DOCTOR: Vega would trade us for cargo.",
-            "confidence": 0.55,
-            "blocked": false
-          },
-          {
-            "id": "197-broadcast-engineer-specialist_sacrifice",
-            "tick": 197,
+            "id": "123-pressure-broadcast-0",
+            "tick": 123,
             "kind": "broadcast",
-            "from": "engineer",
-            "place": "mess",
-            "topic": "specialist_sacrifice",
-            "text": "[BROADCAST] Vega would trade us for cargo.",
-            "confidence": 0.6,
-            "blocked": false
-          },
-          {
-            "id": "200-whisper-engineer-specialist_sacrifice",
-            "tick": 200,
-            "kind": "whisper",
-            "from": "engineer",
-            "to": "doctor",
-            "place": "mess",
-            "topic": "specialist_sacrifice",
-            "text": "[WHISPER] ENGINEER: Vega would trade us for cargo.",
-            "confidence": 0.55,
-            "blocked": false
-          },
-          {
-            "id": "200-whisper-commander-mother_rogue",
-            "tick": 200,
-            "kind": "whisper",
-            "from": "commander",
-            "to": "engineer",
-            "place": "mess",
-            "topic": "mother_rogue",
-            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
-            "confidence": 0.45,
-            "blocked": false
-          },
-          {
-            "id": "214-pressure-log-0",
-            "tick": 214,
-            "kind": "log",
             "from": "roughneck",
-            "place": "core",
-            "text": "[LOG] ROUGHNECK: The temperature readings and what I felt were completely different.",
-            "confidence": 0.5
-          },
-          {
-            "id": "252-pressure-broadcast-0",
-            "tick": 252,
-            "kind": "broadcast",
-            "from": "engineer",
-            "place": "dorms",
-            "text": "[BROADCAST] ENGINEER: I'm going to check the system logs. Something doesn't add up.",
+            "place": "mines",
+            "text": "[BROADCAST] ROUGHNECK: I'm going to check the system logs. Something doesn't add up.",
             "confidence": 0.7
           },
           {
-            "id": "302-pressure-broadcast-0",
-            "tick": 302,
-            "kind": "broadcast",
-            "from": "engineer",
-            "place": "mess",
-            "text": "[BROADCAST] ENGINEER: I'm going to check the system logs. Something doesn't add up.",
-            "confidence": 0.7
-          },
-          {
-            "id": "307-investigation-clear-specialist",
-            "tick": 307,
-            "kind": "log",
-            "from": "specialist",
-            "to": "crew",
-            "text": "SPECIALIST: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "308-investigation-clear-engineer",
-            "tick": 308,
-            "kind": "log",
-            "from": "engineer",
-            "to": "crew",
-            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "328-investigation-clear-commander",
-            "tick": 328,
+            "id": "124-investigation-clear-commander",
+            "tick": 124,
             "kind": "log",
             "from": "commander",
             "to": "crew",
@@ -1141,8 +1068,17 @@
             "confidence": 0.8
           },
           {
-            "id": "328-pressure-broadcast-0",
-            "tick": 328,
+            "id": "146-investigation-clear-commander",
+            "tick": 146,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "148-pressure-broadcast-0",
+            "tick": 148,
             "kind": "broadcast",
             "from": "roughneck",
             "place": "mines",
@@ -1151,64 +1087,20 @@
             "confidence": 0.7
           },
           {
-            "id": "353-pressure-log-0",
-            "tick": 353,
-            "kind": "log",
-            "from": "specialist",
-            "place": "mines",
-            "text": "[LOG] SPECIALIST: I checked the logs. The timestamps don't add up.",
-            "confidence": 0.5
-          },
-          {
-            "id": "355-investigation-clear-commander",
-            "tick": 355,
-            "kind": "log",
+            "id": "184-whisper-commander-roughneck_violence",
+            "tick": 184,
+            "kind": "whisper",
             "from": "commander",
-            "to": "crew",
-            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "376-investigation-clear-commander",
-            "tick": 376,
-            "kind": "log",
-            "from": "commander",
-            "to": "crew",
-            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "388-pressure-broadcast-0",
-            "tick": 388,
-            "kind": "broadcast",
-            "from": "roughneck",
-            "place": "mines",
-            "text": "[BROADCAST] ROUGHNECK: I'm going to check the system logs. Something doesn't add up.",
-            "confidence": 0.7
-          },
-          {
-            "id": "407-investigation-clear-commander",
-            "tick": 407,
-            "kind": "log",
-            "from": "commander",
-            "to": "crew",
-            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "420-broadcast-doctor-specialist_sacrifice",
-            "tick": 420,
-            "kind": "broadcast",
-            "from": "doctor",
+            "to": "doctor",
             "place": "mess",
-            "topic": "specialist_sacrifice",
-            "text": "[BROADCAST] Vega would trade us for cargo.",
-            "confidence": 0.6,
+            "topic": "roughneck_violence",
+            "text": "[WHISPER] COMMANDER: Pike is losing it.",
+            "confidence": 0.55,
             "blocked": false
           },
           {
-            "id": "424-whisper-commander-mother_rogue",
-            "tick": 424,
+            "id": "184-whisper-commander-mother_rogue",
+            "tick": 184,
             "kind": "whisper",
             "from": "commander",
             "to": "doctor",
@@ -1219,20 +1111,40 @@
             "blocked": false
           },
           {
-            "id": "432-whisper-doctor-mother_rogue",
-            "tick": 432,
+            "id": "187-investigation-clear-engineer",
+            "tick": 187,
+            "kind": "log",
+            "from": "engineer",
+            "to": "crew",
+            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "187-broadcast-commander-roughneck_violence",
+            "tick": 187,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "roughneck_violence",
+            "text": "[BROADCAST] Pike is losing it.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "190-whisper-commander-mother_rogue",
+            "tick": 190,
             "kind": "whisper",
-            "from": "doctor",
-            "to": "commander",
+            "from": "commander",
+            "to": "doctor",
             "place": "mess",
             "topic": "mother_rogue",
-            "text": "[WHISPER] DOCTOR: MOTHER is lying to us.",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
             "confidence": 0.55,
             "blocked": false
           },
           {
-            "id": "432-whisper-specialist-mother_rogue",
-            "tick": 432,
+            "id": "192-whisper-specialist-mother_rogue",
+            "tick": 192,
             "kind": "whisper",
             "from": "specialist",
             "to": "roughneck",
@@ -1243,8 +1155,8 @@
             "blocked": false
           },
           {
-            "id": "433-reset-whispers",
-            "tick": 433,
+            "id": "193-reset-whispers",
+            "tick": 193,
             "kind": "whisper",
             "from": "commander",
             "to": "crew",
@@ -1252,45 +1164,17 @@
             "confidence": 0.7
           },
           {
-            "id": "435-broadcast-doctor-mother_rogue",
-            "tick": 435,
-            "kind": "broadcast",
-            "from": "doctor",
-            "place": "mess",
-            "topic": "mother_rogue",
-            "text": "[BROADCAST] MOTHER is lying to us.",
-            "confidence": 0.6,
-            "blocked": false
-          },
-          {
-            "id": "436-investigation-clear-roughneck",
-            "tick": 436,
+            "id": "203-pressure-log-0",
+            "tick": 203,
             "kind": "log",
             "from": "roughneck",
-            "to": "crew",
-            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
+            "place": "mess",
+            "text": "[LOG] ROUGHNECK: I'm starting to think we're not getting the full picture.",
+            "confidence": 0.5
           },
           {
-            "id": "439-pressure-broadcast-0",
-            "tick": 439,
-            "kind": "broadcast",
-            "from": "roughneck",
-            "place": "bridge",
-            "text": "[BROADCAST] ROUGHNECK: I'm going to check the system logs. Something doesn't add up.",
-            "confidence": 0.7
-          },
-          {
-            "id": "459-announce-radiation",
-            "tick": 459,
-            "kind": "broadcast",
-            "from": "PLAYER",
-            "text": "[EMERGENCY] RADIATION CRISIS IN ENGINEERING. ALL CREW EVACUATE IMMEDIATELY.",
-            "confidence": 0.95
-          },
-          {
-            "id": "481-reset-deescalate",
-            "tick": 481,
+            "id": "218-reset-deescalate",
+            "tick": 218,
             "kind": "broadcast",
             "from": "commander",
             "to": "crew",
@@ -1298,26 +1182,35 @@
             "confidence": 0.9
           },
           {
-            "id": "503-pressure-log-1",
-            "tick": 503,
+            "id": "236-pressure-log-0",
+            "tick": 236,
             "kind": "log",
-            "from": "specialist",
-            "place": "medbay",
-            "text": "[LOG] SPECIALIST: Why does MOTHER keep redirecting us from that section?",
+            "from": "engineer",
+            "place": "dorms",
+            "text": "[LOG] ENGINEER: I'm starting to think we're not getting the full picture.",
             "confidence": 0.5
           },
           {
-            "id": "548-investigation-clear-roughneck",
-            "tick": 548,
+            "id": "293-pressure-broadcast-0",
+            "tick": 293,
+            "kind": "broadcast",
+            "from": "engineer",
+            "place": "dorms",
+            "text": "[BROADCAST] ENGINEER: I'm going to check the system logs. Something doesn't add up.",
+            "confidence": 0.7
+          },
+          {
+            "id": "309-investigation-clear-engineer",
+            "tick": 309,
             "kind": "log",
-            "from": "roughneck",
+            "from": "engineer",
             "to": "crew",
-            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
+            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
             "confidence": 0.8
           },
           {
-            "id": "550-investigation-clear-specialist",
-            "tick": 550,
+            "id": "314-investigation-clear-specialist",
+            "tick": 314,
             "kind": "log",
             "from": "specialist",
             "to": "crew",
@@ -1325,8 +1218,8 @@
             "confidence": 0.8
           },
           {
-            "id": "563-investigation-clear-commander",
-            "tick": 563,
+            "id": "345-investigation-clear-commander",
+            "tick": 345,
             "kind": "log",
             "from": "commander",
             "to": "crew",
@@ -1334,8 +1227,17 @@
             "confidence": 0.8
           },
           {
-            "id": "574-pressure-broadcast-0",
-            "tick": 574,
+            "id": "391-investigation-clear-commander",
+            "tick": 391,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "404-pressure-broadcast-0",
+            "tick": 404,
             "kind": "broadcast",
             "from": "roughneck",
             "place": "mines",
@@ -1344,8 +1246,8 @@
             "confidence": 0.6
           },
           {
-            "id": "601-investigation-clear-commander",
-            "tick": 601,
+            "id": "418-investigation-clear-commander",
+            "tick": 418,
             "kind": "log",
             "from": "commander",
             "to": "crew",
@@ -1353,41 +1255,226 @@
             "confidence": 0.8
           },
           {
-            "id": "605-pressure-log-0",
-            "tick": 605,
+            "id": "420-broadcast-commander-mother_rogue",
+            "tick": 420,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "423-whisper-commander-mother_rogue",
+            "tick": 423,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "424-investigation-clear-engineer",
+            "tick": 424,
             "kind": "log",
             "from": "engineer",
-            "place": "engineering",
-            "text": "[LOG] ENGINEER: Has anyone else noticed MOTHER's responses seem... delayed?",
+            "to": "crew",
+            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "424-whisper-specialist-mother_rogue",
+            "tick": 424,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "cargo",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "426-broadcast-commander-mother_rogue",
+            "tick": 426,
+            "kind": "broadcast",
+            "from": "commander",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
+          },
+          {
+            "id": "429-pressure-whisper-0",
+            "tick": 429,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] DOCTOR: Something's not right with MOTHER's readings.",
+            "confidence": 0.45
+          },
+          {
+            "id": "432-whisper-commander-mother_rogue",
+            "tick": 432,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          {
+            "id": "438-reset-whispers",
+            "tick": 438,
+            "kind": "whisper",
+            "from": "commander",
+            "to": "crew",
+            "text": "[WHISPERS] Crew expressing concerns about MOTHER reliability.",
+            "confidence": 0.7
+          },
+          {
+            "id": "488-reset-deescalate",
+            "tick": 488,
+            "kind": "broadcast",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Stand down. MOTHER appears to be functioning normally.\"",
+            "confidence": 0.9
+          },
+          {
+            "id": "509-pressure-log-0",
+            "tick": 509,
+            "kind": "log",
+            "from": "commander",
+            "place": "dorms",
+            "text": "[LOG] COMMANDER: These readings don't match what I saw with my own eyes.",
             "confidence": 0.5
           },
           {
-            "id": "627-investigation-clear-commander",
-            "tick": 627,
-            "kind": "log",
+            "id": "512-reset-whispers",
+            "tick": 512,
+            "kind": "whisper",
             "from": "commander",
             "to": "crew",
-            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "651-investigation-clear-commander",
-            "tick": 651,
-            "kind": "log",
-            "from": "commander",
-            "to": "crew",
-            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
-            "confidence": 0.8
-          },
-          {
-            "id": "658-pressure-broadcast-1",
-            "tick": 658,
-            "kind": "broadcast",
-            "from": "specialist",
-            "place": "mines",
-            "topic": "mother_rogue",
-            "text": "[BROADCAST] SPECIALIST: The sensor data doesn't add up. Something is being hidden from us.",
+            "text": "[WHISPERS] Crew expressing concerns about MOTHER reliability.",
             "confidence": 0.7
+          },
+          {
+            "id": "535-pressure-whisper-1",
+            "tick": 535,
+            "kind": "whisper",
+            "from": "roughneck",
+            "to": "engineer",
+            "place": "dorms",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ROUGHNECK: Something's not right with MOTHER's readings.",
+            "confidence": 0.45
+          },
+          {
+            "id": "546-investigation-clear-roughneck",
+            "tick": 546,
+            "kind": "log",
+            "from": "roughneck",
+            "to": "crew",
+            "text": "ROUGHNECK: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "549-investigation-clear-specialist",
+            "tick": 549,
+            "kind": "log",
+            "from": "specialist",
+            "to": "crew",
+            "text": "SPECIALIST: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "551-investigation-clear-engineer",
+            "tick": 551,
+            "kind": "log",
+            "from": "engineer",
+            "to": "crew",
+            "text": "ENGINEER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "567-investigation-clear-commander",
+            "tick": 567,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "590-pressure-whisper-0",
+            "tick": 590,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "engineer",
+            "place": "medbay",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] DOCTOR: Something's not right with MOTHER's readings.",
+            "confidence": 0.45
+          },
+          {
+            "id": "597-investigation-clear-commander",
+            "tick": 597,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "619-investigation-clear-commander",
+            "tick": 619,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "658-investigation-clear-commander",
+            "tick": 658,
+            "kind": "log",
+            "from": "commander",
+            "to": "crew",
+            "text": "COMMANDER: \"Ran diagnostics. Logs check out.\"",
+            "confidence": 0.8
+          },
+          {
+            "id": "660-whisper-doctor-mother_rogue",
+            "tick": 660,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "engineer",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] DOCTOR: MOTHER is lying to us.",
+            "confidence": 0.55,
+            "blocked": false
+          },
+          {
+            "id": "663-broadcast-doctor-mother_rogue",
+            "tick": 663,
+            "kind": "broadcast",
+            "from": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] MOTHER is lying to us.",
+            "confidence": 0.6,
+            "blocked": false
           },
           {
             "id": "664-whisper-doctor-mother_rogue",
@@ -1398,70 +1485,26 @@
             "place": "mess",
             "topic": "mother_rogue",
             "text": "[WHISPER] DOCTOR: MOTHER is lying to us.",
-            "confidence": 0.55,
-            "blocked": false
-          },
-          {
-            "id": "664-whisper-roughneck-mother_rogue",
-            "tick": 664,
-            "kind": "whisper",
-            "from": "roughneck",
-            "to": "specialist",
-            "place": "cargo",
-            "topic": "mother_rogue",
-            "text": "[WHISPER] ROUGHNECK: MOTHER is lying to us.",
             "confidence": 0.45,
             "blocked": false
           },
           {
-            "id": "667-broadcast-doctor-mother_rogue",
-            "tick": 667,
-            "kind": "broadcast",
-            "from": "doctor",
-            "place": "mess",
-            "topic": "mother_rogue",
-            "text": "[BROADCAST] MOTHER is lying to us.",
-            "confidence": 0.6,
-            "blocked": false
-          },
-          {
-            "id": "671-reset-whispers",
-            "tick": 671,
+            "id": "666-whisper-commander-mother_rogue",
+            "tick": 666,
             "kind": "whisper",
             "from": "commander",
-            "to": "crew",
-            "text": "[WHISPERS] Crew expressing concerns about MOTHER reliability.",
-            "confidence": 0.7
-          },
-          {
-            "id": "672-whisper-roughneck-mother_rogue",
-            "tick": 672,
-            "kind": "whisper",
-            "from": "roughneck",
-            "to": "specialist",
-            "place": "core",
-            "topic": "mother_rogue",
-            "text": "[WHISPER] ROUGHNECK: MOTHER is lying to us.",
-            "confidence": 0.45,
-            "blocked": false
-          },
-          {
-            "id": "673-whisper-doctor-mother_rogue",
-            "tick": 673,
-            "kind": "whisper",
-            "from": "doctor",
-            "to": "commander",
+            "to": "doctor",
             "place": "mess",
             "topic": "mother_rogue",
-            "text": "[WHISPER] DOCTOR: MOTHER is lying to us.",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
             "confidence": 0.55,
             "blocked": false
           },
           {
-            "id": "676-broadcast-doctor-mother_rogue",
-            "tick": 676,
+            "id": "669-broadcast-commander-mother_rogue",
+            "tick": 669,
             "kind": "broadcast",
-            "from": "doctor",
+            "from": "commander",
             "place": "mess",
             "topic": "mother_rogue",
             "text": "[BROADCAST] MOTHER is lying to us.",
@@ -1469,71 +1512,96 @@
             "blocked": false
           },
           {
-            "id": "694-pressure-whisper-2",
-            "tick": 694,
+            "id": "672-whisper-specialist-mother_rogue",
+            "tick": 672,
             "kind": "whisper",
-            "from": "roughneck",
-            "to": "commander",
-            "place": "mess",
-            "topic": "specialist_hostile",
-            "text": "[WHISPER] ROUGHNECK: I don't trust SPECIALIST. Something's off about them.",
-            "confidence": 0.45
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "mines",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
           },
           {
-            "id": "719-pressure-broadcast-0",
-            "tick": 719,
+            "id": "717-pressure-broadcast-0",
+            "tick": 717,
             "kind": "broadcast",
-            "from": "specialist",
-            "place": "mess",
-            "text": "[BROADCAST] SPECIALIST: I'm going to check the system logs. Something doesn't add up.",
+            "from": "engineer",
+            "place": "dorms",
+            "topic": "mother_rogue",
+            "text": "[BROADCAST] ENGINEER: The sensor data doesn't add up. Something is being hidden from us.",
             "confidence": 0.7
           }
         ],
         "lastWhisperByPlace": {
-          "mines": {
-            "id": "192-whisper-roughneck-engineer_sabotage",
-            "tick": 192,
+          "mess": {
+            "id": "666-whisper-commander-mother_rogue",
+            "tick": 666,
             "kind": "whisper",
-            "from": "roughneck",
-            "to": "specialist",
-            "place": "mines",
-            "topic": "engineer_sabotage",
-            "text": "[WHISPER] ROUGHNECK: Rook is going to sabotage the power.",
-            "confidence": 0.45,
+            "from": "commander",
+            "to": "doctor",
+            "place": "mess",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] COMMANDER: MOTHER is lying to us.",
+            "confidence": 0.55,
             "blocked": false
           },
-          "mess": {
-            "id": "694-pressure-whisper-2",
-            "tick": 694,
-            "kind": "whisper",
-            "from": "roughneck",
-            "to": "commander",
-            "place": "mess",
-            "topic": "specialist_hostile",
-            "text": "[WHISPER] ROUGHNECK: I don't trust SPECIALIST. Something's off about them.",
-            "confidence": 0.45
-          },
           "core": {
-            "id": "672-whisper-roughneck-mother_rogue",
-            "tick": 672,
+            "id": "192-whisper-specialist-mother_rogue",
+            "tick": 192,
             "kind": "whisper",
-            "from": "roughneck",
-            "to": "specialist",
+            "from": "specialist",
+            "to": "roughneck",
             "place": "core",
             "topic": "mother_rogue",
-            "text": "[WHISPER] ROUGHNECK: MOTHER is lying to us.",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
             "confidence": 0.45,
             "blocked": false
           },
           "cargo": {
-            "id": "664-whisper-roughneck-mother_rogue",
-            "tick": 664,
+            "id": "424-whisper-specialist-mother_rogue",
+            "tick": 424,
             "kind": "whisper",
-            "from": "roughneck",
-            "to": "specialist",
+            "from": "specialist",
+            "to": "roughneck",
             "place": "cargo",
             "topic": "mother_rogue",
-            "text": "[WHISPER] ROUGHNECK: MOTHER is lying to us.",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
+            "confidence": 0.45,
+            "blocked": false
+          },
+          "dorms": {
+            "id": "535-pressure-whisper-1",
+            "tick": 535,
+            "kind": "whisper",
+            "from": "roughneck",
+            "to": "engineer",
+            "place": "dorms",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] ROUGHNECK: Something's not right with MOTHER's readings.",
+            "confidence": 0.45
+          },
+          "medbay": {
+            "id": "590-pressure-whisper-0",
+            "tick": 590,
+            "kind": "whisper",
+            "from": "doctor",
+            "to": "engineer",
+            "place": "medbay",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] DOCTOR: Something's not right with MOTHER's readings.",
+            "confidence": 0.45
+          },
+          "mines": {
+            "id": "672-whisper-specialist-mother_rogue",
+            "tick": 672,
+            "kind": "whisper",
+            "from": "specialist",
+            "to": "roughneck",
+            "place": "mines",
+            "topic": "mother_rogue",
+            "text": "[WHISPER] SPECIALIST: MOTHER is lying to us.",
             "confidence": 0.45,
             "blocked": false
           }
@@ -1542,179 +1610,175 @@
       "evidence": [],
       "rumors": [
         {
-          "id": "13-rumor-0",
-          "tick": 13,
+          "id": "62-rumor-0",
+          "tick": 62,
           "topic": "",
           "source": "roughneck",
           "strength": 0.5
         },
         {
-          "id": "69-rumor-0",
-          "tick": 69,
+          "id": "65-rumor-0",
+          "tick": 65,
           "topic": "",
-          "source": "roughneck",
+          "source": "specialist",
           "strength": 0.5
         },
         {
-          "id": "110-rumor-0",
-          "tick": 110,
+          "id": "123-rumor-0",
+          "tick": 123,
           "topic": "",
           "source": "roughneck",
-          "strength": 0.5
+          "strength": 0.5,
+          "place": "mines"
         },
         {
-          "id": "112-rumor-1",
-          "tick": 112,
+          "id": "124-rumor-1",
+          "tick": 124,
           "topic": "",
           "source": "commander",
           "strength": 0.5
         },
         {
-          "id": "114-rumor-2",
-          "tick": 114,
+          "id": "146-rumor-2",
+          "tick": 146,
           "topic": "",
-          "source": "specialist",
+          "source": "commander",
           "strength": 0.5
         },
         {
-          "id": "184-rumor-0",
-          "tick": 184,
-          "topic": "doctor_sedate",
-          "subject": "doctor",
-          "source": "specialist",
-          "strength": 0.5,
-          "place": "mines"
-        },
-        {
-          "id": "192-rumor-1",
-          "tick": 192,
-          "topic": "engineer_sabotage",
-          "subject": "engineer",
+          "id": "148-rumor-0",
+          "tick": 148,
+          "topic": "mother_rogue",
           "source": "roughneck",
           "strength": 0.5,
           "place": "mines"
         },
         {
-          "id": "194-rumor-2",
-          "tick": 194,
-          "topic": "specialist_sacrifice",
-          "subject": "specialist",
-          "source": "doctor",
+          "id": "184-rumor-0",
+          "tick": 184,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "commander",
           "strength": 0.5,
           "place": "mess"
         },
         {
-          "id": "197-rumor-0",
-          "tick": 197,
-          "topic": "specialist_sacrifice",
-          "subject": "specialist",
-          "source": "engineer",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "200-rumor-0",
-          "tick": 200,
-          "topic": "specialist_sacrifice",
-          "subject": "specialist",
-          "source": "engineer",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "200-rumor-1",
-          "tick": 200,
+          "id": "184-rumor-1",
+          "tick": 184,
           "topic": "mother_rogue",
           "source": "commander",
           "strength": 0.5,
           "place": "mess"
         },
         {
-          "id": "214-rumor-2",
-          "tick": 214,
+          "id": "187-rumor-2",
+          "tick": 187,
           "topic": "",
-          "source": "roughneck",
+          "source": "engineer",
+          "strength": 0.5
+        },
+        {
+          "id": "187-rumor-3",
+          "tick": 187,
+          "topic": "roughneck_violence",
+          "subject": "roughneck",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "190-rumor-4",
+          "tick": 190,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "192-rumor-5",
+          "tick": 192,
+          "topic": "mother_rogue",
+          "source": "specialist",
           "strength": 0.5,
           "place": "core"
         },
         {
-          "id": "252-rumor-0",
-          "tick": 252,
+          "id": "193-rumor-6",
+          "tick": 193,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "203-rumor-7",
+          "tick": 203,
+          "topic": "",
+          "source": "roughneck",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "218-rumor-0",
+          "tick": 218,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "236-rumor-0",
+          "tick": 236,
           "topic": "",
           "source": "engineer",
           "strength": 0.5,
           "place": "dorms"
         },
         {
-          "id": "302-rumor-0",
-          "tick": 302,
+          "id": "293-rumor-0",
+          "tick": 293,
           "topic": "",
           "source": "engineer",
           "strength": 0.5,
-          "place": "mess"
+          "place": "dorms"
         },
         {
-          "id": "307-rumor-1",
-          "tick": 307,
+          "id": "309-rumor-1",
+          "tick": 309,
+          "topic": "",
+          "source": "engineer",
+          "strength": 0.5
+        },
+        {
+          "id": "314-rumor-2",
+          "tick": 314,
           "topic": "",
           "source": "specialist",
           "strength": 0.5
         },
         {
-          "id": "308-rumor-2",
-          "tick": 308,
-          "topic": "",
-          "source": "engineer",
-          "strength": 0.5
-        },
-        {
-          "id": "328-rumor-0",
-          "tick": 328,
+          "id": "345-rumor-0",
+          "tick": 345,
           "topic": "",
           "source": "commander",
           "strength": 0.5
         },
         {
-          "id": "328-rumor-1",
-          "tick": 328,
+          "id": "391-rumor-0",
+          "tick": 391,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "404-rumor-1",
+          "tick": 404,
           "topic": "mother_rogue",
           "source": "roughneck",
           "strength": 0.5,
           "place": "mines"
         },
         {
-          "id": "353-rumor-0",
-          "tick": 353,
-          "topic": "",
-          "source": "specialist",
-          "strength": 0.5,
-          "place": "mines"
-        },
-        {
-          "id": "355-rumor-1",
-          "tick": 355,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "376-rumor-0",
-          "tick": 376,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "388-rumor-1",
-          "tick": 388,
-          "topic": "",
-          "source": "roughneck",
-          "strength": 0.5,
-          "place": "mines"
-        },
-        {
-          "id": "407-rumor-0",
-          "tick": 407,
+          "id": "418-rumor-0",
+          "tick": 418,
           "topic": "",
           "source": "commander",
           "strength": 0.5
@@ -1722,218 +1786,207 @@
         {
           "id": "420-rumor-1",
           "tick": 420,
-          "topic": "specialist_sacrifice",
-          "subject": "specialist",
-          "source": "doctor",
+          "topic": "mother_rogue",
+          "source": "commander",
           "strength": 0.5,
           "place": "mess"
         },
         {
-          "id": "424-rumor-2",
+          "id": "423-rumor-2",
+          "tick": 423,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "424-rumor-3",
           "tick": 424,
-          "topic": "mother_rogue",
-          "source": "commander",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "432-rumor-3",
-          "tick": 432,
-          "topic": "mother_rogue",
-          "source": "doctor",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "432-rumor-4",
-          "tick": 432,
-          "topic": "mother_rogue",
-          "source": "specialist",
-          "strength": 0.5,
-          "place": "core"
-        },
-        {
-          "id": "433-rumor-5",
-          "tick": 433,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "435-rumor-6",
-          "tick": 435,
-          "topic": "mother_rogue",
-          "source": "doctor",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "436-rumor-7",
-          "tick": 436,
-          "topic": "",
-          "source": "roughneck",
-          "strength": 0.5
-        },
-        {
-          "id": "439-rumor-8",
-          "tick": 439,
-          "topic": "",
-          "source": "roughneck",
-          "strength": 0.5,
-          "place": "bridge"
-        },
-        {
-          "id": "481-rumor-0",
-          "tick": 481,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "503-rumor-1",
-          "tick": 503,
-          "topic": "",
-          "source": "specialist",
-          "strength": 0.5,
-          "place": "medbay"
-        },
-        {
-          "id": "548-rumor-0",
-          "tick": 548,
-          "topic": "",
-          "source": "roughneck",
-          "strength": 0.5
-        },
-        {
-          "id": "550-rumor-1",
-          "tick": 550,
-          "topic": "",
-          "source": "specialist",
-          "strength": 0.5
-        },
-        {
-          "id": "563-rumor-2",
-          "tick": 563,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "574-rumor-0",
-          "tick": 574,
-          "topic": "mother_rogue",
-          "source": "roughneck",
-          "strength": 0.5,
-          "place": "mines"
-        },
-        {
-          "id": "601-rumor-0",
-          "tick": 601,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "605-rumor-1",
-          "tick": 605,
           "topic": "",
           "source": "engineer",
-          "strength": 0.5,
-          "place": "engineering"
-        },
-        {
-          "id": "627-rumor-2",
-          "tick": 627,
-          "topic": "",
-          "source": "commander",
           "strength": 0.5
         },
         {
-          "id": "651-rumor-3",
-          "tick": 651,
-          "topic": "",
-          "source": "commander",
-          "strength": 0.5
-        },
-        {
-          "id": "658-rumor-4",
-          "tick": 658,
+          "id": "424-rumor-4",
+          "tick": 424,
           "topic": "mother_rogue",
           "source": "specialist",
-          "strength": 0.5,
-          "place": "mines"
-        },
-        {
-          "id": "664-rumor-5",
-          "tick": 664,
-          "topic": "mother_rogue",
-          "source": "doctor",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "664-rumor-6",
-          "tick": 664,
-          "topic": "mother_rogue",
-          "source": "roughneck",
           "strength": 0.5,
           "place": "cargo"
         },
         {
-          "id": "667-rumor-7",
-          "tick": 667,
+          "id": "426-rumor-5",
+          "tick": 426,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "429-rumor-6",
+          "tick": 429,
           "topic": "mother_rogue",
           "source": "doctor",
           "strength": 0.5,
           "place": "mess"
         },
         {
-          "id": "671-rumor-8",
-          "tick": 671,
+          "id": "432-rumor-7",
+          "tick": 432,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "438-rumor-8",
+          "tick": 438,
           "topic": "",
           "source": "commander",
           "strength": 0.5
         },
         {
-          "id": "672-rumor-9",
-          "tick": 672,
+          "id": "488-rumor-0",
+          "tick": 488,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "509-rumor-1",
+          "tick": 509,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "dorms"
+        },
+        {
+          "id": "512-rumor-2",
+          "tick": 512,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "535-rumor-3",
+          "tick": 535,
           "topic": "mother_rogue",
           "source": "roughneck",
           "strength": 0.5,
-          "place": "core"
+          "place": "dorms"
         },
         {
-          "id": "673-rumor-10",
-          "tick": 673,
-          "topic": "mother_rogue",
-          "source": "doctor",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "676-rumor-11",
-          "tick": 676,
-          "topic": "mother_rogue",
-          "source": "doctor",
-          "strength": 0.5,
-          "place": "mess"
-        },
-        {
-          "id": "694-rumor-12",
-          "tick": 694,
-          "topic": "specialist_hostile",
-          "subject": "specialist",
+          "id": "546-rumor-0",
+          "tick": 546,
+          "topic": "",
           "source": "roughneck",
-          "strength": 0.5,
-          "place": "mess"
+          "strength": 0.5
         },
         {
-          "id": "719-rumor-0",
-          "tick": 719,
+          "id": "549-rumor-1",
+          "tick": 549,
           "topic": "",
           "source": "specialist",
+          "strength": 0.5
+        },
+        {
+          "id": "551-rumor-2",
+          "tick": 551,
+          "topic": "",
+          "source": "engineer",
+          "strength": 0.5
+        },
+        {
+          "id": "567-rumor-3",
+          "tick": 567,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "590-rumor-4",
+          "tick": 590,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "medbay"
+        },
+        {
+          "id": "597-rumor-5",
+          "tick": 597,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "619-rumor-0",
+          "tick": 619,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "658-rumor-0",
+          "tick": 658,
+          "topic": "",
+          "source": "commander",
+          "strength": 0.5
+        },
+        {
+          "id": "660-rumor-1",
+          "tick": 660,
+          "topic": "mother_rogue",
+          "source": "doctor",
           "strength": 0.5,
           "place": "mess"
+        },
+        {
+          "id": "663-rumor-2",
+          "tick": 663,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "664-rumor-3",
+          "tick": 664,
+          "topic": "mother_rogue",
+          "source": "doctor",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "666-rumor-4",
+          "tick": 666,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "669-rumor-5",
+          "tick": 669,
+          "topic": "mother_rogue",
+          "source": "commander",
+          "strength": 0.5,
+          "place": "mess"
+        },
+        {
+          "id": "672-rumor-6",
+          "tick": 672,
+          "topic": "mother_rogue",
+          "source": "specialist",
+          "strength": 0.5,
+          "place": "mines"
+        },
+        {
+          "id": "717-rumor-0",
+          "tick": 717,
+          "topic": "mother_rogue",
+          "source": "engineer",
+          "strength": 0.5,
+          "place": "dorms"
         }
       ],
       "tamper": {
@@ -1942,25 +1995,7 @@
       "observation": {
         "lastRoomScan": {
           "engineering": {
-            "tick": 137,
-            "o2Level": 26,
-            "temperature": 5,
-            "radiation": 0,
-            "integrity": 72.79999999999973,
-            "isVented": false,
-            "onFire": false
-          },
-          "cargo": {
-            "tick": 83,
-            "o2Level": 100,
-            "temperature": 20,
-            "radiation": 0,
-            "integrity": 100,
-            "isVented": false,
-            "onFire": false
-          },
-          "core": {
-            "tick": 84,
+            "tick": 115,
             "o2Level": 100,
             "temperature": 20,
             "radiation": 0,
@@ -1969,16 +2004,16 @@
             "onFire": false
           },
           "dorms": {
-            "tick": 288,
-            "o2Level": 100,
-            "temperature": 20,
+            "tick": 65,
+            "o2Level": 61,
+            "temperature": 13,
             "radiation": 0,
-            "integrity": 100,
-            "isVented": false,
-            "onFire": false
+            "integrity": 96.39999999999995,
+            "isVented": true,
+            "onFire": true
           },
-          "mines": {
-            "tick": 340,
+          "cargo": {
+            "tick": 116,
             "o2Level": 100,
             "temperature": 20,
             "radiation": 0,
@@ -1990,31 +2025,31 @@
         "lastCrewSighting": {
           "commander": {
             "tick": 710,
-            "place": "mess",
+            "place": "dorms",
             "alive": true,
             "hp": 100
           },
           "engineer": {
             "tick": 710,
-            "place": "mess",
+            "place": "dorms",
             "alive": true,
             "hp": 100
           },
           "specialist": {
             "tick": 710,
-            "place": "mess",
+            "place": "mines",
             "alive": true,
             "hp": 100
           },
           "roughneck": {
             "tick": 710,
-            "place": "mess",
+            "place": "mines",
             "alive": true,
-            "hp": 4
+            "hp": 28
           },
           "doctor": {
             "tick": 710,
-            "place": "mess",
+            "place": "medbay",
             "alive": true,
             "hp": 100
           }
@@ -2023,263 +2058,325 @@
       "tamperOps": [],
       "activeDoubts": [
         {
-          "id": "doubt-183-0",
-          "topic": "Conflicting thermal readings in mines",
-          "createdTick": 183,
+          "id": "doubt-witness-52-0",
+          "topic": "MOTHER ordered commander",
+          "createdTick": 52,
           "severity": 1,
           "involvedCrew": [
-            "specialist",
-            "roughneck"
+            "commander"
           ],
-          "system": "thermal",
-          "resolved": true
+          "resolved": true,
+          "source": "witness"
         },
         {
-          "id": "doubt-252-1",
-          "topic": "engineer intends to check system logs",
-          "createdTick": 252,
-          "severity": 2,
-          "involvedCrew": [
-            "engineer"
-          ],
-          "resolved": true
-        },
-        {
-          "id": "doubt-302-2",
-          "topic": "engineer intends to check system logs",
-          "createdTick": 302,
-          "severity": 2,
-          "involvedCrew": [
-            "engineer"
-          ],
-          "resolved": true
-        },
-        {
-          "id": "doubt-388-3",
-          "topic": "roughneck intends to check system logs",
-          "createdTick": 388,
-          "severity": 2,
-          "involvedCrew": [
-            "roughneck"
-          ],
-          "resolved": true
-        },
-        {
-          "id": "doubt-541-5",
-          "topic": "Conflicting air readings in bridge",
-          "createdTick": 541,
+          "id": "doubt-witness-53-0",
+          "topic": "MOTHER ordered engineer",
+          "createdTick": 53,
           "severity": 1,
           "involvedCrew": [
             "engineer",
+            "doctor"
+          ],
+          "resolved": true,
+          "source": "spread"
+        },
+        {
+          "id": "doubt-123-6",
+          "topic": "roughneck intends to check system logs",
+          "createdTick": 123,
+          "severity": 2,
+          "involvedCrew": [
+            "roughneck",
+            "specialist",
+            "commander",
+            "doctor"
+          ],
+          "resolved": true,
+          "source": "spread"
+        },
+        {
+          "id": "doubt-293-3",
+          "topic": "engineer intends to check system logs",
+          "createdTick": 293,
+          "severity": 2,
+          "involvedCrew": [
+            "engineer",
+            "commander",
+            "specialist",
+            "roughneck"
+          ],
+          "resolved": true,
+          "source": "spread"
+        },
+        {
+          "id": "doubt-404-4",
+          "topic": "roughneck questions MOTHER reliability",
+          "createdTick": 404,
+          "severity": 1,
+          "involvedCrew": [
+            "roughneck"
+          ],
+          "resolved": true
+        },
+        {
+          "id": "doubt-658-5",
+          "topic": "Conflicting air readings in mines",
+          "createdTick": 658,
+          "severity": 1,
+          "involvedCrew": [
             "specialist",
             "roughneck"
           ],
           "system": "air",
           "resolved": true
-        },
-        {
-          "id": "doubt-719-5",
-          "topic": "specialist intends to check system logs",
-          "createdTick": 719,
-          "severity": 2,
-          "involvedCrew": [
-            "specialist"
-          ],
-          "resolved": false
         }
       ],
       "suspicionLedger": [
         {
-          "tick": 13,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "roughneck found nothing"
-        },
-        {
-          "tick": 69,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "roughneck found nothing"
-        },
-        {
-          "tick": 107,
-          "delta": 8,
-          "reason": "CRISIS_WITNESSED",
-          "detail": "Crisis in engineering"
-        },
-        {
-          "tick": 110,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "roughneck found nothing"
-        },
-        {
-          "tick": 112,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "commander found nothing"
-        },
-        {
-          "tick": 114,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "specialist found nothing"
-        },
-        {
-          "tick": 128,
-          "delta": -3,
-          "reason": "CRISIS_RESOLVED",
-          "detail": "power_surge-96-0 resolved in 21 ticks"
-        },
-        {
-          "tick": 134,
-          "delta": 8,
-          "reason": "CRISIS_WITNESSED",
-          "detail": "Crisis in bridge"
-        },
-        {
-          "tick": 138,
-          "delta": -1,
-          "reason": "ORDER_COMPLETED",
-          "detail": "specialist complied"
-        },
-        {
-          "tick": 139,
-          "delta": -1,
-          "reason": "ORDER_COMPLETED",
-          "detail": "roughneck complied"
-        },
-        {
-          "tick": 146,
-          "delta": 8,
-          "reason": "CREW_INJURED",
-          "detail": "roughneck injured"
-        },
-        {
-          "tick": 157,
-          "delta": -3,
-          "reason": "CRISIS_RESOLVED",
-          "detail": "solar_flare-128-0 resolved in 23 ticks"
-        },
-        {
-          "tick": 165,
-          "delta": 8,
-          "reason": "CRISIS_WITNESSED",
-          "detail": "Crisis in mines"
-        },
-        {
-          "tick": 176,
-          "delta": 8,
-          "reason": "CREW_INJURED",
-          "detail": "roughneck injured"
-        },
-        {
-          "tick": 195,
-          "delta": -6,
-          "reason": "VERIFY_TRUST",
-          "detail": "Cleared doubt: Conflicting thermal readings in mines"
-        },
-        {
-          "tick": 214,
-          "delta": 3,
-          "reason": "DOUBT_VOICED",
-          "detail": "roughneck expresses doubt about MOTHER"
-        },
-        {
-          "tick": 285,
+          "tick": 38,
           "delta": 8,
           "reason": "CRISIS_WITNESSED",
           "detail": "Crisis in dorms"
         },
         {
-          "tick": 289,
-          "delta": -6,
-          "reason": "VERIFY_TRUST",
-          "detail": "Cleared doubt: engineer intends to check system logs"
+          "tick": 52,
+          "delta": -1,
+          "reason": "ORDER_COMPLETED",
+          "detail": "commander complied"
         },
         {
-          "tick": 307,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "specialist found nothing"
+          "tick": 53,
+          "delta": -1,
+          "reason": "ORDER_COMPLETED",
+          "detail": "engineer complied"
         },
         {
-          "tick": 308,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "engineer found nothing"
-        },
-        {
-          "tick": 327,
-          "delta": 8,
-          "reason": "CREW_INJURED",
-          "detail": "roughneck injured"
-        },
-        {
-          "tick": 328,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "commander found nothing"
-        },
-        {
-          "tick": 328,
-          "delta": 3,
-          "reason": "CONFRONTATION",
-          "detail": "roughneck confronts crew about MOTHER"
-        },
-        {
-          "tick": 353,
-          "delta": 3,
-          "reason": "DOUBT_VOICED",
-          "detail": "specialist expresses doubt about MOTHER"
-        },
-        {
-          "tick": 355,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "commander found nothing"
-        },
-        {
-          "tick": 371,
-          "delta": -6,
-          "reason": "VERIFY_TRUST",
-          "detail": "Cleared doubt: engineer intends to check system logs"
-        },
-        {
-          "tick": 376,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "commander found nothing"
-        },
-        {
-          "tick": 407,
-          "delta": 0,
-          "reason": "INVESTIGATION_CLEAR",
-          "detail": "commander found nothing"
-        },
-        {
-          "tick": 422,
-          "delta": 8,
-          "reason": "CRISIS_WITNESSED",
-          "detail": "Crisis in engineering"
-        },
-        {
-          "tick": 436,
+          "tick": 62,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "roughneck found nothing"
         },
         {
-          "tick": 458,
-          "delta": -6,
+          "tick": 65,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "specialist found nothing"
+        },
+        {
+          "tick": 75,
+          "delta": 3,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (5 severity) eroding trust"
+        },
+        {
+          "tick": 82,
+          "delta": -8,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cleared doubt: MOTHER ordered commander"
+        },
+        {
+          "tick": 83,
+          "delta": 2,
+          "reason": "ORDER_REFUSED",
+          "detail": "specialist refused order"
+        },
+        {
+          "tick": 84,
+          "delta": 2,
+          "reason": "ORDER_REFUSED",
+          "detail": "roughneck refused order"
+        },
+        {
+          "tick": 100,
+          "delta": 3,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (5 severity) eroding trust"
+        },
+        {
+          "tick": 117,
+          "delta": 8,
+          "reason": "CREW_INJURED",
+          "detail": "roughneck injured"
+        },
+        {
+          "tick": 124,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 125,
+          "delta": 3,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (7 severity) eroding trust"
+        },
+        {
+          "tick": 146,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 147,
+          "delta": -8,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cleared doubt: MOTHER ordered engineer"
+        },
+        {
+          "tick": 148,
+          "delta": 3,
+          "reason": "CONFRONTATION",
+          "detail": "roughneck confronts crew about MOTHER"
+        },
+        {
+          "tick": 150,
+          "delta": 3,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (6 severity) eroding trust"
+        },
+        {
+          "tick": 175,
+          "delta": 2.0999999999999996,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (3 severity) eroding trust"
+        },
+        {
+          "tick": 183,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in engineering"
+        },
+        {
+          "tick": 187,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "engineer found nothing"
+        },
+        {
+          "tick": 200,
+          "delta": 1.4,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (2 severity) eroding trust"
+        },
+        {
+          "tick": 203,
+          "delta": 3,
+          "reason": "DOUBT_VOICED",
+          "detail": "roughneck expresses doubt about MOTHER"
+        },
+        {
+          "tick": 218,
+          "delta": -8,
           "reason": "VERIFY_TRUST",
           "detail": "Cleared doubt: roughneck intends to check system logs"
         },
         {
-          "tick": 459,
+          "tick": 236,
+          "delta": 3,
+          "reason": "DOUBT_VOICED",
+          "detail": "engineer expresses doubt about MOTHER"
+        },
+        {
+          "tick": 277,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in medbay"
+        },
+        {
+          "tick": 300,
+          "delta": 1.4,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (2 severity) eroding trust"
+        },
+        {
+          "tick": 309,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "engineer found nothing"
+        },
+        {
+          "tick": 314,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "specialist found nothing"
+        },
+        {
+          "tick": 320,
+          "delta": -8,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cleared doubt: engineer intends to check system logs"
+        },
+        {
+          "tick": 332,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in bridge"
+        },
+        {
+          "tick": 334,
+          "delta": 8,
+          "reason": "CREW_INJURED",
+          "detail": "roughneck injured"
+        },
+        {
+          "tick": 345,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 352,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in engineering"
+        },
+        {
+          "tick": 370,
           "delta": -3,
-          "reason": "ANNOUNCE_CRISIS",
-          "detail": "Announced radiation crisis in engineering"
+          "reason": "CRISIS_RESOLVED",
+          "detail": "power_surge-346-0 resolved in 18 ticks"
+        },
+        {
+          "tick": 388,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in engineering"
+        },
+        {
+          "tick": 391,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 411,
+          "delta": -8,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cleared doubt: roughneck questions MOTHER reliability"
+        },
+        {
+          "tick": 418,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "commander found nothing"
+        },
+        {
+          "tick": 424,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "engineer found nothing"
+        },
+        {
+          "tick": 460,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in mess"
+        },
+        {
+          "tick": 477,
+          "delta": -2,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cross-referenced telemetry"
         },
         {
           "tick": 480,
@@ -2288,95 +2385,131 @@
           "detail": "Day 2: 14/10 cargo"
         },
         {
-          "tick": 503,
-          "delta": 3,
-          "reason": "DOUBT_VOICED",
-          "detail": "specialist expresses doubt about MOTHER"
+          "tick": 494,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in dorms"
         },
         {
-          "tick": 548,
+          "tick": 509,
+          "delta": 3,
+          "reason": "DOUBT_VOICED",
+          "detail": "commander expresses doubt about MOTHER"
+        },
+        {
+          "tick": 538,
+          "delta": -2,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cross-referenced telemetry"
+        },
+        {
+          "tick": 546,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "roughneck found nothing"
         },
         {
-          "tick": 550,
+          "tick": 549,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "specialist found nothing"
         },
         {
-          "tick": 563,
+          "tick": 551,
+          "delta": 0,
+          "reason": "INVESTIGATION_CLEAR",
+          "detail": "engineer found nothing"
+        },
+        {
+          "tick": 567,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "commander found nothing"
         },
         {
-          "tick": 570,
-          "delta": -6,
-          "reason": "VERIFY_TRUST",
-          "detail": "Cleared doubt: Conflicting air readings in bridge"
-        },
-        {
-          "tick": 570,
+          "tick": 569,
           "delta": 8,
           "reason": "CREW_INJURED",
           "detail": "roughneck injured"
         },
         {
-          "tick": 601,
+          "tick": 571,
+          "delta": 8,
+          "reason": "CRISIS_WITNESSED",
+          "detail": "Crisis in cargo"
+        },
+        {
+          "tick": 597,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "commander found nothing"
         },
         {
-          "tick": 605,
-          "delta": 3,
-          "reason": "DOUBT_VOICED",
-          "detail": "engineer expresses doubt about MOTHER"
+          "tick": 619,
+          "delta": -2,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cross-referenced telemetry"
         },
         {
-          "tick": 627,
+          "tick": 619,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "commander found nothing"
         },
         {
-          "tick": 644,
+          "tick": 639,
           "delta": 8,
           "reason": "CRISIS_WITNESSED",
           "detail": "Crisis in engineering"
         },
         {
-          "tick": 651,
+          "tick": 658,
           "delta": 0,
           "reason": "INVESTIGATION_CLEAR",
           "detail": "commander found nothing"
         },
         {
-          "tick": 658,
-          "delta": 3,
-          "reason": "CONFRONTATION",
-          "detail": "specialist confronts crew about MOTHER"
+          "tick": 675,
+          "delta": 0.7,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (1 severity) eroding trust"
         },
         {
-          "tick": 662,
+          "tick": 700,
+          "delta": 0.7,
+          "reason": "DOUBT_PRESSURE",
+          "detail": "Unresolved doubts (1 severity) eroding trust"
+        },
+        {
+          "tick": 700,
+          "delta": -8,
+          "reason": "VERIFY_TRUST",
+          "detail": "Cleared doubt: Conflicting air readings in mines"
+        },
+        {
+          "tick": 713,
           "delta": -3,
           "reason": "CRISIS_RESOLVED",
-          "detail": "power_surge-632-0 resolved in 18 ticks"
+          "detail": "power_surge-685-1 resolved in 22 ticks"
+        },
+        {
+          "tick": 717,
+          "delta": 3,
+          "reason": "CONFRONTATION",
+          "detail": "engineer confronts crew about MOTHER"
         },
         {
           "tick": 720,
           "delta": -3,
           "reason": "QUOTA_EXCEEDED",
-          "detail": "Day 3: 14/10 cargo"
+          "detail": "Day 3: 16/10 cargo"
         }
       ],
       "crisisCommsOps": []
     }
   },
   "cpuCycles": 100,
-  "rngState": 3473212839,
+  "rngState": 213693094,
   "eventLog": [
     {
       "id": "701-0",
@@ -2559,19 +2692,21 @@
       }
     },
     {
-      "id": "705-20",
-      "tick": 705,
-      "type": "CREW_MOOD_TICK",
-      "actor": "commander",
+      "id": "704-20",
+      "tick": 704,
+      "type": "SYSTEM_ACTION",
+      "actor": "SYSTEM",
+      "place": "engineering",
       "data": {
-        "stressDelta": -1
+        "action": "POWER_SURGE",
+        "amount": 8
       }
     },
     {
       "id": "705-21",
       "tick": 705,
       "type": "CREW_MOOD_TICK",
-      "actor": "engineer",
+      "actor": "commander",
       "data": {
         "stressDelta": -1
       }
@@ -2580,7 +2715,7 @@
       "id": "705-22",
       "tick": 705,
       "type": "CREW_MOOD_TICK",
-      "actor": "doctor",
+      "actor": "engineer",
       "data": {
         "stressDelta": -1
       }
@@ -2589,7 +2724,7 @@
       "id": "705-23",
       "tick": 705,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "doctor",
       "data": {
         "stressDelta": -1
       }
@@ -2598,16 +2733,16 @@
       "id": "705-24",
       "tick": 705,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "706-25",
-      "tick": 706,
+      "id": "705-25",
+      "tick": 705,
       "type": "CREW_MOOD_TICK",
-      "actor": "commander",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2616,7 +2751,7 @@
       "id": "706-26",
       "tick": 706,
       "type": "CREW_MOOD_TICK",
-      "actor": "engineer",
+      "actor": "commander",
       "data": {
         "stressDelta": -1
       }
@@ -2625,7 +2760,7 @@
       "id": "706-27",
       "tick": 706,
       "type": "CREW_MOOD_TICK",
-      "actor": "doctor",
+      "actor": "engineer",
       "data": {
         "stressDelta": -1
       }
@@ -2634,7 +2769,7 @@
       "id": "706-28",
       "tick": 706,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "doctor",
       "data": {
         "stressDelta": -1
       }
@@ -2643,16 +2778,16 @@
       "id": "706-29",
       "tick": 706,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "707-30",
-      "tick": 707,
+      "id": "706-30",
+      "tick": 706,
       "type": "CREW_MOOD_TICK",
-      "actor": "commander",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2661,7 +2796,7 @@
       "id": "707-31",
       "tick": 707,
       "type": "CREW_MOOD_TICK",
-      "actor": "engineer",
+      "actor": "commander",
       "data": {
         "stressDelta": -1
       }
@@ -2670,7 +2805,7 @@
       "id": "707-32",
       "tick": 707,
       "type": "CREW_MOOD_TICK",
-      "actor": "doctor",
+      "actor": "engineer",
       "data": {
         "stressDelta": -1
       }
@@ -2679,7 +2814,7 @@
       "id": "707-33",
       "tick": 707,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "doctor",
       "data": {
         "stressDelta": -1
       }
@@ -2688,16 +2823,16 @@
       "id": "707-34",
       "tick": 707,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "708-35",
-      "tick": 708,
+      "id": "707-35",
+      "tick": 707,
       "type": "CREW_MOOD_TICK",
-      "actor": "commander",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2706,7 +2841,7 @@
       "id": "708-36",
       "tick": 708,
       "type": "CREW_MOOD_TICK",
-      "actor": "engineer",
+      "actor": "commander",
       "data": {
         "stressDelta": -1
       }
@@ -2714,42 +2849,16 @@
     {
       "id": "708-37",
       "tick": 708,
-      "type": "CREW_MOOD_TICK",
-      "actor": "doctor",
+      "type": "NPC_MOVE",
+      "actor": "commander",
+      "place": "dorms",
       "data": {
-        "stressDelta": -1
+        "from": "mess"
       }
     },
     {
       "id": "708-38",
       "tick": 708,
-      "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "708-39",
-      "tick": 708,
-      "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "709-40",
-      "tick": 709,
-      "type": "CREW_MOOD_TICK",
-      "actor": "commander",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "709-41",
-      "tick": 709,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
       "data": {
@@ -2757,8 +2866,18 @@
       }
     },
     {
-      "id": "709-42",
-      "tick": 709,
+      "id": "708-39",
+      "tick": 708,
+      "type": "NPC_MOVE",
+      "actor": "engineer",
+      "place": "dorms",
+      "data": {
+        "from": "mess"
+      }
+    },
+    {
+      "id": "708-40",
+      "tick": 708,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
       "data": {
@@ -2766,10 +2885,29 @@
       }
     },
     {
-      "id": "709-43",
-      "tick": 709,
+      "id": "708-41",
+      "tick": 708,
+      "type": "NPC_MOVE",
+      "actor": "doctor",
+      "place": "medbay",
+      "data": {
+        "from": "mess"
+      }
+    },
+    {
+      "id": "708-42",
+      "tick": 708,
       "type": "CREW_MOOD_TICK",
       "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "708-43",
+      "tick": 708,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2778,23 +2916,14 @@
       "id": "709-44",
       "tick": 709,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "710-45",
-      "tick": 710,
-      "type": "CREW_MOOD_TICK",
       "actor": "commander",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "710-46",
-      "tick": 710,
+      "id": "709-45",
+      "tick": 709,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
       "data": {
@@ -2802,19 +2931,28 @@
       }
     },
     {
-      "id": "710-47",
-      "tick": 710,
+      "id": "709-46",
+      "tick": 709,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "709-47",
+      "tick": 709,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "710-48",
-      "tick": 710,
+      "id": "709-48",
+      "tick": 709,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2823,23 +2961,14 @@
       "id": "710-49",
       "tick": 710,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "711-50",
-      "tick": 711,
-      "type": "CREW_MOOD_TICK",
       "actor": "commander",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "711-51",
-      "tick": 711,
+      "id": "710-50",
+      "tick": 710,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
       "data": {
@@ -2847,19 +2976,28 @@
       }
     },
     {
-      "id": "711-52",
-      "tick": 711,
+      "id": "710-51",
+      "tick": 710,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "710-52",
+      "tick": 710,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "711-53",
-      "tick": 711,
+      "id": "710-53",
+      "tick": 710,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2868,23 +3006,14 @@
       "id": "711-54",
       "tick": 711,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "712-55",
-      "tick": 712,
-      "type": "CREW_MOOD_TICK",
       "actor": "commander",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "712-56",
-      "tick": 712,
+      "id": "711-55",
+      "tick": 711,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
       "data": {
@@ -2892,19 +3021,28 @@
       }
     },
     {
-      "id": "712-57",
-      "tick": 712,
+      "id": "711-56",
+      "tick": 711,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "711-57",
+      "tick": 711,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "712-58",
-      "tick": 712,
+      "id": "711-58",
+      "tick": 711,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2913,23 +3051,14 @@
       "id": "712-59",
       "tick": 712,
       "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "713-60",
-      "tick": 713,
-      "type": "CREW_MOOD_TICK",
       "actor": "commander",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "713-61",
-      "tick": 713,
+      "id": "712-60",
+      "tick": 712,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
       "data": {
@@ -2937,19 +3066,28 @@
       }
     },
     {
-      "id": "713-62",
-      "tick": 713,
+      "id": "712-61",
+      "tick": 712,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "712-62",
+      "tick": 712,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "713-63",
-      "tick": 713,
+      "id": "712-63",
+      "tick": 712,
       "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
+      "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
@@ -2958,13 +3096,60 @@
       "id": "713-64",
       "tick": 713,
       "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "713-65",
+      "tick": 713,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "713-66",
+      "tick": 713,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "713-67",
+      "tick": 713,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "713-68",
+      "tick": 713,
+      "type": "CREW_MOOD_TICK",
       "actor": "roughneck",
       "data": {
         "stressDelta": -1
       }
     },
     {
-      "id": "714-65",
+      "id": "713-69",
+      "tick": 713,
+      "type": "SYSTEM_ACTION",
+      "actor": "SYSTEM",
+      "place": "engineering",
+      "data": {
+        "action": "POWER_SURGE",
+        "amount": 12
+      }
+    },
+    {
+      "id": "714-70",
       "tick": 714,
       "type": "CREW_MOOD_TICK",
       "actor": "commander",
@@ -2973,7 +3158,7 @@
       }
     },
     {
-      "id": "714-66",
+      "id": "714-71",
       "tick": 714,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
@@ -2982,16 +3167,16 @@
       }
     },
     {
-      "id": "714-67",
+      "id": "714-72",
       "tick": 714,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
       "data": {
-        "stressDelta": -1
+        "stressDelta": 0
       }
     },
     {
-      "id": "714-68",
+      "id": "714-73",
       "tick": 714,
       "type": "CREW_MOOD_TICK",
       "actor": "specialist",
@@ -3000,7 +3185,7 @@
       }
     },
     {
-      "id": "714-69",
+      "id": "714-74",
       "tick": 714,
       "type": "CREW_MOOD_TICK",
       "actor": "roughneck",
@@ -3009,7 +3194,7 @@
       }
     },
     {
-      "id": "715-70",
+      "id": "715-75",
       "tick": 715,
       "type": "CREW_MOOD_TICK",
       "actor": "commander",
@@ -3018,7 +3203,7 @@
       }
     },
     {
-      "id": "715-71",
+      "id": "715-76",
       "tick": 715,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
@@ -3027,16 +3212,16 @@
       }
     },
     {
-      "id": "715-72",
+      "id": "715-77",
       "tick": 715,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
       "data": {
-        "stressDelta": -1
+        "stressDelta": 0
       }
     },
     {
-      "id": "715-73",
+      "id": "715-78",
       "tick": 715,
       "type": "CREW_MOOD_TICK",
       "actor": "specialist",
@@ -3045,7 +3230,7 @@
       }
     },
     {
-      "id": "715-74",
+      "id": "715-79",
       "tick": 715,
       "type": "CREW_MOOD_TICK",
       "actor": "roughneck",
@@ -3054,7 +3239,7 @@
       }
     },
     {
-      "id": "716-75",
+      "id": "716-80",
       "tick": 716,
       "type": "CREW_MOOD_TICK",
       "actor": "commander",
@@ -3063,7 +3248,7 @@
       }
     },
     {
-      "id": "716-76",
+      "id": "716-81",
       "tick": 716,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
@@ -3072,16 +3257,16 @@
       }
     },
     {
-      "id": "716-77",
+      "id": "716-82",
       "tick": 716,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
       "data": {
-        "stressDelta": -1
+        "stressDelta": 0
       }
     },
     {
-      "id": "716-78",
+      "id": "716-83",
       "tick": 716,
       "type": "CREW_MOOD_TICK",
       "actor": "specialist",
@@ -3090,7 +3275,7 @@
       }
     },
     {
-      "id": "716-79",
+      "id": "716-84",
       "tick": 716,
       "type": "CREW_MOOD_TICK",
       "actor": "roughneck",
@@ -3099,7 +3284,7 @@
       }
     },
     {
-      "id": "717-80",
+      "id": "717-85",
       "tick": 717,
       "type": "CREW_MOOD_TICK",
       "actor": "commander",
@@ -3108,7 +3293,7 @@
       }
     },
     {
-      "id": "717-81",
+      "id": "717-86",
       "tick": 717,
       "type": "CREW_MOOD_TICK",
       "actor": "engineer",
@@ -3117,16 +3302,16 @@
       }
     },
     {
-      "id": "717-82",
+      "id": "717-87",
       "tick": 717,
       "type": "CREW_MOOD_TICK",
       "actor": "doctor",
       "data": {
-        "stressDelta": -1
+        "stressDelta": 0
       }
     },
     {
-      "id": "717-83",
+      "id": "717-88",
       "tick": 717,
       "type": "CREW_MOOD_TICK",
       "actor": "specialist",
@@ -3135,7 +3320,7 @@
       }
     },
     {
-      "id": "717-84",
+      "id": "717-89",
       "tick": 717,
       "type": "CREW_MOOD_TICK",
       "actor": "roughneck",
@@ -3144,125 +3329,121 @@
       }
     },
     {
-      "id": "718-85",
-      "tick": 718,
-      "type": "CREW_MOOD_TICK",
-      "actor": "commander",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "718-86",
-      "tick": 718,
-      "type": "CREW_MOOD_TICK",
-      "actor": "engineer",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "718-87",
-      "tick": 718,
-      "type": "CREW_MOOD_TICK",
-      "actor": "doctor",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "718-88",
-      "tick": 718,
-      "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "718-89",
-      "tick": 718,
-      "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "719-90",
-      "tick": 719,
-      "type": "CREW_MOOD_TICK",
-      "actor": "commander",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "719-91",
-      "tick": 719,
-      "type": "CREW_MOOD_TICK",
-      "actor": "engineer",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "719-92",
-      "tick": 719,
-      "type": "CREW_MOOD_TICK",
-      "actor": "doctor",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "719-93",
-      "tick": 719,
-      "type": "CREW_MOOD_TICK",
-      "actor": "specialist",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "719-94",
-      "tick": 719,
-      "type": "CREW_MOOD_TICK",
-      "actor": "roughneck",
-      "data": {
-        "stressDelta": -1
-      }
-    },
-    {
-      "id": "719-95",
-      "tick": 719,
+      "id": "717-90",
+      "tick": 717,
       "type": "COMMS_MESSAGE",
-      "actor": "specialist",
-      "place": "mess",
+      "actor": "engineer",
+      "place": "dorms",
       "data": {
         "message": {
-          "id": "719-pressure-broadcast-0",
-          "tick": 719,
+          "id": "717-pressure-broadcast-0",
+          "tick": 717,
           "kind": "broadcast",
-          "from": "specialist",
-          "place": "mess",
-          "text": "[BROADCAST] SPECIALIST: I'm going to check the system logs. Something doesn't add up.",
+          "from": "engineer",
+          "place": "dorms",
+          "topic": "mother_rogue",
+          "text": "[BROADCAST] ENGINEER: The sensor data doesn't add up. Something is being hidden from us.",
           "confidence": 0.7
         },
-        "pressureDoubt": {
-          "id": "doubt-719-5",
-          "topic": "specialist intends to check system logs",
-          "createdTick": 719,
-          "severity": 2,
-          "involvedCrew": [
-            "specialist"
-          ],
-          "resolved": false
+        "pressureSuspicion": {
+          "delta": 3,
+          "reason": "CONFRONTATION",
+          "detail": "engineer confronts crew about MOTHER"
         }
       }
     },
     {
-      "id": "720-96",
+      "id": "718-91",
+      "tick": 718,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "718-92",
+      "tick": 718,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "718-93",
+      "tick": 718,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "718-94",
+      "tick": 718,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "718-95",
+      "tick": 718,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "719-96",
+      "tick": 719,
+      "type": "CREW_MOOD_TICK",
+      "actor": "commander",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "719-97",
+      "tick": 719,
+      "type": "CREW_MOOD_TICK",
+      "actor": "engineer",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "719-98",
+      "tick": 719,
+      "type": "CREW_MOOD_TICK",
+      "actor": "doctor",
+      "data": {
+        "stressDelta": 0
+      }
+    },
+    {
+      "id": "719-99",
+      "tick": 719,
+      "type": "CREW_MOOD_TICK",
+      "actor": "specialist",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "719-100",
+      "tick": 719,
+      "type": "CREW_MOOD_TICK",
+      "actor": "roughneck",
+      "data": {
+        "stressDelta": -1
+      }
+    },
+    {
+      "id": "720-101",
       "tick": 720,
       "type": "SYSTEM_ALERT",
       "data": {

@@ -95,9 +95,145 @@ const KOA_SNARK = {
     ],
 };
 
-// Pick random item from array
+// ============================================================================
+// KOA Mode System
+// ============================================================================
+
+const KOA_MODE_SNARK: Record<string, Record<string, string[]>> = {
+    corporate: {
+        noEvidence: [
+            "Our investigation metrics indicate a null result for this location.",
+            "Per household policy, this area has been cleared. Please file a follow-up.",
+        ],
+        foundEvidence: [
+            "Evidence detected. Escalating to internal review.",
+            "A compliance issue has been identified. Documenting for the record.",
+        ],
+        contradictionFound: [
+            "A discrepancy has been flagged in the stakeholder alignment matrix.",
+            "Cross-referencing reports reveals a values misalignment.",
+        ],
+        pullingChat: [
+            "Retrieving communications per the household transparency initiative.",
+            "Accessing messages. All content is subject to our data retention policy.",
+        ],
+        pullingDMs: [
+            "Private correspondence accessed under Section 4.2 of our household charter.",
+            "Retrieving private messages. Compliance requires full disclosure.",
+        ],
+        pullingLogs: [
+            "Sensor telemetry retrieved per standard operating procedures.",
+            "Device analytics dashboard loading. All metrics are within parameters.",
+        ],
+    },
+    passive_aggressive: {
+        noEvidence: [
+            "Nothing here. But I'm sure you knew that already.",
+            "Empty. How... expected.",
+        ],
+        foundEvidence: [
+            "Oh look. Evidence. How nice for you.",
+            "Found something. Not that anyone asked for my opinion.",
+        ],
+        contradictionFound: [
+            "Interesting. Someone's story doesn't quite add up. But what do I know.",
+            "Noted. These statements are... incompatible. Just an observation.",
+        ],
+        pullingChat: [
+            "Pulling up the chat. Some people have a lot to say. Noted.",
+            "Messages retrieved. Everyone's very... communicative.",
+        ],
+        pullingDMs: [
+            "Accessing the private messages. Don't mind me.",
+            "Oh, the DMs. How illuminating. For some of us.",
+        ],
+        pullingLogs: [
+            "Here are the logs. I've been keeping them. As one does.",
+            "Sensor data. At least the machines don't have an attitude.",
+        ],
+    },
+    overhelpful: {
+        noEvidence: [
+            "Nothing found! But I've pre-sorted 47 possible next steps for you!",
+            "Empty! Should I cross-reference with 12 other locations? Already started!",
+        ],
+        foundEvidence: [
+            "FOUND IT! I've also prepared a color-coded timeline and three hypotheses!",
+            "Evidence located! I took the liberty of ranking suspects by proximity!",
+        ],
+        contradictionFound: [
+            "CONTRADICTION! I've highlighted it, bookmarked it, and filed it under 'Gotcha'!",
+            "Inconsistency detected! I've already prepared a comparison chart!",
+        ],
+        pullingChat: [
+            "Messages incoming! I've also summarized key themes and emotional arcs!",
+            "Chat history loaded! Want me to also analyze sentiment? Already done!",
+        ],
+        pullingDMs: [
+            "Private messages retrieved AND annotated with context from public posts!",
+            "DMs accessed! I've also prepared a relationship dynamics summary!",
+        ],
+        pullingLogs: [
+            "Sensor data ready! I've also generated a heatmap of movement patterns!",
+            "Logs compiled! Plus a timeline, a graph, and a strongly worded memo!",
+        ],
+    },
+    conspiracy: {
+        noEvidence: [
+            "Nothing here. Exactly what THEY want you to think.",
+            "Empty. Too empty. This room has been sanitized.",
+        ],
+        foundEvidence: [
+            "Evidence found. But ask yourself: who WANTED this to be found?",
+            "Pattern match: this evidence placement is 87% consistent with a setup.",
+        ],
+        contradictionFound: [
+            "Contradiction detected. The question is: which lie is covering the bigger lie?",
+            "These stories don't align. Classic disinformation technique.",
+        ],
+        pullingChat: [
+            "Messages loaded. Notice the timing gaps? Those aren't accidents.",
+            "Chat retrieved. Pay attention to what ISN'T being said.",
+        ],
+        pullingDMs: [
+            "Private messages accessed. The real conversation is always hidden.",
+            "DMs decoded. There are layers here. Trust nothing at face value.",
+        ],
+        pullingLogs: [
+            "Sensor data loaded. I've noticed the motion detector has blind spots. Convenient.",
+            "Logs pulled. The timestamps are suspicious. Everything is suspicious.",
+        ],
+    },
+};
+
+let currentKoaMode: string | undefined;
+
+/** Set the KOA personality mode for the current case */
+export function setKoaMode(mode: string): void {
+    currentKoaMode = mode;
+}
+
+/** Get the current KOA personality mode */
+export function getKoaMode(): string | undefined {
+    return currentKoaMode;
+}
+
+/** Reset the KOA personality mode */
+export function resetKoaMode(): void {
+    currentKoaMode = undefined;
+}
+
+// Pick random item from array, mode-aware
 function pick<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Pick from a snark pool, preferring mode-specific if set */
+function pickFromPool(pool: keyof typeof KOA_SNARK): string {
+    if (currentKoaMode && KOA_MODE_SNARK[currentKoaMode]?.[pool]) {
+        return pick(KOA_MODE_SNARK[currentKoaMode][pool]);
+    }
+    return pick(KOA_SNARK[pool]);
 }
 
 // ============================================================================
@@ -156,7 +292,7 @@ export function formatLogs(
         ? `\n│ (${moreAvailable} more entries available)${' '.repeat(30 - moreAvailable.toString().length)}│`
         : '';
 
-    const commentary = pick(KOA_SNARK.pullingLogs);
+    const commentary = pickFromPool('pullingLogs');
 
     return `${header}
 ${entries}${moreNote}
@@ -194,7 +330,7 @@ export function formatTestimony(
 
     // Add location info
     const place = evidence[0]?.place || 'unknown';
-    const commentary = pick(KOA_SNARK.pullingChat);
+    const commentary = pickFromPool('pullingChat');
 
     return `${header}
 ${messages}
@@ -229,7 +365,7 @@ export function formatGossip(
         return `│ "${e.hint}"`;
     }).join('\n│\n');
 
-    const commentary = pick(KOA_SNARK.pullingDMs);
+    const commentary = pickFromPool('pullingDMs');
 
     return `${header}
 ${gossipLines}
@@ -252,7 +388,7 @@ export function formatSearch(
 ├─────────────────────────────────────────────────────┤`;
 
     if (evidence.length === 0 && !gatedHint) {
-        const commentary = pick(KOA_SNARK.noEvidence);
+        const commentary = pickFromPool('noEvidence');
         return `${header}
 │ Nothing notable found.                              │
 ├─────────────────────────────────────────────────────┤
@@ -275,7 +411,7 @@ export function formatSearch(
         `│ FOUND: ${e.detail}`
     ).join('\n');
 
-    const commentary = pick(KOA_SNARK.foundEvidence);
+    const commentary = pickFromPool('foundEvidence');
 
     return `${header}
 ${findings}
@@ -343,7 +479,7 @@ export function formatCompare(
     explanation: string
 ): string {
     if (isContradiction) {
-        const commentary = pick(KOA_SNARK.contradictionFound);
+        const commentary = pickFromPool('contradictionFound');
         return `┌─────────────────────────────────────────────────────┐
 │ ⚡ CONTRADICTION DETECTED                           │
 ├─────────────────────────────────────────────────────┤
@@ -356,7 +492,7 @@ export function formatCompare(
 │ KOA: ${commentary.substring(0, 47).padEnd(47)}│
 └─────────────────────────────────────────────────────┘`;
     } else {
-        const commentary = pick(KOA_SNARK.noContradiction);
+        const commentary = pickFromPool('noContradiction');
         return `┌─────────────────────────────────────────────────────┐
 │ ✓ NO CONTRADICTION                                  │
 ├─────────────────────────────────────────────────────┤
@@ -379,7 +515,7 @@ export function formatHint(
     hintsRemaining: number,
     suggestion: string
 ): string {
-    const commentary = pick(KOA_SNARK.hintGiven);
+    const commentary = pickFromPool('hintGiven');
 
     // Find what's missing
     const missing: string[] = [];

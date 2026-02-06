@@ -40,10 +40,12 @@ import { DIFFICULTY_TIER_TARGETS } from './types.js';
  * Analyze whether the culprit has a catchable signal (contradiction they're party to).
  *
  * Signal hierarchy (strongest to weakest):
- * 1. self_contradiction - Culprit's testimony contradicts their own testimony
- * 2. device_contradiction - Culprit's testimony contradicts device log
- * 3. scene_presence - Device log places culprit at crime scene
+ * 1. self_contradiction - Culprit's STAY claim contradicts presence evidence elsewhere (HARD)
+ * 2. device_contradiction - Device presence evidence vs culprit's claim/presence (HARD)
+ * 3. scene_presence - Device log places culprit at crime scene (medium)
  * 4. opportunity_only - No catchable signal (INVALID - case needs injection)
+ *
+ * Movement evidence (door logs) = SOFT only, never sufficient as strong signal.
  */
 export function analyzeSignal(
     evidence: EvidenceItem[],
@@ -55,18 +57,23 @@ export function analyzeSignal(
 
     const culpritId = config.culpritId;
 
-    // Gather culprit's presence claims
+    // Gather culprit's presence/claim evidence
     const culpritPresence = (evidence.filter(
-        e => e.kind === 'presence' && e.npc === culpritId
+        e => e.kind === 'presence' && (e as PresenceEvidence).npc === culpritId
     ) as PresenceEvidence[]);
+
+    // Gather culprit's testimony (including STAY claims)
+    const culpritTestimony = (evidence.filter(
+        e => e.kind === 'testimony' && (e as TestimonyEvidence).witness === culpritId
+    ) as TestimonyEvidence[]);
 
     // Gather device logs where actor is the culprit
     const culpritDeviceLogs = (evidence.filter(
-        e => e.kind === 'device_log' && e.actor === culpritId
+        e => e.kind === 'device_log' && (e as DeviceLogEvidence).actor === culpritId
     ) as DeviceLogEvidence[]);
 
     // If no culprit evidence at all, early return
-    if (culpritPresence.length === 0 && culpritDeviceLogs.length === 0) {
+    if (culpritPresence.length === 0 && culpritDeviceLogs.length === 0 && culpritTestimony.length === 0) {
         return {
             hasSignal: false,
             signalType: 'opportunity_only',
@@ -75,13 +82,63 @@ export function analyzeSignal(
         };
     }
 
-    // 1. Check for self-contradiction (strongest signal)
-    //    Culprit claims two different places in the same window
+    // 1. Check for STAY claim contradiction (strongest signal = HARD)
+    //    Culprit's STAY claim at place A + presence evidence at place B (same window)
+    // Only use STAY claims where the culprit is claiming about themselves
+    // (subject === culpritId), not sightings of others tagged as STAY.
+    const stayClaims = culpritTestimony.filter(t =>
+        t.claimType === 'STAY' && (!t.subject || t.subject === culpritId)
+    );
+    const stayPresence = culpritPresence.filter(p => p.isSelfReported === true);
+
+    // Combine STAY claims: testimony + self-reported presence
+    const stayEvidence = [...stayClaims, ...stayPresence];
+
+    // Non-claim presence evidence for the culprit (actual observed locations)
+    const actualPresence = culpritPresence.filter(p => p.semantic !== 'claim' && !p.isSelfReported);
+
+    for (const stay of stayEvidence) {
+        const stayWindow = stay.kind === 'testimony' ? (stay as TestimonyEvidence).window : (stay as PresenceEvidence).window;
+        const stayPlace = stay.kind === 'testimony' ? (stay as TestimonyEvidence).place : (stay as PresenceEvidence).place;
+
+        // Check against actual presence
+        for (const actual of actualPresence) {
+            if (actual.window === stayWindow && actual.place !== stayPlace) {
+                return {
+                    hasSignal: true,
+                    signalType: 'self_contradiction',
+                    signalStrength: 'strong',
+                    keystonePair: {
+                        evidenceA: stay.id,
+                        evidenceB: actual.id,
+                    },
+                    details: `Culprit STAY claim at ${stayPlace} but presence shows ${actual.place} during ${stayWindow}`,
+                };
+            }
+        }
+
+        // Check against device logs with presence semantic (not movement)
+        for (const d of culpritDeviceLogs) {
+            if (d.window === stayWindow && d.place !== stayPlace && d.semantic === 'presence') {
+                return {
+                    hasSignal: true,
+                    signalType: 'device_contradiction',
+                    signalStrength: 'strong',
+                    keystonePair: {
+                        evidenceA: stay.id,
+                        evidenceB: d.id,
+                    },
+                    details: `Culprit STAY claim at ${stayPlace} but device presence at ${d.place} during ${stayWindow}`,
+                };
+            }
+        }
+    }
+
+    // 2. Check for presence-vs-presence contradiction (HARD)
+    //    Two presence items for culprit at different places same window
     const presenceByWindow = new Map<string, PresenceEvidence[]>();
     for (const p of culpritPresence) {
-        if (!presenceByWindow.has(p.window)) {
-            presenceByWindow.set(p.window, []);
-        }
+        if (!presenceByWindow.has(p.window)) presenceByWindow.set(p.window, []);
         presenceByWindow.get(p.window)!.push(p);
     }
 
@@ -98,7 +155,7 @@ export function analyzeSignal(
                                 evidenceA: items[i].id,
                                 evidenceB: items[j].id,
                             },
-                            details: `Culprit claims to be in ${items[i].place} and ${items[j].place} during ${windowId}`,
+                            details: `Culprit at ${items[i].place} and ${items[j].place} during ${windowId}`,
                         };
                     }
                 }
@@ -106,15 +163,16 @@ export function analyzeSignal(
         }
     }
 
-    // 2. Check for device contradiction (strong signal)
-    //    Culprit claims place X but device log shows them at place Y in same window
+    // 3. Check for device contradiction (movement evidence = SOFT, not strong)
+    //    Culprit claims place X but device log (movement) shows them at place Y
     for (const p of culpritPresence) {
         for (const d of culpritDeviceLogs) {
             if (d.window === p.window && d.place !== p.place) {
+                const isPresenceDevice = d.semantic === 'presence';
                 return {
                     hasSignal: true,
                     signalType: 'device_contradiction',
-                    signalStrength: 'strong',
+                    signalStrength: isPresenceDevice ? 'strong' : 'medium',
                     keystonePair: {
                         evidenceA: p.id,
                         evidenceB: d.id,
@@ -125,8 +183,7 @@ export function analyzeSignal(
         }
     }
 
-    // 3. Check for scene presence (medium signal)
-    //    Device log places culprit at crime scene during crime window
+    // 4. Check for scene presence (medium signal)
     const atCrimeScene = culpritDeviceLogs.find(
         d => d.place === config.crimePlace && d.window === config.crimeWindow
     );
@@ -139,7 +196,7 @@ export function analyzeSignal(
         };
     }
 
-    // 4. No catchable signal
+    // 5. No catchable signal
     return {
         hasSignal: false,
         signalType: 'opportunity_only',
@@ -194,24 +251,25 @@ export function findImplicatingChains(
         });
     }
 
-    // Chain type 2: Device logs showing movement to crime scene
+    // Chain type 2: Device logs showing presence/movement at crime scene
     const deviceEvidence = evidence.filter(
         e => e.kind === 'device_log'
     ) as DeviceLogEvidence[];
 
-    // Find door events during crime window that could have been culprit
-    const crimeWindowDoors = deviceEvidence.filter(
+    // Find device events during crime window at crime scene/hidden place
+    const crimeWindowDevices = deviceEvidence.filter(
         e => e.window === config.crimeWindow &&
             (e.place === config.crimePlace || e.place === config.hiddenPlace)
     );
 
-    if (crimeWindowDoors.length > 0) {
-        // This is circumstantial but useful
+    if (crimeWindowDevices.length > 0) {
+        // Presence evidence (motion/camera/wifi) is stronger than movement (door)
+        const hasPresenceDevice = crimeWindowDevices.some(e => e.semantic === 'presence');
         chains.push({
             type: 'device',
-            evidence: crimeWindowDoors,
-            impliesNPC: culprit, // We know it's culprit, but player has to deduce
-            confidence: 0.6,
+            evidence: crimeWindowDevices,
+            impliesNPC: culprit,
+            confidence: hasPresenceDevice ? 0.8 : 0.5,
         });
     }
 
@@ -552,6 +610,7 @@ export function getAllChains(
  * Estimate how many actions are needed to discover a set of evidence.
  */
 const LOG_SLICE_SIZE = 3; // Must match actions.ts
+const TESTIMONY_SLICE_SIZE = 4; // Must match actions.ts
 
 function estimateActionsForEvidence(evidence: EvidenceItem[]): number {
     // Group by action type and count items per action
@@ -562,12 +621,15 @@ function estimateActionsForEvidence(evidence: EvidenceItem[]): number {
         actionCounts.set(key, (actionCounts.get(key) || 0) + 1);
     }
 
-    // Calculate total actions, accounting for log slicing
+    // Calculate total actions, accounting for slicing
     let totalActions = 0;
     for (const [key, count] of actionCounts) {
         if (key.startsWith('LOGS_')) {
             // Device logs are sliced - need ceil(count/3) actions
             totalActions += Math.ceil(count / LOG_SLICE_SIZE);
+        } else if (key.startsWith('INTERVIEW_') && key.endsWith('_testimony')) {
+            // Testimony is sliced - need ceil(count/4) actions
+            totalActions += Math.ceil(count / TESTIMONY_SLICE_SIZE);
         } else {
             // Other actions reveal all matching evidence in 1 action
             totalActions += 1;
@@ -855,27 +917,106 @@ export function findContradictions(
         }
     }
 
-    // Type 3: False alibi contradiction (from twist)
-    if (config.twist?.type === 'false_alibi') {
-        // The false alibi creates a contradiction with true presence
-        const alibiActor = config.twist.actor;
-        const alibiEvidence = presenceEvidence.find(
-            p => p.npc === alibiActor && p.window === config.crimeWindow
-        );
-        const truePresence = presenceEvidence.find(
-            p => p.npc === alibiActor &&
-                p.window === config.crimeWindow &&
-                p.place !== alibiEvidence?.place
-        );
+    // Type 3: Testimony-vs-device placement contradiction
+    // Catches lies: uncited testimony placing someone in room X, while a device log
+    // shows them at room Y. Only flag for culprit and twist actors — innocent
+    // sighting claims ("noticed X in kitchen") don't contradict door logs
+    // at adjacent rooms (the door IS between those rooms).
+    const deviceEvidence = evidence.filter(
+        e => e.kind === 'device_log'
+    ) as DeviceLogEvidence[];
 
-        if (alibiEvidence && truePresence) {
+    const suspectIds = new Set<string>([config.culpritId]);
+    if (config.twist?.actor) suspectIds.add(config.twist.actor);
+
+    // 3a: Uncited alibi testimony vs device logs (culprit + twist actor lies)
+    for (const testimony of testimonyEvidence) {
+        if (!testimony.subject || !testimony.subjectPlace) continue;
+        if (testimony.cites.length > 0) continue; // Only uncited claims (alibi/twist)
+        if (!suspectIds.has(testimony.subject)) continue;
+        for (const device of deviceEvidence) {
+            if (!device.actor) continue;
+            if (device.actor !== testimony.subject) continue;
+            if (device.window !== testimony.window) continue;
+            if (device.place === testimony.subjectPlace) continue;
             contradictions.push({
                 id: `contradiction_${contradictionId++}`,
-                rule: 'false_alibi',
-                evidenceA: alibiEvidence.id,
-                evidenceB: truePresence.id,
-                cites: [...alibiEvidence.cites, ...truePresence.cites],
+                rule: 'testimony_vs_device',
+                evidenceA: testimony.id,
+                evidenceB: device.id,
+                cites: [...testimony.cites, ...device.cites],
             });
+            break;
+        }
+    }
+
+    // 3b: Fabricated device logs vs real testimony (tampered_device twist)
+    // A device log with no cites is fabricated — if testimony (with cites) places
+    // the same person elsewhere in the same window, that's a contradiction
+    for (const device of deviceEvidence) {
+        if (!device.actor) continue;
+        if (device.cites.length > 0) continue; // Only uncited (fabricated) logs
+        for (const testimony of testimonyEvidence) {
+            if (!testimony.subject) continue;
+            if (testimony.subject !== device.actor) continue;
+            if (testimony.window !== device.window) continue;
+            if (testimony.cites.length === 0) continue; // Need real testimony to contradict
+            if (!testimony.subjectPlace || testimony.subjectPlace === device.place) continue;
+            contradictions.push({
+                id: `contradiction_${contradictionId++}`,
+                rule: 'tampered_device',
+                evidenceA: device.id,
+                evidenceB: testimony.id,
+                cites: [...device.cites, ...testimony.cites],
+            });
+            break;
+        }
+    }
+
+    // Type 4: Twist contradictions (generalized for all twist types)
+    if (config.twist) {
+        const twistActor = config.twist.actor;
+
+        // For any twist that creates false presence, find the contradiction
+        // between the lie presence and the true presence
+        const actorPresence = presenceEvidence.filter(
+            p => p.npc === twistActor && p.window === config.crimeWindow
+        );
+        const distinctPlaces = new Set(actorPresence.map(p => p.place));
+        if (distinctPlaces.size > 1) {
+            // Already caught by Type 1 — no need to duplicate
+        }
+
+        // For accomplice twist: also flag the accomplice's testimony vs device reality
+        if (config.twist.type === 'accomplice') {
+            const culpritPresence = presenceEvidence.filter(
+                p => p.npc === config.culpritId && p.window === config.crimeWindow
+            );
+            const culpritPlaces = new Set(culpritPresence.map(p => p.place));
+            if (culpritPlaces.size > 1) {
+                const items = [...culpritPresence];
+                for (let i = 0; i < items.length; i++) {
+                    for (let j = i + 1; j < items.length; j++) {
+                        if (items[i].place !== items[j].place) {
+                            // Check not already caught by Type 1
+                            const alreadyCaught = contradictions.some(
+                                c => (c.evidenceA === items[i].id && c.evidenceB === items[j].id) ||
+                                     (c.evidenceA === items[j].id && c.evidenceB === items[i].id)
+                            );
+                            if (!alreadyCaught) {
+                                contradictions.push({
+                                    id: `contradiction_${contradictionId++}`,
+                                    rule: 'accomplice_cover',
+                                    evidenceA: items[i].id,
+                                    evidenceB: items[j].id,
+                                    cites: [...items[i].cites, ...items[j].cites],
+                                });
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1030,8 +1171,9 @@ export function validateFunness(
 ): ValidationResult {
     const issues: string[] = [];
 
-    // Check: Too easy (single action reveals 3+ targets)
+    // Check: Too easy (single AP spend reveals 3+ targets)
     const actionToTargets = new Map<string, Set<ChainTarget>>();
+    const actionToCount = new Map<string, number>();
 
     for (const [target, targetChains] of Object.entries(chains) as [ChainTarget, EvidenceChainV2[]][]) {
         for (const chain of targetChains) {
@@ -1041,13 +1183,26 @@ export function validateFunness(
                     actionToTargets.set(actionKey, new Set());
                 }
                 actionToTargets.get(actionKey)!.add(target);
+                actionToCount.set(actionKey, (actionToCount.get(actionKey) || 0) + 1);
             }
         }
     }
 
     for (const [action, targets] of actionToTargets) {
         if (targets.size >= 3) {
-            issues.push(`Single action "${action}" reveals ${targets.size} targets`);
+            const count = actionToCount.get(action) || 0;
+            // Sliced action types (LOGS, INTERVIEW testimony) spread evidence
+            // across multiple AP spends — only flag if one slice covers 3+ targets
+            const isSliced = action.startsWith('LOGS_') ||
+                (action.startsWith('INTERVIEW_') && action.endsWith('_testimony'));
+            if (isSliced) {
+                const sliceSize = action.startsWith('LOGS_') ? LOG_SLICE_SIZE : TESTIMONY_SLICE_SIZE;
+                if (count <= sliceSize) {
+                    issues.push(`Single action "${action}" reveals ${targets.size} targets`);
+                }
+            } else {
+                issues.push(`Single action "${action}" reveals ${targets.size} targets`);
+            }
         }
     }
 
@@ -1136,6 +1291,25 @@ export function findKeystonePair(
             }
         }
 
+        // testimony_vs_device: uncited alibi contradicts device log — the subject lied
+        if (c.rule === 'testimony_vs_device' && evA.kind === 'testimony') {
+            const subject = (evA as TestimonyEvidence).subject;
+            if (subject) implicated.push(subject);
+        }
+
+        // tampered_device: fabricated log vs real testimony — culprit tampered
+        if (c.rule === 'tampered_device') {
+            implicated.push(config.culpritId);
+        }
+
+        // accomplice_cover: false presence for culprit — both accomplice and culprit
+        if (c.rule === 'accomplice_cover') {
+            implicated.push(config.culpritId);
+            if (config.twist?.actor && !implicated.includes(config.twist.actor)) {
+                implicated.push(config.twist.actor);
+            }
+        }
+
         // Score = how many suspects eliminated (prefer implicating culprit)
         const eliminates = config.suspects.filter(s => !implicated.includes(s)).length;
         const implicatesCulprit = implicated.includes(config.culpritId) ? 10 : 0;
@@ -1166,6 +1340,12 @@ function getKeystoneDescription(rule: string, implicated: NPCId[]): string {
             return `Two statements about the same moment can't both be true`;
         case 'false_alibi':
             return `An alibi doesn't hold up to scrutiny`;
+        case 'testimony_vs_device':
+            return `Someone's alibi doesn't match the smart home logs`;
+        case 'tampered_device':
+            return `A device log looks fabricated — it contradicts witness accounts`;
+        case 'accomplice_cover':
+            return `Someone's covering for the culprit — their story doesn't add up`;
         default:
             return `These two pieces of evidence are incompatible`;
     }
@@ -1591,6 +1771,185 @@ export interface TunerResult {
 // Aggregate Validator
 // ============================================================================
 
+// ============================================================================
+// Comedy Validation
+// ============================================================================
+
+/**
+ * Validate that the case has minimum comedy content:
+ * - At least 1 suspicious act (red herring)
+ * - Motive has a funnyReason
+ * - Evidence spans at least 2 modalities
+ */
+export function validateComedy(
+    config: CaseConfig,
+    evidence: EvidenceItem[]
+): ValidationResult {
+    const issues: string[] = [];
+
+    // Check: suspicious acts (red herrings exist)
+    if (!config.suspiciousActs || config.suspiciousActs.length < 1) {
+        issues.push('No suspicious acts (red herrings)');
+    }
+
+    // Check: funny motive
+    if (!config.motive?.funnyReason) {
+        issues.push('No funny motive reason');
+    }
+
+    // Check: evidence modality variety (need >= 2 distinct kinds)
+    const modalities = new Set(evidence.map(e => e.kind));
+    if (modalities.size < 2) {
+        issues.push(`Only ${modalities.size} evidence modality (need >= 2)`);
+    }
+
+    return {
+        valid: issues.length === 0,
+        reason: issues.length > 0 ? issues.join('; ') : undefined,
+        details: { issues },
+    };
+}
+
+// ============================================================================
+// Deduction Quality Analysis
+// ============================================================================
+
+/** Accusatory gossip patterns that strongly imply guilt. */
+const ACCUSATORY_PATTERNS = [
+    'green with envy',
+    'mortified',
+    'acting shady',
+    'fierce competition',
+    'desperate for attention',
+    'plotting payback',
+    'chaotic mood',
+];
+
+export interface MotiveAmbiguityResult {
+    accusatorySuspectCount: number;
+    culpritStandsOut: boolean;
+    ambiguityScore: number; // 0 = culprit obvious, 4 = 2 accusatory, 8 = 3+
+}
+
+/**
+ * Analyze how distinguishable the culprit's motive is from other suspects.
+ * Higher ambiguityScore = harder to identify culprit from motive alone = better case.
+ */
+export function analyzeMotiveAmbiguity(
+    evidence: EvidenceItem[],
+    config: CaseConfig,
+): MotiveAmbiguityResult {
+    const motiveEvidence = (evidence.filter(
+        e => e.kind === 'motive' && (e as MotiveEvidence).motiveHint !== 'crime_awareness'
+    ) as MotiveEvidence[]);
+
+    // For each suspect, check if their gossip hint matches accusatory patterns
+    const suspectAccusatory = new Set<string>();
+    for (const m of motiveEvidence) {
+        const hint = m.hint.toLowerCase();
+        if (ACCUSATORY_PATTERNS.some(p => hint.includes(p))) {
+            suspectAccusatory.add(m.suspect);
+        }
+    }
+
+    const accusatorySuspectCount = suspectAccusatory.size;
+    const culpritStandsOut = accusatorySuspectCount <= 1 && suspectAccusatory.has(config.culpritId);
+
+    let ambiguityScore: number;
+    if (accusatorySuspectCount <= 1) {
+        ambiguityScore = 0;  // Culprit is only one with accusatory gossip (or none)
+    } else if (accusatorySuspectCount === 2) {
+        ambiguityScore = 4;
+    } else {
+        ambiguityScore = 8;  // 3+ suspects with accusatory gossip
+    }
+
+    return { accusatorySuspectCount, culpritStandsOut, ambiguityScore };
+}
+
+export interface KeystoneDiscoverabilityResult {
+    score: number;        // 0-10
+    bothInFirstBatch: boolean;
+    keystoneAInFirstBatch: boolean;
+    keystoneBInFirstBatch: boolean;
+}
+
+/**
+ * Analyze whether the keystone contradiction is discoverable within the player's
+ * first evidence batches (first INTERVIEW or LOGS call for that NPC/device+window).
+ */
+export function analyzeKeystoneDiscoverability(
+    evidence: EvidenceItem[],
+    config: CaseConfig,
+): KeystoneDiscoverabilityResult {
+    const signal = analyzeSignal(evidence, config);
+    if (!signal.keystonePair) {
+        return { score: 0, bothInFirstBatch: false, keystoneAInFirstBatch: false, keystoneBInFirstBatch: false };
+    }
+
+    const evA = evidence.find(e => e.id === signal.keystonePair!.evidenceA);
+    const evB = evidence.find(e => e.id === signal.keystonePair!.evidenceB);
+    if (!evA || !evB) {
+        return { score: 0, bothInFirstBatch: false, keystoneAInFirstBatch: false, keystoneBInFirstBatch: false };
+    }
+
+    const TESTIMONY_SLICE_SIZE = 4;
+    const LOG_SLICE_SIZE = 3;
+
+    const isInFirstBatch = (item: EvidenceItem): boolean => {
+        if (item.kind === 'testimony') {
+            const t = item as TestimonyEvidence;
+            // STAY claims from deriveCulpritAlibiClaim are always first
+            if (t.claimType === 'STAY') return true;
+            // Check position among testimony for this (witness, window)
+            const peers = evidence.filter(e =>
+                e.kind === 'testimony' &&
+                (e as TestimonyEvidence).witness === t.witness &&
+                (e as TestimonyEvidence).window === t.window
+            );
+            const idx = peers.findIndex(e => e.id === item.id);
+            return idx >= 0 && idx < TESTIMONY_SLICE_SIZE;
+        }
+        if (item.kind === 'device_log') {
+            const d = item as DeviceLogEvidence;
+            // Check position among device logs for this (deviceType, window)
+            const peers = evidence.filter(e =>
+                e.kind === 'device_log' &&
+                (e as DeviceLogEvidence).deviceType === d.deviceType &&
+                (e as DeviceLogEvidence).window === d.window
+            );
+            const idx = peers.findIndex(e => e.id === item.id);
+            return idx >= 0 && idx < LOG_SLICE_SIZE;
+        }
+        if (item.kind === 'presence') {
+            // Presence evidence is derived, check if its source is in first batch
+            const p = item as PresenceEvidence;
+            if (p.isSelfReported) return true; // Self-reported presence comes with STAY
+            return true; // Presence is always derived, not directly discovered
+        }
+        return true;
+    };
+
+    const aFirst = isInFirstBatch(evA);
+    const bFirst = isInFirstBatch(evB);
+
+    let score: number;
+    if (aFirst && bFirst) {
+        score = 10;
+    } else if (aFirst || bFirst) {
+        score = 6;
+    } else {
+        score = 2;
+    }
+
+    return {
+        score,
+        bothInFirstBatch: aFirst && bFirst,
+        keystoneAInFirstBatch: aFirst,
+        keystoneBInFirstBatch: bFirst,
+    };
+}
+
 export function validateCase(
     world: World,
     config: CaseConfig,
@@ -1613,9 +1972,10 @@ export function validateCase(
     const chains = getAllChains(config, evidence);
     const difficulty = validateDifficulty(world, config, evidence, effectiveConfig);
     const funness = validateFunness(config, evidence, chains);
+    const comedy = validateComedy(config, evidence);
     const contradictions = findContradictions(evidence, config);
 
-    // Core validators must pass; difficulty/funness are soft gates for now
+    // Core validators must pass; difficulty/funness/comedy are soft gates for now
     const passed = solvability.valid && antiAnticlimax.valid && redHerrings.valid;
 
     return {
@@ -1625,6 +1985,7 @@ export function validateCase(
         redHerrings,
         difficulty,
         funness,
+        comedy,
         passed,
         culprit: config.culpritId,
         evidenceCount: evidence.length,

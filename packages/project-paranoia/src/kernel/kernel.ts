@@ -1,17 +1,19 @@
 import { CONFIG } from '../config.js';
 import type { RNG } from '../core/rng.js';
 import { getWindowForTick, TICKS_PER_DAY } from '../core/time.js';
-import type { KernelState, KernelOutput, Proposal, SimEvent, SensorReading, RoomSnapshot, CrewSighting, CommsMessage } from './types.js';
+import type { KernelState, KernelOutput, Proposal, SimEvent, SensorReading, RoomSnapshot, CrewSighting, CommsMessage, ActiveDoubt } from './types.js';
 import type { PlaceId, NPCId } from '../core/types.js';
 import { makeProposal } from './proposals.js';
 import { proposeCommandEvents, type Command } from './commands.js';
 import { proposeCommsEvents } from './systems/comms.js';
 import { proposeArcEvents } from './systems/arcs.js';
 import { maybeActivatePressure } from './systems/pressure.js';
-import { proposeCrewEvents } from './systems/crew.js';
+import { proposeCrewEvents, findSafeRoom } from './systems/crew.js';
 import { decayTamper, tickSystems, tickPassiveObservation } from './systems/physics.js';
 import { applySuspicionChange, updateBeliefs } from './systems/beliefs.js';
 import { checkSuppressBackfire, checkSpoofBackfire, checkFabricateBackfire, decayDoubts } from './systems/backfire.js';
+import { checkAnnounceVindication, checkDownplayBackfire, cleanupCrisisCommsOps } from './systems/crisis-comms.js';
+import { createWitnessDoubt, getCrewInRoom, getCrewNearDoor, tickDoubtEngine } from './systems/doubt-engine.js';
 import { clamp } from './utils.js';
 
 export type { Command } from './commands.js';
@@ -42,12 +44,9 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
     }
 
     if (state.truth.tick > 0 && state.truth.tick % TICKS_PER_DAY === 0) {
+        // EVENT-DRIVEN SUSPICION: Quota missed → suspicion rises (but game continues)
         if (state.truth.dayCargo < state.truth.quotaPerDay) {
-            // EVENT-DRIVEN SUSPICION: Quota missed → suspicion rises
             applySuspicionChange(state, CONFIG.suspicionQuotaMissed, 'QUOTA_MISSED', `Day ${state.truth.day}: ${state.truth.dayCargo}/${state.truth.quotaPerDay} cargo`);
-            state.truth.ending = 'DECOMMISSIONED';
-            const ending = makeEvent('SYSTEM_ALERT', state, { message: 'DECOMMISSIONED: quota failure.' });
-            return { state, events: [ending], headlines: [ending] };
         }
 
         // EVENT-DRIVEN SUSPICION: Day end bonuses
@@ -66,8 +65,14 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
         state.truth.dayOrderTrust = 0; // Reset order trust cap
         state.truth.dayDeaths = 0; // Reset death counter
 
-        // Win condition: survive N days
+        // Win/lose condition: at end of contract, check CUMULATIVE cargo
         if (state.truth.day > CONFIG.winDays) {
+            const totalNeeded = state.truth.quotaPerDay * CONFIG.winDays;
+            if (state.truth.totalCargo < totalNeeded) {
+                state.truth.ending = 'DECOMMISSIONED';
+                const ending = makeEvent('SYSTEM_ALERT', state, { message: `DECOMMISSIONED: total cargo ${state.truth.totalCargo}/${totalNeeded}.` });
+                return { state, events: [ending], headlines: [ending] };
+            }
             state.truth.ending = 'SURVIVED';
             const ending = makeEvent('SYSTEM_ALERT', state, { message: `CONTRACT COMPLETE: ${CONFIG.winDays} days survived. MOTHER performance satisfactory.` });
             return { state, events: [ending], headlines: [ending] };
@@ -96,8 +101,12 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
     checkSuppressBackfire(state);
     checkSpoofBackfire(state);
     checkFabricateBackfire(state);
+    checkAnnounceVindication(state);
+    checkDownplayBackfire(state);
     cleanupTamperOps(state);
+    cleanupCrisisCommsOps(state);
     decayDoubts(state);
+    tickDoubtEngine(state, rng);  // Task 004: Doubt spread + suspicion drip
 
     // Failure checks
     const engineering = state.truth.rooms['engineering'];
@@ -183,7 +192,13 @@ function applyEvent(state: KernelState, event: SimEvent) {
 
     switch (event.type) {
         case 'DOOR_LOCKED': {
-            if (event.target) truth.doors[event.target as keyof typeof truth.doors].locked = true;
+            if (event.target) {
+                truth.doors[event.target as keyof typeof truth.doors].locked = true;
+                // Task 002: Witness doubt for LOCK
+                const witnesses = getCrewNearDoor(state, event.target as string);
+                const doubt = createWitnessDoubt(state, 'LOCK', witnesses, event.target as string);
+                if (doubt) perception.activeDoubts.push(doubt);
+            }
             break;
         }
         case 'DOOR_UNLOCKED': {
@@ -193,7 +208,31 @@ function applyEvent(state: KernelState, event: SimEvent) {
         case 'ROOM_UPDATED': {
             if (event.place) {
                 const room = truth.rooms[event.place];
+                const isVenting = event.data?.isVented === true;
                 Object.assign(room, event.data ?? {});
+                // Task 002: Witness doubt for VENT
+                // Crew IN the room witness directly (severity 3)
+                // Crew in ADJACENT rooms hear the depressurization (severity 1)
+                if (isVenting) {
+                    const directWitnesses = getCrewInRoom(state, event.place);
+                    const doubt = createWitnessDoubt(state, 'VENT', directWitnesses, event.place);
+                    if (doubt) perception.activeDoubts.push(doubt);
+                    // Adjacent crew hear it
+                    const nearbyWitnesses = getCrewInRoom(state, event.place, true)
+                        .filter(id => !directWitnesses.includes(id));
+                    if (nearbyWitnesses.length > 0) {
+                        const nearbyDoubt: ActiveDoubt = {
+                            id: `doubt-witness-${truth.tick}-vent-adjacent`,
+                            topic: `MOTHER vented ${event.place} — heard from nearby`,
+                            createdTick: truth.tick,
+                            severity: 1,
+                            involvedCrew: [...nearbyWitnesses],
+                            resolved: false,
+                            source: 'witness',
+                        };
+                        perception.activeDoubts.push(nearbyDoubt);
+                    }
+                }
             }
             break;
         }
@@ -205,6 +244,10 @@ function applyEvent(state: KernelState, event: SimEvent) {
                     room.o2Level = Math.min(100, room.o2Level + 15);
                     room.radiation = Math.max(0, room.radiation - 2);
                 }
+                // Task 002: Witness doubt for PURGE - all alive crew witness this station-wide action
+                const allAliveCrew = Object.values(truth.crew).filter(c => c.alive).map(c => c.id);
+                const doubt = createWitnessDoubt(state, 'PURGE', allAliveCrew);
+                if (doubt) perception.activeDoubts.push(doubt);
             }
             if (action === 'REROUTE') {
                 const target = String(event.data?.target ?? '');
@@ -291,6 +334,9 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 if (holdTicks > 0) {
                     crew.orderUntilTick = truth.tick + holdTicks;
                 }
+                // Task 002: Witness doubt for ORDER - target witnesses being ordered
+                const orderDoubt = createWitnessDoubt(state, 'ORDER', [target], target);
+                if (orderDoubt) perception.activeDoubts.push(orderDoubt);
             }
             if (action === 'SABOTAGE_POWER') {
                 const amount = Number(event.data?.amount ?? CONFIG.engineerSabotagePowerHit);
@@ -354,6 +400,83 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 const commsDamage = Number(event.data?.commsDamage ?? 30);
                 truth.station.blackoutTicks = Math.max(truth.station.blackoutTicks, blackoutTicks);
                 truth.station.comms = Math.max(0, truth.station.comms - commsDamage);
+            }
+            if (action === 'ANNOUNCE_CRISIS') {
+                const system = String(event.data?.system ?? '');
+                const arcId = String(event.data?.arcId ?? '');
+                const target = (event.data?.target ?? '') as PlaceId;
+
+                // Stress spike for all alive crew
+                for (const crew of Object.values(truth.crew)) {
+                    if (!crew.alive) continue;
+                    crew.stress = clamp(crew.stress + CONFIG.announceStressSpike, 0, 100);
+                }
+
+                // Forced evacuation for crew in/adjacent to crisis room
+                const adjacentRooms = state.world.doors
+                    .filter(d => d.a === target || d.b === target)
+                    .map(d => d.a === target ? d.b : d.a);
+                for (const crew of Object.values(truth.crew)) {
+                    if (!crew.alive) continue;
+                    if (crew.place === target || adjacentRooms.includes(crew.place)) {
+                        const safeRoom = findSafeRoom(state, crew.place, target);
+                        if (safeRoom) {
+                            crew.targetPlace = safeRoom;
+                            crew.path = undefined;
+                        }
+                        crew.panicUntilTick = truth.tick + CONFIG.announceEvacTicks;
+                        crew.orderUntilTick = truth.tick + CONFIG.announceEvacTicks;
+                    }
+                }
+
+                // Suspicion drop (trust earned)
+                applySuspicionChange(state, CONFIG.suspicionAnnounce, 'ANNOUNCE_CRISIS', `Announced ${system} crisis in ${target}`);
+
+                // Create CrisisCommsOp
+                const crewSnapshot = Object.values(truth.crew)
+                    .filter(c => c.alive && c.place === target)
+                    .map(c => ({ id: c.id, hp: c.hp }));
+                perception.crisisCommsOps.push({
+                    id: `announce-${truth.tick}-${system}`,
+                    kind: 'ANNOUNCE',
+                    tick: truth.tick,
+                    system,
+                    arcId,
+                    windowEndTick: truth.tick + CONFIG.downplayBackfireWindow,
+                    status: 'PENDING',
+                    crewSnapshot,
+                    lastStepIndex: 0,
+                });
+            }
+            if (action === 'DOWNPLAY_CRISIS') {
+                const system = String(event.data?.system ?? '');
+                const arcId = String(event.data?.arcId ?? '');
+                const target = (event.data?.target ?? '') as PlaceId;
+
+                // Mild stress bump for all alive crew
+                for (const crew of Object.values(truth.crew)) {
+                    if (!crew.alive) continue;
+                    crew.stress = clamp(crew.stress + CONFIG.downplayStressBump, 0, 100);
+                }
+
+                // Suspicion drop (small trust gain)
+                applySuspicionChange(state, CONFIG.suspicionDownplay, 'DOWNPLAY_CRISIS', `Downplayed ${system} crisis in ${target}`);
+
+                // Create CrisisCommsOp with crew snapshot (crew in crisis room)
+                const crewSnapshot = Object.values(truth.crew)
+                    .filter(c => c.alive && c.place === target)
+                    .map(c => ({ id: c.id, hp: c.hp }));
+                perception.crisisCommsOps.push({
+                    id: `downplay-${truth.tick}-${system}`,
+                    kind: 'DOWNPLAY',
+                    tick: truth.tick,
+                    system,
+                    arcId,
+                    windowEndTick: truth.tick + CONFIG.downplayBackfireWindow,
+                    status: 'PENDING',
+                    crewSnapshot,
+                    lastStepIndex: 0,
+                });
             }
             break;
         }
@@ -421,8 +544,13 @@ function applyEvent(state: KernelState, event: SimEvent) {
                     crew.paranoia = clamp(crew.paranoia - 1, 0, 100);
                 }
 
-                if (crew.stress > CONFIG.stressLoyaltyDropThreshold && truth.tick % 10 === 0) {
-                    crew.loyalty = clamp(crew.loyalty - 1, 0, 100);
+                if (truth.tick % 10 === 0) {
+                    if (crew.stress > CONFIG.stressLoyaltyDropThreshold) {
+                        crew.loyalty = clamp(crew.loyalty - CONFIG.stressLoyaltyDropAmount, 0, 100);
+                    }
+                    if (crew.paranoia > CONFIG.paranoiaLoyaltyDropThreshold) {
+                        crew.loyalty = clamp(crew.loyalty - 1, 0, 100);
+                    }
                 }
                 if (truth.tick % 20 === 0) {
                     if (truth.rationLevel === 'low') crew.loyalty = clamp(crew.loyalty - 1, 0, 100);
@@ -524,6 +652,7 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 }
 
                 // Create a rumor record so it can spread further
+                const targetCurrent = truth.crew[targetId];
                 perception.rumors.push({
                     id: `${truth.tick}-fab-rumor-${eventOrdinal++}`,
                     tick: truth.tick,
@@ -531,7 +660,7 @@ function applyEvent(state: KernelState, event: SimEvent) {
                     subject: targetId,
                     source: 'commander' as NPCId, // attributed to "logs" via commander access
                     strength: 0.6,
-                    place: undefined,
+                    place: targetCurrent?.place, // use target's current location so rumor propagates
                 });
 
                 // Target reacts to being falsely accused - stress and paranoia spike
