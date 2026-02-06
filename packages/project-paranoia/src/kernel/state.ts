@@ -116,6 +116,10 @@ export function createInitialState(world: World, quotaPerDay: number): KernelSta
                 lastCrewSighting: {},
                 // sensorIntegrity: {}, // DEAD WEIGHT
             },
+            // TamperOp tracking for backfire system
+            tamperOps: [],
+            activeDoubts: [],
+            suspicionLedger: [],
         },
     };
 }

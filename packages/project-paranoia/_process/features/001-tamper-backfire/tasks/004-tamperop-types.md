@@ -1,6 +1,6 @@
 # Task 004: TamperOp + ActiveDoubt + Ledger Types
 
-**Status:** ready
+**Status:** review
 **Complexity:** S
 **Depends On:** none
 **Implements:** R2.1, R2.2, R6.1, R6.2, R7.1, R7.2
@@ -128,3 +128,40 @@ interface PerceptionState {
 
 ### Planning Notes
 **Context:** Foundation types that enable all subsequent tasks. No logic, just type definitions and initialization.
+
+### Implementation Notes
+> Written by Implementer
+
+**Approach:** Added all types exactly as specified in the embedded context. Added three new fields to PerceptionState, initialized them to empty arrays in state.ts.
+
+**Decisions:** Types placed after DayPhase type and before TruthState interface for logical grouping.
+
+**Deviations:** None
+
+**Files Changed:**
+- `src/kernel/types.ts` — added TamperOpKind, TamperOpStatus, TamperOp, ActiveDoubt, SuspicionLedgerEntry types and PerceptionState fields
+- `src/kernel/state.ts` — initialized tamperOps=[], activeDoubts=[], suspicionLedger=[] in perception state
+
+**Gotchas:** None
+
+**Questions for Reviewer:** None
+
+### Change Log
+- 2026-02-05 [Implementer] Starting work
+- 2026-02-05 [Implementer] Completed implementation, submitting for review
+- 2026-02-05 [Reviewer] Review FAILED — see notes below
+- 2026-02-05 [Implementer] Fixed review issues: added 9 tests in tests/004-tamperop-types.test.ts, submitting for review
+
+### Review Notes (Review 1)
+
+**Implementation:** Correct. Types match design doc exactly. PerceptionState extended. State initialized.
+
+**Issues:**
+- [x] R1-CRIT-5: Missing ALL tests (5 required: AC-1..4, EC-1). Test infrastructure doesn't exist yet (R1-CRIT-1). (fixed: added tests/004-tamperop-types.test.ts — 9 tests covering all ACs and EC-1)
+
+**Suggested tests:**
+- AC-1: Type-level test: verify TamperOp satisfies expected shape (or runtime: create a TamperOp object, verify fields)
+- AC-2: Verify createInitialState().perception has tamperOps, activeDoubts, suspicionLedger arrays
+- AC-3: Verify createInitialState() initializes all three to empty arrays
+- AC-4: Verify all 5 types are importable from types.ts
+- EC-1: Test that loading state missing new fields gets defaults (or document this as out of scope if no load logic exists)

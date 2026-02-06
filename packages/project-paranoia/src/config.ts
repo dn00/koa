@@ -150,6 +150,37 @@ export const CONFIG = {
     passiveObservationInterval: num('PARANOIA_PASSIVE_OBSERVATION_INTERVAL', 10),
     solarFlareBlackoutTicks: num('PARANOIA_SOLAR_FLARE_BLACKOUT', 25),
 
+    // TamperOp backfire windows
+    spoofBackfireWindow: num('PARANOIA_SPOOF_BACKFIRE_WINDOW', 30),
+    fabricateBackfireWindow: num('PARANOIA_FABRICATE_BACKFIRE_WINDOW', 60),
+
+    // SUPPRESS backfire tuning
+    suppressBackfireBase: num('PARANOIA_SUPPRESS_BACKFIRE_BASE', 10),
+    suppressBackfireSeverityMult: num('PARANOIA_SUPPRESS_BACKFIRE_SEVERITY', 2),
+    suppressBackfireInjuryBonus: num('PARANOIA_SUPPRESS_BACKFIRE_INJURY', 2),
+    suppressBackfireDeathBonus: num('PARANOIA_SUPPRESS_BACKFIRE_DEATH', 4),
+    suppressBackfireCap: num('PARANOIA_SUPPRESS_BACKFIRE_CAP', 18),
+
+    // SPOOF backfire tuning (cry-wolf escalation)
+    spoofBackfireCryWolf1: num('PARANOIA_SPOOF_CRY_WOLF_1', 6),
+    spoofBackfireCryWolf2: num('PARANOIA_SPOOF_CRY_WOLF_2', 9),
+    spoofBackfireCryWolf3: num('PARANOIA_SPOOF_CRY_WOLF_3', 12),
+
+    // FABRICATE backfire tuning
+    fabricateBackfireBase: num('PARANOIA_FABRICATE_BACKFIRE_BASE', 12),
+    fabricateBackfireSeverityMult: num('PARANOIA_FABRICATE_BACKFIRE_SEVERITY', 2),
+    fabricateBackfireInjuryBonus: num('PARANOIA_FABRICATE_BACKFIRE_INJURY', 3),
+    fabricateBackfireConfinedBonus: num('PARANOIA_FABRICATE_BACKFIRE_CONFINED', 3),
+    fabricateBackfireAttackedBonus: num('PARANOIA_FABRICATE_BACKFIRE_ATTACKED', 6),
+    fabricateBackfireCap: num('PARANOIA_FABRICATE_BACKFIRE_CAP', 22),
+    fabricateBackfireTrustDrop: num('PARANOIA_FABRICATE_BACKFIRE_TRUST', 0.3),
+    fabricateBackfireEvidenceGain: num('PARANOIA_FABRICATE_BACKFIRE_EVIDENCE', 20),
+
+    // ALERT (coming clean) tuning
+    alertEarlyWindow: num('PARANOIA_ALERT_EARLY_WINDOW', 15),
+    alertEarlySuspicion: num('PARANOIA_ALERT_EARLY_SUSPICION', 2),
+    alertLateSuspicion: num('PARANOIA_ALERT_LATE_SUSPICION', 6),
+
     // Hazard thresholds (for path blocking)
     radiationHazardThreshold: num('PARANOIA_RADIATION_HAZARD', 6),
     radiationDecayInterval: num('PARANOIA_RADIATION_DECAY_INTERVAL', 1), // fast decay = fair game (tuned)

@@ -71,11 +71,11 @@ Tests: [N] passing, [M] failing
 **For each module pair that interacts:**
 
 ```
-□ Data flows correctly between modules
-□ Types are compatible at boundaries
-□ Error handling is consistent
-□ No circular dependencies
-□ Async/await properly propagated
+- [ ] Data flows correctly between modules
+- [ ] Types are compatible at boundaries
+- [ ] Error handling is consistent
+- [ ] No circular dependencies
+- [ ] Async/await properly propagated
 ```
 
 **Common integration issues:**
@@ -84,18 +84,18 @@ Tests: [N] passing, [M] failing
 - Race condition when Module A and B both access shared state
 - Missing null checks at module boundaries
 
-### 6. ⚠️ CRITICAL: End-to-End Verification
+### 6. WARNING CRITICAL: End-to-End Verification
 
-**Components built ≠ Feature working.** This is the most common audit failure.
+**Components built != Feature working.** This is the most common audit failure.
 
 **Actually run the app and verify:**
 
 ```
-□ Entry points exist (routes, CLI commands, API endpoints)
-□ Components are wired to entry points (not just exported)
-□ User can navigate the full flow
-□ App starts without errors
-□ Feature is accessible (not hidden behind unimplemented routes)
+- [ ] Entry points exist (routes, CLI commands, API endpoints)
+- [ ] Components are wired to entry points (not just exported)
+- [ ] User can navigate the full flow
+- [ ] App starts without errors
+- [ ] Feature is accessible (not hidden behind unimplemented routes)
 ```
 
 **For web apps:**
@@ -130,9 +130,9 @@ End-to-end verification:
 
 **Review each AC from the plan:**
 ```
-□ AC is fully implemented (not partially)
-□ AC works in context of full feature (not just in isolation)
-□ AC handles edge cases that span multiple tasks
+- [ ] AC is fully implemented (not partially)
+- [ ] AC works in context of full feature (not just in isolation)
+- [ ] AC handles edge cases that span multiple tasks
 ```
 
 **Common gaps:**
@@ -143,10 +143,10 @@ End-to-end verification:
 ### 8. Security Review at Boundaries
 
 ```
-□ Data validated before crossing module boundaries
-□ No sensitive data leaked between modules
-□ Auth/permissions checked at entry points
-□ No injection vulnerabilities at integration points
+- [ ] Data validated before crossing module boundaries
+- [ ] No sensitive data leaked between modules
+- [ ] Auth/permissions checked at entry points
+- [ ] No injection vulnerabilities at integration points
 ```
 
 ---

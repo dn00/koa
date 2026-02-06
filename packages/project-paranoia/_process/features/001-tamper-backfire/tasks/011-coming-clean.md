@@ -1,6 +1,6 @@
 # Task 011: Coming Clean (UNSUPPRESS/ALERT)
 
-**Status:** backlog
+**Status:** done
 **Complexity:** S
 **Depends On:** 005
 **Implements:** R8.1, R8.2, R8.3
@@ -123,3 +123,8 @@ alertLateSuspicion: num('PARANOIA_ALERT_LATE_SUSPICION', 6),
 
 ### Planning Notes
 **Context:** This is the "honest end of the choice spectrum" for suppressions. It creates a genuine decision: suppress a crisis, then decide whether to come clean before getting caught. The window mechanic (≤15 ticks = early, >15 = late) creates time pressure.
+
+### Implementation Notes
+**Files created:** `tests/011-coming-clean.test.ts`
+**Files modified:** `src/kernel/commands.ts` (ALERT command type + handler), `src/kernel/systems/backfire.ts` (added `handleAlert`), `src/index.ts` (CLI parsing + help text)
+**Tests:** 6 test blocks (4 AC + 2 EC), 6 individual tests

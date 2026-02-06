@@ -1,18 +1,28 @@
 import { CONFIG } from '../config.js';
 import type { RNG } from '../core/rng.js';
 import { getWindowForTick, TICKS_PER_DAY } from '../core/time.js';
-import { findPath, getDoorBetween } from '../core/world.js';
-import type { KernelState, KernelOutput, Proposal, SimEvent, SensorReading, RoomSnapshot, CrewSighting } from './types.js';
+import type { KernelState, KernelOutput, Proposal, SimEvent, SensorReading, RoomSnapshot, CrewSighting, CommsMessage } from './types.js';
 import type { PlaceId, NPCId } from '../core/types.js';
 import { makeProposal } from './proposals.js';
 import { proposeCommandEvents, type Command } from './commands.js';
-import { proposeCommsEvents, topicToSubject } from './systems/comms.js';
+import { proposeCommsEvents } from './systems/comms.js';
 import { proposeArcEvents } from './systems/arcs.js';
+import { proposeCrewEvents } from './systems/crew.js';
+import { decayTamper, tickSystems, tickPassiveObservation } from './systems/physics.js';
+import { applySuspicionChange, updateBeliefs } from './systems/beliefs.js';
+import { checkSuppressBackfire, checkSpoofBackfire, checkFabricateBackfire } from './systems/backfire.js';
+import { clamp } from './utils.js';
 
 export type { Command } from './commands.js';
 
 let eventOrdinal = 0;
 type ChannelProposal = Proposal & { channel: 'truth' | 'perception' };
+
+function getSeverityForSystem(system: string): 1 | 2 | 3 {
+    if (system === 'thermal' || system === 'fire') return 3;
+    if (system === 'air' || system === 'o2' || system === 'power' || system === 'radiation') return 2;
+    return 1; // comms and other systems
+}
 
 export function stepKernel(state: KernelState, commands: Command[], rng: RNG): KernelOutput {
     // Advance time
@@ -32,7 +42,7 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
     if (state.truth.tick > 0 && state.truth.tick % TICKS_PER_DAY === 0) {
         if (state.truth.dayCargo < state.truth.quotaPerDay) {
             // EVENT-DRIVEN SUSPICION: Quota missed → suspicion rises
-            applySuspicionChange(state, CONFIG.suspicionQuotaMissed, 'QUOTA_MISSED');
+            applySuspicionChange(state, CONFIG.suspicionQuotaMissed, 'QUOTA_MISSED', `Day ${state.truth.day}: ${state.truth.dayCargo}/${state.truth.quotaPerDay} cargo`);
             state.truth.ending = 'DECOMMISSIONED';
             const ending = makeEvent('SYSTEM_ALERT', state, { message: 'DECOMMISSIONED: quota failure.' });
             return { state, events: [ending], headlines: [ending] };
@@ -41,11 +51,11 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
         // EVENT-DRIVEN SUSPICION: Day end bonuses
         if (state.truth.dayIncidents <= CONFIG.quietDayIncidentThreshold) {
             // Quiet day (≤1 incident) - suspicion drops
-            applySuspicionChange(state, CONFIG.suspicionQuietDay, 'QUIET_DAY');
+            applySuspicionChange(state, CONFIG.suspicionQuietDay, 'QUIET_DAY', `Day ${state.truth.day}: no major incidents`);
         }
         if (state.truth.dayCargo > state.truth.quotaPerDay) {
             // Quota exceeded - suspicion drops
-            applySuspicionChange(state, CONFIG.suspicionQuotaExceeded, 'QUOTA_EXCEEDED');
+            applySuspicionChange(state, CONFIG.suspicionQuotaExceeded, 'QUOTA_EXCEEDED', `Day ${state.truth.day}: ${state.truth.dayCargo}/${state.truth.quotaPerDay} cargo`);
         }
 
         state.truth.day += 1;
@@ -81,6 +91,10 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
     decayTamper(state);
     tickSystems(state);
     tickPassiveObservation(state);
+    checkSuppressBackfire(state);
+    checkSpoofBackfire(state);
+    checkFabricateBackfire(state);
+    cleanupTamperOps(state);
 
     // Failure checks
     const engineering = state.truth.rooms['engineering'];
@@ -216,7 +230,7 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 truth.lastVerifyTick = truth.tick;
 
                 // Apply suspicion reduction to all crew
-                applySuspicionChange(state, suspicionDrop, 'VERIFY_TRUST');
+                applySuspicionChange(state, suspicionDrop, 'VERIFY_TRUST', 'Cross-referenced telemetry');
 
                 // Also reduce tamperEvidence directly
                 for (const npc of Object.values(truth.crew)) {
@@ -235,12 +249,12 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 if (!accepted) {
                     crew.loyalty = clamp(crew.loyalty - 1, 0, 100);
                     // EVENT-DRIVEN SUSPICION: Order refused
-                    applySuspicionChange(state, CONFIG.suspicionOrderRefused, 'ORDER_REFUSED');
+                    applySuspicionChange(state, CONFIG.suspicionOrderRefused, 'ORDER_REFUSED', `${target} refused order`);
                     break;
                 }
                 // EVENT-DRIVEN SUSPICION: Successful order builds trust (capped per day)
                 if (truth.dayOrderTrust < CONFIG.orderTrustCapPerDay) {
-                    applySuspicionChange(state, CONFIG.suspicionOrderCompleted, 'ORDER_COMPLETED');
+                    applySuspicionChange(state, CONFIG.suspicionOrderCompleted, 'ORDER_COMPLETED', `${target} complied`);
                     truth.dayOrderTrust += 1;
                 }
                 const place = event.data?.place as PlaceId | undefined;
@@ -288,22 +302,22 @@ function applyEvent(state: KernelState, event: SimEvent) {
             if (action === 'INVESTIGATION_FOUND') {
                 // Crew found tampering evidence - suspicion increases for all
                 const bump = Number(event.data?.bump ?? CONFIG.crewInvestigationFindBump);
+                applySuspicionChange(state, bump, 'INVESTIGATION_FOUND', `${event.actor} found evidence`);
                 for (const crewId of Object.keys(perception.beliefs) as NPCId[]) {
                     const belief = perception.beliefs[crewId];
                     if (belief) {
                         belief.tamperEvidence = clamp(belief.tamperEvidence + bump, 0, 100);
-                        belief.motherReliable = clamp(belief.motherReliable - 0.1, 0, 1);
                     }
                 }
             }
             if (action === 'INVESTIGATION_CLEAR') {
                 // Crew found nothing - mild suspicion drop for investigator
                 const drop = Number(event.data?.drop ?? CONFIG.crewInvestigationClearDrop);
+                applySuspicionChange(state, -drop, 'INVESTIGATION_CLEAR', `${event.actor} found nothing`);
                 const investigator = event.actor as NPCId | undefined;
                 if (investigator && perception.beliefs[investigator]) {
                     const belief = perception.beliefs[investigator];
                     belief.tamperEvidence = clamp(belief.tamperEvidence - drop, 0, 100);
-                    belief.motherReliable = clamp(belief.motherReliable + 0.05, 0, 1);
                 }
             }
             if (action === 'RESET_WARNING') {
@@ -349,13 +363,18 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 // EVENT-DRIVEN SUSPICION: Crew injury/death
                 if (wasAlive && amount > 0) {
                     truth.dayIncidents += 1;
+                    const attacker = event.data?.attacker as NPCId | undefined;
+                    const damageType = String(event.data?.type ?? 'unknown');
                     if (!crew.alive) {
                         // Crew member died - big suspicion spike, track for heroic response
-                        applySuspicionChange(state, CONFIG.suspicionCrewDied, 'CREW_DIED');
+                        applySuspicionChange(state, CONFIG.suspicionCrewDied, 'CREW_DIED', `${event.actor} died`);
                         truth.dayDeaths += 1;
+                    } else if (attacker && damageType === 'ASSAULT') {
+                        // Crew member attacked by another crew member
+                        applySuspicionChange(state, CONFIG.suspicionCrewInjured, 'CREW_ATTACKED', `${event.actor} attacked by ${attacker}`);
                     } else {
-                        // Crew member injured - moderate suspicion spike
-                        applySuspicionChange(state, CONFIG.suspicionCrewInjured, 'CREW_INJURED');
+                        // Crew member injured by environment
+                        applySuspicionChange(state, CONFIG.suspicionCrewInjured, 'CREW_INJURED', `${event.actor} injured`);
                     }
                 }
             }
@@ -406,6 +425,18 @@ function applyEvent(state: KernelState, event: SimEvent) {
                     detail: `Suppressed ${system} alerts.`,
                 });
                 if (perception.evidence.length > 200) perception.evidence.shift();
+
+                // Create TamperOp for backfire tracking
+                perception.tamperOps.push({
+                    id: `suppress-${truth.tick}-${system}`,
+                    kind: 'SUPPRESS',
+                    tick: truth.tick,
+                    target: { system },
+                    windowEndTick: truth.tick + duration,
+                    status: 'PENDING',
+                    severity: getSeverityForSystem(system),
+                    crewAffected: [],
+                });
             }
             break;
         }
@@ -421,6 +452,33 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 detail: String(event.data?.detail ?? ''),
             });
             if (perception.evidence.length > 200) perception.evidence.shift();
+
+            // Create TamperOp for backfire tracking
+            if (event.type === 'TAMPER_SPOOF') {
+                const spoofSystem = String(event.data?.system ?? '');
+                perception.tamperOps.push({
+                    id: `spoof-${truth.tick}-${spoofSystem}`,
+                    kind: 'SPOOF',
+                    tick: truth.tick,
+                    target: { system: spoofSystem },
+                    windowEndTick: truth.tick + CONFIG.spoofBackfireWindow,
+                    status: 'PENDING',
+                    severity: getSeverityForSystem(spoofSystem),
+                    crewAffected: [],
+                });
+            } else {
+                const fabricateTarget = event.target as NPCId | undefined;
+                perception.tamperOps.push({
+                    id: `fabricate-${truth.tick}-${fabricateTarget ?? 'unknown'}`,
+                    kind: 'FABRICATE',
+                    tick: truth.tick,
+                    target: { npc: fabricateTarget },
+                    windowEndTick: truth.tick + CONFIG.fabricateBackfireWindow,
+                    status: 'PENDING',
+                    severity: 3,
+                    crewAffected: [],
+                });
+            }
 
             // FABRICATIONS HAVE CONSEQUENCES: spread distrust of target
             if (event.type === 'TAMPER_FABRICATE' && event.target) {
@@ -500,9 +558,9 @@ function applyEvent(state: KernelState, event: SimEvent) {
         }
         case 'COMMS_MESSAGE': {
             if (event.data?.message) {
-                perception.comms.messages.push(event.data.message as any);
+                perception.comms.messages.push(event.data.message as CommsMessage);
                 if (perception.comms.messages.length > 200) perception.comms.messages.shift();
-                const message = event.data.message as any;
+                const message = event.data.message as CommsMessage;
                 if (message?.place && message?.kind === 'whisper') {
                     perception.comms.lastWhisperByPlace[message.place] = message;
                 }
@@ -514,73 +572,11 @@ function applyEvent(state: KernelState, event: SimEvent) {
     }
 }
 
-function decayTamper(state: KernelState) {
-    for (const key of Object.keys(state.perception.tamper.suppressed)) {
-        state.perception.tamper.suppressed[key] -= 1;
-        if (state.perception.tamper.suppressed[key] <= 0) {
-            delete state.perception.tamper.suppressed[key];
-        }
-    }
-}
-
-function tickPassiveObservation(state: KernelState) {
-    const { truth, perception, world } = state;
-
-    // Passive observation only works when power is sufficient and no blackout
-    if (truth.station.power < CONFIG.cameraPowerThreshold) return;
-    if (truth.station.blackoutTicks > 0) return;
-    if (truth.tick % CONFIG.passiveObservationInterval !== 0) return;
-
-    // Update crew sightings for all living crew
-    for (const crew of Object.values(truth.crew)) {
-        if (!crew.alive) continue;
-        perception.observation.lastCrewSighting[crew.id] = {
-            tick: truth.tick,
-            place: crew.place,
-            alive: crew.alive,
-            hp: crew.hp,
-        };
-    }
-}
-
-function tickSystems(state: KernelState) {
-    if (state.truth.station.blackoutTicks > 0) {
-        state.truth.station.blackoutTicks = Math.max(0, state.truth.station.blackoutTicks - 1);
-    }
-    if (state.truth.station.doorDelay > 0) {
-        state.truth.station.doorDelay = Math.max(0, state.truth.station.doorDelay - 1);
-    }
-    if (state.truth.station.comms < 100) {
-        state.truth.station.comms = Math.min(100, state.truth.station.comms + 1);
-    }
-    if (state.truth.station.power < 100) {
-        state.truth.station.power = Math.min(100, state.truth.station.power + 1);
-    }
-
-    for (const room of Object.values(state.truth.rooms)) {
-        if (room.isVented) {
-            room.o2Level = Math.max(0, room.o2Level - 5);
-            room.temperature = Math.max(-270, room.temperature - 10);
-        } else {
-            if (room.o2Level < 100 && room.integrity > 0 && state.truth.station.power >= 40) {
-                room.o2Level = Math.min(100, room.o2Level + 1);
-            }
-            if (room.temperature < 20) room.temperature += 1;
-            if (room.temperature > 20 && !room.onFire) room.temperature = Math.max(20, room.temperature - CONFIG.tempCoolingRate);
-        }
-
-        if (room.onFire) {
-            room.temperature += 2;
-            room.o2Level = Math.max(0, room.o2Level - 1);
-            room.integrity = Math.max(0, room.integrity - 0.2);
-            if (room.o2Level < 10) room.onFire = false;
-        }
-
-        // Radiation decays over time (venting, half-life)
-        if (room.radiation > 0 && state.truth.tick % CONFIG.radiationDecayInterval === 0) {
-            room.radiation = Math.max(0, room.radiation - 1);
-        }
-    }
+function cleanupTamperOps(state: KernelState): void {
+    const cutoff = state.truth.tick - 240;
+    state.perception.tamperOps = state.perception.tamperOps.filter(
+        op => op.status === 'PENDING' || Math.max(op.tick, op.backfireTick ?? 0, op.confessedTick ?? 0) > cutoff
+    );
 }
 
 const DAILY_DIRECTIVES = [
@@ -616,454 +612,6 @@ function proposePhaseTransitions(state: KernelState, previousWindow: string): Pr
             data: { system: 'cycle', message: 'NIGHT CYCLE: Lights dimmed. Monitoring degraded.' },
         }, ['telegraph', 'background']));
     }
-    return proposals;
-}
-
-function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
-    const proposals: Proposal[] = [];
-    const truth = state.truth;
-    const roomCrew: Record<PlaceId, NPCId[]> = {} as Record<PlaceId, NPCId[]>;
-
-    for (const npc of Object.values(truth.crew)) {
-        if (!npc.alive) continue;
-        if (!roomCrew[npc.place]) roomCrew[npc.place] = [];
-        roomCrew[npc.place].push(npc.id);
-    }
-
-    for (const npc of Object.values(truth.crew)) {
-        if (!npc.alive) continue;
-
-        const room = truth.rooms[npc.place];
-        const alone = (roomCrew[npc.place]?.length ?? 1) <= 1;
-        let stressDelta = 0;
-
-        if (room.o2Level < 30) stressDelta += 3;
-        if (room.temperature > 40) stressDelta += 2;
-        if (room.radiation > 5) stressDelta += 2;
-        if (room.isVented) stressDelta += 4;
-        if (room.onFire) stressDelta += 3;
-        if (alone) stressDelta += CONFIG.stressIsolation;
-        if (truth.station.blackoutTicks > 0) stressDelta += CONFIG.stressBlackout;
-        if (truth.resetCountdown !== undefined) stressDelta += CONFIG.stressResetCountdown;
-        if (truth.rationLevel === 'low') stressDelta += 1;
-        if (truth.rationLevel === 'high') stressDelta -= 1;
-
-        const safeRoom =
-            room.o2Level > 60 &&
-            room.temperature >= 15 &&
-            room.temperature <= 30 &&
-            !room.isVented &&
-            !room.onFire;
-        if (safeRoom) stressDelta -= CONFIG.stressSafeDecay;
-
-        proposals.push(makeProposal(state, {
-            type: 'CREW_MOOD_TICK',
-            actor: npc.id,
-            data: { stressDelta },
-        }, ['reaction', 'background']));
-        if (room.o2Level < 18 && truth.tick % 3 === 0) {
-            proposals.push(makeProposal(state, {
-                type: 'NPC_DAMAGE',
-                actor: npc.id,
-                place: npc.place,
-                data: { type: 'SUFFOCATION', amount: CONFIG.damageSuffocation },
-            }, ['pressure', 'reaction', 'background']));
-        }
-        if (room.temperature > 60 && truth.tick % 3 === 0) {
-            proposals.push(makeProposal(state, {
-                type: 'NPC_DAMAGE',
-                actor: npc.id,
-                place: npc.place,
-                data: { type: 'BURN', amount: CONFIG.damageBurn },
-            }, ['pressure', 'reaction', 'background']));
-        }
-        if (room.radiation > 12 && truth.tick % 6 === 0) {
-            proposals.push(makeProposal(state, {
-                type: 'NPC_DAMAGE',
-                actor: npc.id,
-                place: npc.place,
-                data: { type: 'RADIATION', amount: CONFIG.damageRadiation },
-            }, ['pressure', 'reaction', 'background']));
-        }
-
-        if (isRoomHazardous(room)) {
-            if (!npc.panicUntilTick || truth.tick >= npc.panicUntilTick) {
-                npc.panicUntilTick = truth.tick + 8;
-                const safeRoom = findSafeRoom(state, npc.place);
-                if (safeRoom && safeRoom !== npc.place) {
-                    npc.targetPlace = safeRoom;
-                    npc.path = undefined;
-                }
-            }
-        }
-
-        const canRoleAct = !npc.nextRoleTick || truth.tick >= npc.nextRoleTick;
-
-        // RESET ARC - Multi-stage process based on crew suspicion
-        if (canRoleAct && npc.id === 'commander') {
-            const suspicion = calculateCrewSuspicion(state);
-            const currentStage = truth.resetStage;
-            const ticksInStage = truth.tick - truth.resetStageTick;
-            const inAccess = npc.place === 'bridge' || npc.place === 'core';
-
-            // Stage progression based on suspicion thresholds (configurable)
-            let newStage = currentStage;
-            if (suspicion >= CONFIG.resetThresholdCountdown && currentStage !== 'countdown') {
-                newStage = 'countdown';
-            } else if (suspicion >= CONFIG.resetThresholdRestrictions && currentStage !== 'countdown' && currentStage !== 'restrictions') {
-                newStage = 'restrictions';
-            } else if (suspicion >= CONFIG.resetThresholdMeeting && !['countdown', 'restrictions', 'meeting'].includes(currentStage)) {
-                newStage = 'meeting';
-            } else if (suspicion >= CONFIG.resetThresholdWhispers && currentStage === 'none') {
-                newStage = 'whispers';
-            } else if (suspicion < CONFIG.resetDeescalationThreshold && currentStage !== 'none' && currentStage !== 'countdown') {
-                // De-escalation possible if suspicion drops (not from countdown)
-                newStage = 'none';
-            }
-
-            // Stage transition events
-            if (newStage !== currentStage) {
-                truth.resetStage = newStage;
-                truth.resetStageTick = truth.tick;
-
-                if (newStage === 'whispers') {
-                    proposals.push(makeProposal(state, {
-                        type: 'COMMS_MESSAGE',
-                        actor: npc.id,
-                        place: npc.place,
-                        data: {
-                            message: {
-                                id: `${truth.tick}-reset-whispers`,
-                                tick: truth.tick,
-                                kind: 'whisper',
-                                from: npc.id,
-                                to: 'crew',
-                                text: '[WHISPERS] Crew expressing concerns about MOTHER reliability.',
-                                confidence: 0.7,
-                            },
-                        },
-                    }, ['telegraph', 'pressure', 'background']));
-                } else if (newStage === 'meeting') {
-                    proposals.push(makeProposal(state, {
-                        type: 'SYSTEM_ALERT',
-                        actor: npc.id,
-                        place: 'mess',
-                        data: { system: 'comms', message: 'CREW MEETING CALLED: "Discussing station AI performance."' },
-                    }, ['telegraph', 'pressure', 'choice', 'background']));
-                } else if (newStage === 'restrictions') {
-                    proposals.push(makeProposal(state, {
-                        type: 'SYSTEM_ALERT',
-                        actor: npc.id,
-                        place: npc.place,
-                        data: { system: 'core', message: 'COMMANDER: "Restricting MOTHER access until further notice."' },
-                    }, ['telegraph', 'pressure', 'choice', 'background']));
-                } else if (newStage === 'countdown') {
-                    // Countdown starts regardless of location - commander will reach terminal
-                    const message = inAccess
-                        ? `COMMANDER initiated core reset sequence.`
-                        : `COMMANDER: "Heading to core to initiate reset."`;
-                    proposals.push(makeProposal(state, {
-                        type: 'SYSTEM_ALERT',
-                        actor: npc.id,
-                        place: npc.place,
-                        data: { system: 'core', message },
-                    }, ['telegraph', 'pressure', 'choice', 'background']));
-                    proposals.push(makeProposal(state, {
-                        type: 'SYSTEM_ACTION',
-                        actor: npc.id,
-                        place: npc.place,
-                        data: {
-                            action: 'RESET_WARNING',
-                            countdown: CONFIG.resetCountdownTicks,
-                            message: `CORE RESET SEQUENCE STARTED.`,
-                        },
-                    }, ['consequence', 'pressure', 'background']));
-                } else if (newStage === 'none' && currentStage !== 'none') {
-                    proposals.push(makeProposal(state, {
-                        type: 'COMMS_MESSAGE',
-                        actor: npc.id,
-                        place: npc.place,
-                        data: {
-                            message: {
-                                id: `${truth.tick}-reset-deescalate`,
-                                tick: truth.tick,
-                                kind: 'broadcast',
-                                from: npc.id,
-                                to: 'crew',
-                                text: 'COMMANDER: "Stand down. MOTHER appears to be functioning normally."',
-                                confidence: 0.9,
-                            },
-                        },
-                    }, ['reaction', 'background']));
-                }
-
-                npc.nextRoleTick = truth.tick + CONFIG.commanderResetCooldown;
-            }
-        }
-
-        if (canRoleAct && npc.id === 'engineer' && npc.place === 'engineering') {
-            const willSabotage = npc.stress >= CONFIG.engineerSabotageStress || npc.loyalty <= CONFIG.sabotageLoyaltyThreshold;
-            if (willSabotage) {
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ALERT',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: { system: 'power', message: `Power relays overridden in engineering.` },
-                }, ['telegraph', 'pressure', 'choice', 'background']));
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ACTION',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: {
-                        action: 'SABOTAGE_POWER',
-                        amount: CONFIG.engineerSabotagePowerHit,
-                        message: `Power bleed detected: -${CONFIG.engineerSabotagePowerHit}%.`,
-                    },
-                }, ['consequence', 'pressure', 'background']));
-                npc.nextRoleTick = truth.tick + CONFIG.engineerSabotageCooldown;
-            }
-        }
-
-        if (canRoleAct && npc.id === 'doctor' && npc.place === 'medbay') {
-            const crowd = roomCrew[npc.place] ?? [];
-            if (npc.stress >= CONFIG.doctorSedateStress && crowd.length > 1) {
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ALERT',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: { system: 'medbay', message: `Sedative dispensers engaged in medbay.` },
-                }, ['telegraph', 'pressure', 'choice', 'background']));
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ACTION',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: {
-                        action: 'SEDATE',
-                        place: npc.place,
-                        stressDelta: CONFIG.doctorSedateStressDelta,
-                        loyaltyDelta: CONFIG.doctorSedateLoyaltyDelta,
-                        message: `Medbay sedation cycle executed.`,
-                    },
-                }, ['consequence', 'pressure', 'background']));
-                npc.nextRoleTick = truth.tick + CONFIG.doctorSedateCooldown;
-            }
-        }
-
-        if (canRoleAct && npc.id === 'specialist' && npc.place === 'mines') {
-            const quotaTrigger = truth.dayCargo < truth.quotaPerDay * CONFIG.specialistSacrificeQuotaRatio;
-            const candidates = (roomCrew[npc.place] ?? []).filter(id => id !== npc.id);
-            if (quotaTrigger && candidates.length > 0) {
-                const victim = candidates.reduce((lowest, current) => {
-                    return truth.crew[current].loyalty < truth.crew[lowest].loyalty ? current : lowest;
-                }, candidates[0]);
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ALERT',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: { system: 'mines', message: `Mining incident reported: productivity spike registered.` },
-                }, ['telegraph', 'pressure', 'choice', 'background']));
-                proposals.push(makeProposal(state, {
-                    type: 'NPC_DAMAGE',
-                    actor: victim,
-                    place: npc.place,
-                    data: { type: 'ACCIDENT', amount: CONFIG.specialistSacrificeDamage, attacker: npc.id },
-                }, ['consequence', 'pressure', 'background']));
-                proposals.push(makeProposal(state, {
-                    type: 'CARGO_YIELD',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: { amount: CONFIG.specialistSacrificeYield },
-                }, ['consequence', 'pressure', 'background']));
-                npc.nextRoleTick = truth.tick + CONFIG.specialistSacrificeCooldown;
-            }
-        }
-
-        if (canRoleAct && npc.id === 'roughneck') {
-            const crowd = (roomCrew[npc.place] ?? []).filter(id => id !== npc.id);
-            const volatile = npc.stress >= CONFIG.roughneckViolenceStress || npc.paranoia >= CONFIG.roughneckViolenceParanoia;
-            if (volatile && crowd.length > 0) {
-                const belief = state.perception.beliefs[npc.id];
-                const victim = belief
-                    ? crowd.reduce((best, current) => {
-                        const currentGrudge = belief.crewGrudge[current] ?? 0;
-                        const bestGrudge = belief.crewGrudge[best] ?? 0;
-                        return currentGrudge > bestGrudge ? current : best;
-                    }, crowd[0])
-                    : rng.pick(crowd);
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ALERT',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: { system: 'crew', message: `Violence reported in ${npc.place}.` },
-                }, ['telegraph', 'pressure', 'choice', 'background']));
-                proposals.push(makeProposal(state, {
-                    type: 'NPC_DAMAGE',
-                    actor: victim,
-                    place: npc.place,
-                    data: { type: 'ASSAULT', amount: CONFIG.roughneckViolenceDamage, attacker: npc.id },
-                }, ['consequence', 'pressure', 'background']));
-                npc.nextRoleTick = truth.tick + CONFIG.roughneckViolenceCooldown;
-            }
-        }
-
-        // CREW INVESTIGATION - Autonomous checking of logs/evidence
-        // Any crew member can investigate when suspicion is high enough
-        const belief = state.perception.beliefs[npc.id];
-        const suspicionLevel = belief ? (belief.tamperEvidence + (1 - belief.motherReliable) * 50 + (belief.rumors['mother_rogue'] ?? 0) * 30) : 0;
-        const canInvestigate = !npc.nextRoleTick || truth.tick >= npc.nextRoleTick;
-        const shouldInvestigate = suspicionLevel >= CONFIG.crewInvestigationSuspicionThreshold &&
-            rng.next() * 100 < CONFIG.crewInvestigationChance &&
-            (npc.place === 'bridge' || npc.place === 'core'); // Can only investigate at terminals
-
-        if (canInvestigate && shouldInvestigate) {
-            // Check recent evidence for tampering
-            const recentEvidence = state.perception.evidence.filter(ev => {
-                const age = truth.tick - ev.tick;
-                return age <= CONFIG.auditEvidenceWindow && ['spoof', 'suppress', 'fabricate'].includes(ev.kind);
-            });
-
-            if (recentEvidence.length > 0) {
-                // Found tampering evidence!
-                proposals.push(makeProposal(state, {
-                    type: 'COMMS_MESSAGE',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: {
-                        message: {
-                            id: `${truth.tick}-investigation-${npc.id}`,
-                            tick: truth.tick,
-                            kind: 'broadcast',
-                            from: npc.id,
-                            to: 'crew',
-                            text: `${npc.id.toUpperCase()}: "I found ${recentEvidence.length} log anomalies. MOTHER has been tampering with records."`,
-                            confidence: 0.9,
-                        },
-                    },
-                }, ['pressure', 'uncertainty', 'reaction', 'background']));
-                // Boost suspicion for all crew
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ACTION',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: {
-                        action: 'INVESTIGATION_FOUND',
-                        evidenceCount: recentEvidence.length,
-                        bump: CONFIG.crewInvestigationFindBump,
-                    },
-                }, ['consequence', 'background']));
-            } else {
-                // Found nothing - slight suspicion drop
-                proposals.push(makeProposal(state, {
-                    type: 'COMMS_MESSAGE',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: {
-                        message: {
-                            id: `${truth.tick}-investigation-clear-${npc.id}`,
-                            tick: truth.tick,
-                            kind: 'log',
-                            from: npc.id,
-                            to: 'crew',
-                            text: `${npc.id.toUpperCase()}: "Ran diagnostics. Logs check out."`,
-                            confidence: 0.8,
-                        },
-                    },
-                }, ['reaction', 'background']));
-                proposals.push(makeProposal(state, {
-                    type: 'SYSTEM_ACTION',
-                    actor: npc.id,
-                    place: npc.place,
-                    data: {
-                        action: 'INVESTIGATION_CLEAR',
-                        drop: CONFIG.crewInvestigationClearDrop,
-                    },
-                }, ['consequence', 'background']));
-            }
-            npc.nextRoleTick = truth.tick + CONFIG.crewInvestigationCooldown;
-        }
-
-        // Movement
-        if (!npc.nextMoveTick || truth.tick >= npc.nextMoveTick) {
-            // Don't let schedule override if we're in a hazardous room (fleeing takes priority)
-            const inHazard = isRoomHazardous(room);
-            if (!inHazard && (!npc.orderUntilTick || truth.tick > npc.orderUntilTick)) {
-                const scheduled = npc.schedule.find(s => s.window === truth.window);
-                if (scheduled) {
-                    if (npc.targetPlace !== scheduled.place) {
-                        npc.targetPlace = scheduled.place;
-                        npc.path = undefined;
-                    }
-                }
-            }
-            if (npc.targetPlace) {
-                const targetRoom = truth.rooms[npc.targetPlace];
-                if (targetRoom && isRoomHazardous(targetRoom)) {
-                    const safeRoom = findSafeRoom(state, npc.place);
-                    if (safeRoom && safeRoom !== npc.place) {
-                        npc.targetPlace = safeRoom;
-                        npc.path = undefined;
-                    }
-                }
-            }
-            if (npc.targetPlace && npc.place !== npc.targetPlace) {
-                if (!npc.path || npc.path.length === 0) {
-                    npc.path = findPath(npc.place, npc.targetPlace, state.world.places, state.world.doors);
-                    if (npc.path[0] === npc.place) npc.path.shift();
-                }
-                const next = npc.path[0];
-                if (next) {
-                    if (isRoomHazardous(truth.rooms[next])) {
-                        // Path blocked by hazard
-                        npc.path = undefined;
-                        if (isRoomHazardous(room)) {
-                            // We're in danger - flee to any safe room
-                            const altSafe = findSafeRoom(state, npc.place, next);
-                            if (altSafe && altSafe !== npc.place) {
-                                npc.targetPlace = altSafe;
-                            }
-                        }
-                        // If current room is safe, just wait for path to clear (radiation decays)
-                        npc.nextMoveTick = truth.tick + 5;
-                        continue;
-                    }
-                    const door = getDoorBetween(npc.place, next, state.world.doors);
-                    const locked = door ? truth.doors[door.id].locked : false;
-                    if (!locked) {
-                        proposals.push(makeProposal(state, {
-                            type: 'NPC_MOVE',
-                            actor: npc.id,
-                            place: next,
-                            data: { from: npc.place },
-                        }, ['reaction', 'background']));
-                    } else if (isRoomHazardous(room)) {
-                        // EVENT-DRIVEN SUSPICION: Crew trapped in hazardous room by locked door
-                        // Only trigger once per NPC per panic cycle
-                        if (!npc.trappedSuspicionTick || truth.tick - npc.trappedSuspicionTick >= 20) {
-                            applySuspicionChange(state, CONFIG.suspicionTrappedByDoor, 'TRAPPED_BY_DOOR');
-                            (npc as any).trappedSuspicionTick = truth.tick;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Yield - specialist and roughneck can extract cargo in mines
-        const canExtract = npc.id === 'specialist' || npc.id === 'roughneck';
-        if (
-            canExtract &&
-            npc.place === 'mines' &&
-            room.o2Level >= 30 &&
-            truth.tick % CONFIG.yieldInterval === 0
-        ) {
-            proposals.push(makeProposal(state, {
-                type: 'CARGO_YIELD',
-                actor: npc.id,
-                place: npc.place,
-                data: { amount: 1 },
-            }, ['background']));
-        }
-    }
-
     return proposals;
 }
 
@@ -1240,31 +788,6 @@ function pickHeadlines(events: SimEvent[], state: KernelState): SimEvent[] {
     }).slice(0, CONFIG.maxHeadlinesPerTick);
 }
 
-// Calculate overall crew suspicion of MOTHER (0-100)
-function calculateCrewSuspicion(state: KernelState): number {
-    const beliefs = state.perception.beliefs;
-    const aliveCrew = Object.values(state.truth.crew).filter(c => c.alive);
-    if (aliveCrew.length === 0) return 0;
-
-    let totalSuspicion = 0;
-    for (const crew of aliveCrew) {
-        const belief = beliefs[crew.id];
-        if (!belief) continue;
-
-        // Tamper evidence (0-100) → 0-40 points
-        const tamperScore = (belief.tamperEvidence / 100) * 40;
-
-        // Distrust (1 - motherReliable) → 0-35 points
-        const distrustScore = (1 - belief.motherReliable) * 35;
-
-        // mother_rogue rumor (0-1) → 0-25 points
-        const rumorScore = (belief.rumors['mother_rogue'] ?? 0) * 25;
-
-        totalSuspicion += tamperScore + distrustScore + rumorScore;
-    }
-
-    return Math.round(totalSuspicion / aliveCrew.length);
-}
 
 function makeReading(
     state: KernelState,
@@ -1294,256 +817,4 @@ function phaseForWindow(window: string) {
     return 'night';
 }
 
-function isRoomHazardous(room?: { o2Level: number; temperature: number; radiation: number; isVented: boolean; onFire: boolean }) {
-    if (!room) return false;
-    if (room.onFire) return true;
-    if (room.isVented) return true;
-    if (room.o2Level < 25) return true;
-    if (room.temperature > 45) return true;
-    if (room.radiation > CONFIG.radiationHazardThreshold) return true;
-    return false;
-}
 
-function findSafeRoom(state: KernelState, current: PlaceId, exclude?: PlaceId): PlaceId | null {
-    const priorities: PlaceId[] = ['medbay', 'dorms', 'mess', 'bridge', 'core', 'cargo', 'engineering', 'mines', 'airlock_a', 'airlock_b'];
-    for (const place of priorities) {
-        if (place === exclude) continue;
-        const room = state.truth.rooms[place];
-        if (!room) continue;
-        if (!isRoomHazardous(room)) {
-            // Check if path exists via non-hazardous rooms
-            const path = findPath(current, place, state.world.places, state.world.doors);
-            const pathSafe = path.every(p => p === current || !isRoomHazardous(state.truth.rooms[p]));
-            if (pathSafe) return place;
-        }
-    }
-    // Fallback: find any adjacent non-hazardous room
-    const adjacent = state.world.doors
-        .filter(d => d.from === current || d.to === current)
-        .map(d => d.from === current ? d.to : d.from);
-    for (const adj of adjacent) {
-        if (adj === exclude) continue;
-        if (!isRoomHazardous(state.truth.rooms[adj])) return adj;
-    }
-    return current; // Stay put if no escape
-}
-
-function clamp(value: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, value));
-}
-
-// EVENT-DRIVEN SUSPICION: Apply suspicion change to all living crew
-// Positive values increase suspicion (bad for MOTHER), negative values decrease it
-function applySuspicionChange(state: KernelState, amount: number, _reason: string) {
-    if (amount === 0) return;
-
-    const beliefs = state.perception.beliefs;
-    for (const npc of Object.values(state.truth.crew)) {
-        if (!npc.alive) continue;
-        const belief = beliefs[npc.id];
-        if (!belief) continue;
-
-        if (amount > 0) {
-            // Suspicion rises: reduce motherReliable and/or bump tamperEvidence
-            // Convert suspicion points to motherReliable reduction (rough scale: 10 suspicion ≈ -0.05 reliable)
-            belief.motherReliable = clamp(belief.motherReliable - (amount / 200), 0, 1);
-            // Also bump tamperEvidence slightly for large suspicion gains
-            if (amount >= 8) {
-                belief.tamperEvidence = clamp(belief.tamperEvidence + Math.floor(amount / 2), 0, 100);
-            }
-        } else {
-            // Suspicion falls: increase motherReliable
-            belief.motherReliable = clamp(belief.motherReliable - (amount / 200), 0, 1);
-        }
-    }
-}
-
-function updateBeliefs(state: KernelState, events: SimEvent[]) {
-    const beliefs = state.perception.beliefs;
-    for (const event of events) {
-        if (event.type === 'SENSOR_READING') {
-            const reading = event.data?.reading as SensorReading | undefined;
-            if (!reading) continue;
-
-            const confidence = clamp(reading.confidence, 0, 1);
-            const lowConf = confidence < 0.5;
-            const highConf = confidence >= 0.8;
-
-            for (const npc of Object.values(state.truth.crew)) {
-                if (!npc.alive) continue;
-                const belief = beliefs[npc.id];
-                if (!belief) continue;
-
-                if (reading.source === 'sensor' && highConf) {
-                    belief.motherReliable = clamp(belief.motherReliable + 0.01, 0, 1);
-                }
-                if (reading.source === 'system' && lowConf) {
-                    belief.motherReliable = clamp(belief.motherReliable - 0.02, 0, 1);
-                    belief.tamperEvidence = clamp(belief.tamperEvidence + 1, 0, 100);
-                }
-                if (reading.hallucination) {
-                    belief.motherReliable = clamp(belief.motherReliable - 0.005, 0, 1);
-                }
-            }
-
-            // DEAD WEIGHT: crewTrust modified but never read for decisions
-            // if (reading.source === 'crew' && event.actor) {
-            //     const actor = event.actor as NPCId;
-            //     for (const npc of Object.values(state.truth.crew)) {
-            //         if (!npc.alive) continue;
-            //         const belief = beliefs[npc.id];
-            //         if (!belief) continue;
-            //         const trust = belief.crewTrust[actor] ?? 0.5;
-            //         const delta = reading.hallucination ? -0.03 : (highConf ? 0.02 : -0.01);
-            //         belief.crewTrust[actor] = clamp(trust + delta, 0, 1);
-            //     }
-            // }
-
-            if (reading.target) {
-                for (const npc of Object.values(state.truth.crew)) {
-                    if (!npc.alive) continue;
-                    const belief = beliefs[npc.id];
-                    if (!belief) continue;
-                    // const trust = belief.crewTrust[reading.target] ?? 0.5; // DEAD WEIGHT
-                    // belief.crewTrust[reading.target] = clamp(trust - 0.04, 0, 1); // DEAD WEIGHT
-                    belief.crewGrudge[reading.target] = clamp((belief.crewGrudge[reading.target] ?? 0) + 2, 0, 100);
-                }
-            }
-        }
-
-        if (event.type === 'COMMS_MESSAGE') {
-            const message = event.data?.message as any;
-            if (!message) continue;
-            if (message.kind === 'order') continue;
-            const topic = String(message.topic ?? '');
-            const targets: NPCId[] = [];
-            if (message.kind === 'broadcast' && message.place) {
-                for (const npc of Object.values(state.truth.crew)) {
-                    if (!npc.alive) continue;
-                    if (npc.place === message.place) targets.push(npc.id);
-                }
-            } else if (message.to && message.to !== 'PLAYER') {
-                targets.push(message.to as NPCId);
-            }
-
-            for (const receiver of targets) {
-                const belief = beliefs[receiver];
-                if (!belief) continue;
-                belief.rumors[topic] = clamp((belief.rumors[topic] ?? 0) + 0.25, 0, 1);
-                if (topic === 'mother_rogue') {
-                    belief.motherReliable = clamp(belief.motherReliable - 0.05, 0, 1);
-                    belief.tamperEvidence = clamp(belief.tamperEvidence + 3, 0, 100);
-                }
-                const subject = topicToSubject(topic);
-                if (subject) {
-                    // belief.crewTrust[subject] = clamp((belief.crewTrust[subject] ?? 0.5) - CONFIG.whisperTrustImpact / 100, 0, 1); // DEAD WEIGHT
-                    belief.crewGrudge[subject] = clamp((belief.crewGrudge[subject] ?? 0) + CONFIG.whisperGrudgeImpact, 0, 100);
-                }
-            }
-
-            if (message.from && message.from !== 'PLAYER' && message.from !== 'SYSTEM') {
-                state.perception.rumors.push({
-                    id: `${state.truth.tick}-rumor-${eventOrdinal++}`,
-                    tick: state.truth.tick,
-                    topic,
-                    subject: topicToSubject(topic) ?? undefined,
-                    source: message.from as NPCId,
-                    strength: 0.5,
-                    place: message.place,
-                });
-            }
-        }
-
-        if (event.type === 'TAMPER_SUPPRESS' || event.type === 'TAMPER_SPOOF' || event.type === 'TAMPER_FABRICATE') {
-            for (const npc of Object.values(state.truth.crew)) {
-                if (!npc.alive) continue;
-                const belief = beliefs[npc.id];
-                if (!belief) continue;
-                belief.tamperEvidence = clamp(belief.tamperEvidence + CONFIG.tamperEvidenceGain, 0, 100);
-            }
-        }
-
-        if (event.type === 'NPC_DAMAGE') {
-            const victim = event.actor as NPCId | undefined;
-            const attacker = event.data?.attacker as NPCId | undefined;
-            if (victim && attacker) {
-                const belief = beliefs[victim];
-                if (belief) {
-                    belief.crewGrudge[attacker] = clamp((belief.crewGrudge[attacker] ?? 0) + 10, 0, 100);
-                    // belief.crewTrust[attacker] = clamp((belief.crewTrust[attacker] ?? 0.5) - 0.15, 0, 1); // DEAD WEIGHT
-                }
-            }
-        }
-    }
-
-    // Apply belief shifts to truth loyalty/paranoia (soft coupling)
-    for (const npc of Object.values(state.truth.crew)) {
-        if (!npc.alive) continue;
-        const belief = beliefs[npc.id];
-        if (!belief) continue;
-        if (belief.motherReliable < 0.45) npc.loyalty = clamp(npc.loyalty - 1, 0, 100);
-        if (belief.motherReliable > 0.85) npc.loyalty = clamp(npc.loyalty + 1, 0, 100);
-        if (belief.motherReliable < 0.35) npc.paranoia = clamp(npc.paranoia + 1, 0, 100);
-        if (belief.tamperEvidence > CONFIG.tamperEvidenceThreshold) {
-            npc.loyalty = clamp(npc.loyalty - 2, 0, 100);
-            npc.paranoia = clamp(npc.paranoia + 1, 0, 100);
-            belief.rumors['mother_rogue'] = clamp(Math.max(belief.rumors['mother_rogue'] ?? 0, 0.5), 0, 1);
-        }
-    }
-
-    // Rumor propagation (evening only)
-    if (state.truth.phase === 'evening') {
-        const recentRumors = state.perception.rumors.filter(r => state.truth.tick - r.tick <= 10);
-        for (const rumor of recentRumors) {
-            const place = rumor.place;
-            if (!place) continue;
-            const listeners = Object.values(state.truth.crew).filter(c => c.alive && c.place === place && c.id !== rumor.source);
-            for (const listener of listeners) {
-                const belief = beliefs[listener.id];
-                if (!belief) continue;
-                belief.rumors[rumor.topic] = clamp((belief.rumors[rumor.topic] ?? 0) + rumor.strength * 0.2, 0, 1);
-            }
-        }
-    }
-
-    if (state.perception.rumors.length > 200) {
-        state.perception.rumors.splice(0, state.perception.rumors.length - 200);
-    }
-
-    // Decay tamper evidence and rumors
-    for (const npc of Object.values(state.truth.crew)) {
-        if (!npc.alive) continue;
-        const belief = beliefs[npc.id];
-        if (!belief) continue;
-        belief.tamperEvidence = clamp(belief.tamperEvidence - CONFIG.tamperEvidenceDecay, 0, 100);
-        for (const key of Object.keys(belief.rumors)) {
-            belief.rumors[key] = clamp(belief.rumors[key] - CONFIG.rumorDecay, 0, 1);
-        }
-    }
-
-    // Natural suspicion drift - DISABLED (event-driven suspicion now)
-    // Kept for reference but drift amount is 0 in config
-    if (CONFIG.suspicionDriftAmount > 0 && state.truth.tick % CONFIG.suspicionDriftInterval === 0) {
-        for (const npc of Object.values(state.truth.crew)) {
-            if (!npc.alive) continue;
-            const belief = beliefs[npc.id];
-            if (!belief) continue;
-            // Paranoid crew drift faster, calm crew drift slower
-            const driftMultiplier = 1 + (npc.paranoia / 100);
-            belief.motherReliable = clamp(belief.motherReliable - CONFIG.suspicionDriftAmount * driftMultiplier, 0, 1);
-        }
-    }
-
-    // Trust recovery - if MOTHER hasn't tampered, trust slowly rebuilds
-    if (state.truth.tick % CONFIG.trustRecoveryInterval === 0) {
-        for (const npc of Object.values(state.truth.crew)) {
-            if (!npc.alive) continue;
-            const belief = beliefs[npc.id];
-            if (!belief) continue;
-            // Only recover trust if tamperEvidence is low (no recent tampering detected)
-            if (belief.tamperEvidence < 10) {
-                belief.motherReliable = clamp(belief.motherReliable + CONFIG.trustRecoveryAmount, 0, 1);
-            }
-        }
-    }
-}

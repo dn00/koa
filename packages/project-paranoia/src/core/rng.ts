@@ -15,7 +15,7 @@ export class RNG {
         return Math.floor(this.next() * max);
     }
 
-    pick<T>(arr: T[]): T {
+    pick<T>(arr: readonly T[]): T {
         return arr[this.nextInt(arr.length)];
     }
 

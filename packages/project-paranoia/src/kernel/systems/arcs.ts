@@ -2,6 +2,7 @@ import { CONFIG } from '../../config.js';
 import type { RNG } from '../../core/rng.js';
 import type { KernelState, Proposal, ArcKind, PlaceId } from '../types.js';
 import { makeProposal } from '../proposals.js';
+import { applySuspicionChange } from './beliefs.js';
 
 // Track crisis starts/resolutions for event-driven suspicion
 function trackCrisisStart(state: KernelState, arcId: string, targetPlace: PlaceId) {
@@ -14,19 +15,13 @@ function trackCrisisStart(state: KernelState, arcId: string, targetPlace: PlaceI
         if (c.place === targetPlace) return true;
         // Check adjacency via doors
         const adjacent = state.world.doors
-            .filter(d => d.from === targetPlace || d.to === targetPlace)
-            .map(d => d.from === targetPlace ? d.to : d.from);
+            .filter(d => d.a === targetPlace || d.b === targetPlace)
+            .map(d => d.a === targetPlace ? d.b : d.a);
         return adjacent.includes(c.place);
     });
 
     if (crewNearby.length > 0) {
-        // Apply suspicion via beliefs (matching kernel.ts pattern)
-        for (const npc of Object.values(state.truth.crew)) {
-            if (!npc.alive) continue;
-            const belief = state.perception.beliefs[npc.id];
-            if (!belief) continue;
-            belief.motherReliable = Math.max(0, Math.min(1, belief.motherReliable - CONFIG.suspicionCrisisWitnessed / 200));
-        }
+        applySuspicionChange(state, CONFIG.suspicionCrisisWitnessed, 'CRISIS_WITNESSED', `Crisis in ${targetPlace}`);
     }
 }
 
@@ -36,21 +31,11 @@ function trackCrisisResolution(state: KernelState, arcId: string) {
         const resolutionTime = state.truth.tick - startTick;
         if (resolutionTime <= CONFIG.crisisResolveQuickTicks) {
             // Quick resolution - suspicion drops (good for MOTHER)
-            for (const npc of Object.values(state.truth.crew)) {
-                if (!npc.alive) continue;
-                const belief = state.perception.beliefs[npc.id];
-                if (!belief) continue;
-                belief.motherReliable = Math.max(0, Math.min(1, belief.motherReliable - CONFIG.suspicionCrisisResolved / 200));
-            }
+            applySuspicionChange(state, CONFIG.suspicionCrisisResolved, 'CRISIS_RESOLVED', `${arcId} resolved in ${resolutionTime} ticks`);
 
             // Heroic response bonus: if there were deaths but crisis was contained quickly
             if (state.truth.dayDeaths > 0) {
-                for (const npc of Object.values(state.truth.crew)) {
-                    if (!npc.alive) continue;
-                    const belief = state.perception.beliefs[npc.id];
-                    if (!belief) continue;
-                    belief.motherReliable = Math.max(0, Math.min(1, belief.motherReliable - CONFIG.suspicionHeroicResponse / 200));
-                }
+                applySuspicionChange(state, CONFIG.suspicionHeroicResponse, 'CRISIS_RESOLVED', `Heroic response to ${arcId}`);
             }
         }
         delete state.truth.activeCrisisStarts[arcId];

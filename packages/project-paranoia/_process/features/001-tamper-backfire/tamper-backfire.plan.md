@@ -136,17 +136,17 @@ Decompose the 1549-line kernel.ts into focused system files, then implement the 
 
 | ID | Name | Complexity | Status | Batch |
 |----|------|------------|--------|-------|
-| 001 | Extract crew system | M | ready | 1 |
-| 002 | Extract beliefs system | S | ready | 1 |
-| 003 | Extract physics system | S | ready | 1 |
-| 004 | TamperOp + ActiveDoubt + Ledger types | S | ready | 1 |
-| 005 | TamperOp creation on tamper commands | S | backlog | 2 |
-| 006 | SUPPRESS backfire | M | backlog | 3 |
-| 007 | SPOOF backfire | M | backlog | 3 |
-| 008 | FABRICATE backfire | M | backlog | 3 |
-| 009 | Suspicion ledger wiring | S | backlog | 2 |
+| 001 | Extract crew system | M | done | 1 |
+| 002 | Extract beliefs system | S | done | 1 |
+| 003 | Extract physics system | S | done | 1 |
+| 004 | TamperOp + ActiveDoubt + Ledger types | S | done | 1 |
+| 005 | TamperOp creation on tamper commands | S | done | 2 |
+| 006 | SUPPRESS backfire | M | done | 3 |
+| 007 | SPOOF backfire | M | done | 3 |
+| 008 | FABRICATE backfire | M | done | 3 |
+| 009 | Suspicion ledger wiring | S | done | 2 |
 | 010 | ActiveDoubts + targeted VERIFY | M | backlog | 4 |
-| 011 | Coming clean (UNSUPPRESS/ALERT) | S | backlog | 3 |
+| 011 | Coming clean (UNSUPPRESS/ALERT) | S | done | 3 |
 | 012 | Ledger + backfire display in STATUS | S | backlog | 4 |
 
 ---
@@ -165,4 +165,59 @@ Decompose the 1549-line kernel.ts into focused system files, then implement the 
 ## Open Questions
 
 - Should backfire checking go through the proposal pipeline (invariant I10) or be direct state mutation? Design doc shows direct mutation. Proposal pipeline may be cleaner but adds complexity. **Decision: direct mutation for backfires** — they're consequences, not proposals.
-- How to track "crew who responded to spoof" for SPOOF backfire? Need to detect movement toward spoofed location. **Decision: defer to implementation** — check if crew moved toward spoof target place within window.
+- How to track "crew who responded to spoof" for SPOOF backfire? **Decision: resolved in Task 007** — track crew who moved toward `SYSTEM_RESPONSE_PLACES[system]` or arrived there after spoof creation. This is an approximation (crew may move for other reasons) but errs on the side of "crew were near, they probably noticed."
+
+---
+
+## Review Log
+
+### Review 1: 2026-02-05
+
+**Reviewer:** Claude (Plan-Level Reviewer)
+**Verdict:** NEEDS-CHANGES
+
+#### Test Results
+- **Tests:** No test infrastructure exists. 0 tests. `package.json` has placeholder test script.
+- **Type check:** 0 NEW errors in extracted files. Pre-existing errors only (Door type, tick/proposal mismatch, TS7053 indexing).
+
+#### Implementation Assessment
+Implementation quality is **good**. All four tasks are correctly implemented:
+- Tasks 001-003: Clean cut-and-paste extraction following arcs.ts/comms.ts pattern. No logic changes. No circular imports. kernel.ts reduced from 1549→759 lines.
+- Task 004: Types match design doc exactly. PerceptionState extended. State initialized.
+
+#### Critical Issues
+| ID | Issue | Location | Description |
+|----|-------|----------|-------------|
+| R1-CRIT-1 | No test infrastructure | `package.json` | No vitest/jest configured. No test runner, no config, no dependencies. |
+| R1-CRIT-2 | Task 001 missing 7 tests | — | AC-1..4, EC-1..2, ERR-1 all untested |
+| R1-CRIT-3 | Task 002 missing 4 tests | — | AC-1..2, EC-1, ERR-1 all untested |
+| R1-CRIT-4 | Task 003 missing 3 tests | — | AC-1..2, EC-1 all untested |
+| R1-CRIT-5 | Task 004 missing 5 tests | — | AC-1..4, EC-1 all untested |
+
+#### Should-Fix Issues
+| ID | Issue | Location | Description |
+|----|-------|----------|-------------|
+| R1-SHLD-1 | Unused import | `crew.ts:8` | `import { clamp } from '../utils.js'` — clamp is never called in crew.ts. Remove it. |
+
+#### Consider Issues
+| ID | Issue | Location | Description |
+|----|-------|----------|-------------|
+| R1-CNSD-1 | Separate eventOrdinal | `beliefs.ts:59` | Own `let eventOrdinal = 0` diverges from kernel.ts ordinal. No behavioral impact (different ID format) but deviates from original single-counter. |
+| R1-CNSD-2 | Save/load migration | `state.ts` | No migration for old saves missing new PerceptionState fields. New games fine, old saves could crash. |
+
+#### Action Items
+- [ ] R1-CRIT-1: Install vitest, create `vitest.config.ts`, add test script to package.json
+- [ ] R1-CRIT-2: Write tests for Task 001 (7 test blocks: AC-1..4, EC-1..2, ERR-1)
+- [ ] R1-CRIT-3: Write tests for Task 002 (4 test blocks: AC-1..2, EC-1, ERR-1)
+- [ ] R1-CRIT-4: Write tests for Task 003 (3 test blocks: AC-1..2, EC-1)
+- [ ] R1-CRIT-5: Write tests for Task 004 (5 test blocks: AC-1..4, EC-1)
+- [ ] R1-SHLD-1: Remove unused `clamp` import from crew.ts
+
+#### What's Good
+- Clean extraction following existing arcs.ts/comms.ts pattern
+- No new type errors introduced
+- Import graph is clean (no circular dependencies)
+- clamp properly shared via utils.ts
+- makeReading correctly left in kernel.ts
+- Types match design doc exactly
+- kernel.ts reduced by ~51%

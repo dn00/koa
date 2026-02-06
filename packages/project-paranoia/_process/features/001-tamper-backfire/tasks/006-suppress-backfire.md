@@ -1,6 +1,6 @@
 # Task 006: SUPPRESS Backfire
 
-**Status:** backlog
+**Status:** done
 **Complexity:** M
 **Depends On:** 005, 009
 **Implements:** R3.1, R3.2, R3.3, R3.4
@@ -59,6 +59,22 @@ suppressBackfireCap: num('PARANOIA_SUPPRESS_BACKFIRE_CAP', 18),
 - **Given:** stepKernel tick loop
 - **When:** Tick advances
 - **Then:** `checkSuppressBackfire(state)` is called
+
+**stepKernel insertion point** (kernel.ts, after existing tick functions ~line 500):
+```typescript
+// Existing:
+tickSystems(state);
+tickPassiveObservation(state);
+decayTamper(state);
+
+// NEW (add after decayTamper, before proposal generation):
+checkSuppressBackfire(state);   // Task 006
+checkSpoofBackfire(state);      // Task 007
+checkFabricateBackfire(state);  // Task 008
+cleanupTamperOps(state);        // Task 005
+decayDoubts(state);             // Task 010
+```
+Run backfire checks early so consequences (suspicion spike) influence that tick's crew behavior.
 
 ### AC-2: Backfire on crew witnessing suppressed crisis ← R3.2
 - **Given:** SUPPRESS op for 'thermal' is PENDING, crew member is in room with onFire=true
@@ -128,7 +144,27 @@ suppressBackfireCap: num('PARANOIA_SUPPRESS_BACKFIRE_CAP', 18),
 
 ---
 
+## Testing
+
+Create `src/__tests__/backfire.test.ts` for backfire logic tests. Focus on:
+- Backfire trigger conditions (crew in crisis room)
+- Spike formula calculation
+- Status transitions (PENDING → BACKFIRED)
+- Edge cases (multiple crew, suppression expired)
+
+Check existing test patterns:
+```bash
+ls packages/project-paranoia/src/__tests__/
+```
+
+---
+
 ## Log
 
 ### Planning Notes
 **Context:** SUPPRESS backfire is the simplest of the three — direct physical contradiction. Good to implement first as the pattern for SPOOF and FABRICATE.
+
+### Implementation Notes
+**Files created:** `src/kernel/systems/backfire.ts`, `tests/006-suppress-backfire.test.ts`
+**Files modified:** `src/kernel/kernel.ts` (wired into tick loop), `src/config.ts` (config values pre-existed from planning)
+**Tests:** 10 test blocks (6 AC + 3 EC + 1 ERR), 13 individual tests

@@ -39,51 +39,59 @@ state.perception.activeDoubts.push({
 ```
 
 **VERIFY command change:**
-Currently VERIFY in `commands.ts:238-316` has: cooldown check, power cost, tamper penalty multiplier, proposal generation, tamperEvidence reduction. **Keep all of that infrastructure.** Only modify the suspicion drop logic inside the "has power + off cooldown" branch.
+Currently VERIFY in `commands.ts:238-316` has: cooldown check, power cost, tamper penalty multiplier, proposal generation. It creates a proposal with `action: 'VERIFY_TRUST'` and `suspicionDrop` in the data (line 290). The actual suspicion change is applied when this proposal is committed in `kernel.ts applyEvent`.
 
-Changes to the existing VERIFY handler:
-1. **Keep:** cooldown check, power cost check, `lastVerifyTick` update, proposal flow
-2. **Keep:** tamperEvidence reduction (`CONFIG.verifyTamperDrop`)
-3. **Replace:** the suspicion drop value — instead of `CONFIG.verifySuspicionDrop`, use doubt-targeting:
+**Architecture note:** The commands.ts VERIFY handler builds proposals; `kernel.ts applyEvent` applies them. The doubt-targeting logic belongs in `applyEvent` where VERIFY_TRUST action is handled.
+
+Changes needed:
+1. **commands.ts:** Keep proposal flow. Add `hasDoubt: boolean` to proposal data.
+2. **kernel.ts applyEvent:** Find where VERIFY_TRUST is processed. Add doubt-targeting logic there.
 
 ```typescript
-// Inside the existing "hasPower && !onCooldown" branch of VERIFY:
-const doubt = state.perception.activeDoubts.find(d => !d.resolved);
-
-let suspicionDrop: number;
-let verifyDetail: string;
-
-if (doubt) {
-  // Targeted verify: bigger reward
-  doubt.resolved = true;
-  suspicionDrop = CONFIG.verifyDoubtDrop;  // -6
-  verifyDetail = `Cleared doubt: ${doubt.topic}`;
-  // Mark related tamper op as resolved
-  if (doubt.relatedOpId) {
-    const op = state.perception.tamperOps.find(o => o.id === doubt.relatedOpId);
-    if (op) op.status = 'RESOLVED';
-  }
-} else {
-  // Idle verify: minimal benefit
-  suspicionDrop = CONFIG.verifyIdleDrop;   // -1
-  verifyDetail = 'No active doubts to clear';
-}
-
-// Apply tamper penalty multiplier (existing logic)
-const effectMultiplier = hasTampered ? CONFIG.verifyTamperPenalty : 1;
-applySuspicionChange(state, suspicionDrop * effectMultiplier,
-  doubt ? 'VERIFY_SUCCESS' : 'VERIFY_IDLE', verifyDetail);
+// In commands.ts, inside the hasPower && !onCooldown branch (~line 285):
+// Add doubt detection to proposal data:
+const activeDoubt = state.perception.activeDoubts.find(d => !d.resolved);
+// ... existing proposal code, but add to data:
+data: {
+    action: 'VERIFY_TRUST',
+    suspicionDrop: activeDoubt ? CONFIG.verifyDoubtDrop : CONFIG.verifyIdleDrop,
+    tamperDrop: CONFIG.verifyTamperDrop * effectMultiplier,
+    powerCost: CONFIG.verifyCpuCost,
+    hasTampered,
+    hasDoubt: !!activeDoubt,       // NEW
+    doubtId: activeDoubt?.id,       // NEW
+},
 ```
 
-**Do NOT replace the entire VERIFY handler.** This is a targeted modification to the existing proposal-based flow.
+```typescript
+// In kernel.ts applyEvent, VERIFY_TRUST case (search for 'VERIFY_TRUST'):
+// Add doubt resolution logic:
+if (data.hasDoubt && data.doubtId) {
+  const doubt = state.perception.activeDoubts.find(d => d.id === data.doubtId);
+  if (doubt) {
+    doubt.resolved = true;
+    // Mark related tamper op as resolved
+    if (doubt.relatedOpId) {
+      const op = state.perception.tamperOps.find(o => o.id === doubt.relatedOpId);
+      if (op) op.status = 'RESOLVED';
+    }
+  }
+}
+// Then apply suspicion change via applySuspicionChange with reason
+```
+
+**Location:** VERIFY_TRUST is handled in `kernel.ts:209-229` inside `applyEvent`. It already calls `applySuspicionChange(state, suspicionDrop, 'VERIFY_TRUST')` at line 219. Add doubt resolution logic before this call.
 
 **Doubt decay:**
-In tick loop, clean doubts older than 100 ticks:
+Add `decayDoubts(state)` function to `systems/backfire.ts`, called from `stepKernel` after backfire checks:
 ```typescript
-state.perception.activeDoubts = state.perception.activeDoubts.filter(
-  d => d.resolved || (state.truth.tick - d.createdTick) < 100
-);
+export function decayDoubts(state: KernelState): void {
+  state.perception.activeDoubts = state.perception.activeDoubts.filter(
+    d => d.resolved || (state.truth.tick - d.createdTick) < CONFIG.doubtDecayTicks
+  );
+}
 ```
+Co-located with backfire logic since doubts are created by backfires.
 
 **Config additions:**
 ```typescript

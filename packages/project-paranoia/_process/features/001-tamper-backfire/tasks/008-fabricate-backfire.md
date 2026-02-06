@@ -1,6 +1,6 @@
 # Task 008: FABRICATE Backfire
 
-**Status:** backlog
+**Status:** done
 **Complexity:** M
 **Depends On:** 005, 009
 **Implements:** R5.1, R5.2, R5.3, R5.4
@@ -141,3 +141,9 @@ fabricateBackfireEvidenceGain: num('PARANOIA_FABRICATE_BACKFIRE_EVIDENCE', 20),
 
 ### Planning Notes
 **Context:** FABRICATE is the highest-stakes tamper (severity always 3, cap at +22). The alibi system is the novel mechanic — it uses existing passive observation data (lastCrewSighting) to determine if the lie is plausible.
+
+### Implementation Notes
+**Files created:** `tests/008-fabricate-backfire.test.ts`
+**Files modified:** `src/kernel/systems/backfire.ts` (added `checkFabricateBackfire`), `src/kernel/kernel.ts` (split CREW_INJURED into CREW_INJURED/CREW_ATTACKED for proper spike distinction)
+**Tests:** 8 test blocks (5 AC + 3 EC), 10 individual tests
+**Note:** Investigation-clear and social contradiction paths deferred per spec. Injured/confined/attacked bonuses are now properly independent (CREW_ATTACKED ledger reason distinguishes crew violence from environmental damage).

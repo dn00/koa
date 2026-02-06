@@ -1,4 +1,5 @@
 import type { DoorId, NPC, NPCId, PlaceId, WindowId, World } from '../core/types.js';
+export type { NPCId, PlaceId } from '../core/types.js';
 import type { RoomSystemState } from '../engine/systems.js';
 
 export type EventType =
@@ -78,6 +79,46 @@ export interface SocialIncident {
 
 export type ArcKind = 'air_scrubber' | 'power_surge' | 'ghost_signal' | 'fire_outbreak' | 'radiation_leak' | 'solar_flare';
 export type DayPhase = 'pre_shift' | 'shift' | 'evening' | 'night';
+
+// TamperOp types for backfire system
+export type TamperOpKind = 'SUPPRESS' | 'SPOOF' | 'FABRICATE';
+export type TamperOpStatus = 'PENDING' | 'RESOLVED' | 'BACKFIRED' | 'CONFESSED';
+
+export interface TamperOp {
+    id: string;
+    kind: TamperOpKind;
+    tick: number;
+    target: {
+        system?: string;        // for SUPPRESS/SPOOF
+        npc?: NPCId;            // for FABRICATE
+        place?: PlaceId;        // where the tamper relates to
+    };
+    windowEndTick: number;      // after this, op can backfire
+    status: TamperOpStatus;
+    backfireTick?: number;
+    confessedTick?: number;
+    severity: 1 | 2 | 3;
+    crewAffected: NPCId[];
+    relatedArcId?: string;
+}
+
+export interface ActiveDoubt {
+    id: string;
+    topic: string;
+    createdTick: number;
+    severity: 1 | 2 | 3;
+    involvedCrew: NPCId[];
+    relatedOpId?: string;
+    system?: string;
+    resolved: boolean;
+}
+
+export interface SuspicionLedgerEntry {
+    tick: number;
+    delta: number;
+    reason: string;
+    detail: string;
+}
 
 export interface TruthState {
     tick: number;
@@ -223,6 +264,10 @@ export interface PerceptionState {
         lastCrewSighting: Partial<Record<NPCId, CrewSighting>>;
         // sensorIntegrity: Partial<Record<PlaceId, number>>; // DEAD WEIGHT: defined but never read
     };
+    // TamperOp tracking for backfire system
+    tamperOps: TamperOp[];
+    activeDoubts: ActiveDoubt[];
+    suspicionLedger: SuspicionLedgerEntry[];
 }
 
 export interface KernelState {

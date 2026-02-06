@@ -1,6 +1,6 @@
 # Task 005: TamperOp Creation on Tamper Commands
 
-**Status:** backlog
+**Status:** done
 **Complexity:** S
 **Depends On:** 004
 **Implements:** R2.3, R2.4, R2.5
@@ -75,7 +75,7 @@ fabricateBackfireWindow: num('PARANOIA_FABRICATE_BACKFIRE_WINDOW', 60),
 ### AC-3: FABRICATE creates TamperOp ← R2.5
 - **Given:** Player runs `fabricate engineer`
 - **When:** TAMPER_FABRICATE event applied
-- **Then:** TamperOp with kind='FABRICATE', target.npc='engineer', severity=3, crewAffected=all living crew exists
+- **Then:** TamperOp with kind='FABRICATE', target.npc='engineer', severity=3, crewAffected=[] exists (crewAffected populated as crew react to fabrication)
 
 ---
 
@@ -88,6 +88,15 @@ fabricateBackfireWindow: num('PARANOIA_FABRICATE_BACKFIRE_WINDOW', 60),
 ### EC-2: TamperOp array cleanup
 - **Scenario:** Many ops accumulate over game
 - **Expected:** Clean ops with status !== 'PENDING' older than 240 ticks (1 day)
+- **Location:** Add `cleanupTamperOps(state)` function to `systems/backfire.ts`, called from `stepKernel` after backfire checks:
+```typescript
+export function cleanupTamperOps(state: KernelState): void {
+  const cutoff = state.truth.tick - 240;
+  state.perception.tamperOps = state.perception.tamperOps.filter(
+    op => op.status === 'PENDING' || op.tick > cutoff
+  );
+}
+```
 
 ---
 
@@ -109,3 +118,11 @@ fabricateBackfireWindow: num('PARANOIA_FABRICATE_BACKFIRE_WINDOW', 60),
 
 ### Planning Notes
 **Context:** This is the bridge between existing tamper commands and the new backfire system. Creates the data that backfire tasks consume.
+
+### Implementation Notes
+**Files changed:**
+- `src/kernel/kernel.ts` — Added TamperOp creation in `applyEvent` for TAMPER_SUPPRESS, TAMPER_SPOOF, TAMPER_FABRICATE cases; added `getSeverityForSystem()` helper; added `cleanupTamperOps()` function
+- `src/kernel/commands.ts` — Added `system` field to TAMPER_SPOOF event data
+- `src/config.ts` — Added `spoofBackfireWindow` (30) and `fabricateBackfireWindow` (60)
+
+**Tests:** 3 AC + 2 EC = 5 test blocks in `tests/tamperOp-creation.test.ts`. Task has 5 requirements. Test file has 5 test blocks. ✓

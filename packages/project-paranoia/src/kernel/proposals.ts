@@ -4,7 +4,7 @@ let proposalOrdinal = 0;
 
 export function makeProposal(
     state: KernelState,
-    event: Omit<SimEvent, 'id'>,
+    event: Omit<SimEvent, 'id' | 'tick'>,
     tags: ProposalTag[]
 ): Proposal {
     const withTick = { tick: state.truth.tick, ...event };

@@ -12,7 +12,8 @@
 - **Minimize dependencies** - only add when truly required (data flow, types)
 - **Foundations first** - types/interfaces in Batch 1 enable parallel work
 - **Provide exact types** - if implementer uses `any`, you failed
-- **Require wiring** - any runtime feature must include explicit integration steps (registration, init path, exports) in its tasks and DoD
+
+**Path convention:** The prompts folder may be `prompts` or a prefixed variant like `koa-prompts`. Refer to it as `{prompts_dir}` in paths.
 
 ## HALT Conditions
 
@@ -55,7 +56,7 @@ ls {process}/features/[feature]/discovery.md
 
 Do discovery inline, don't require separate session.
 
-**Follow `{process}/prompts/DISCOVERY.md` process:**
+**Follow `{process}/{prompts_dir}/DISCOVERY.md` process:**
 1. Explore codebase
 2. Identify decisions and constraints
 3. Ask user about architectural choices
@@ -68,7 +69,7 @@ Do discovery inline, don't require separate session.
 
 ```
 Discovery R1: "Deterministic execution"
-    ↓
+    v
 Expanded:
   R1.1: Backend must seal its version
   R1.2: Same inputs + same plan = identical output
@@ -76,7 +77,7 @@ Expanded:
   R1.4: All iterations must use sorted keys
 ```
 
-Write these in `{name}.plan.md` → Requirements Expansion section.
+Write these in `{name}.plan.md` -> Requirements Expansion section.
 
 ### 5. Identify Phases (if large)
 
@@ -95,7 +96,6 @@ Each task must be:
 - **Independent** - minimal dependencies on in-progress work
 - **Testable** - clear AC/EC/ERR
 - **Sized S or M** - never L
-- **Wired** - include integration requirements when a task affects runtime, init, or exports
 
 ### 7. Define Acceptance Criteria
 
@@ -103,7 +103,7 @@ For each task, write:
 
 **AC (core functionality):**
 ```
-### AC-1: [Name] ← R1.1
+### AC-1: [Name] <- R1.1
 - Given: [precondition]
 - When: [action]
 - Then: [expected result]
@@ -127,14 +127,14 @@ For each task, write:
 ### 8. Build Dependency Graph
 
 ```
-001 ──→ 002 ──→ 004
-          ↓
-        003 ──→ 005
+001 ---> 002 ---> 004
+          v
+        003 ---> 005
 
 006 (no deps)
 ```
 
-**Anti-pattern:** Long sequential chains (001→002→003→004→005)
+**Anti-pattern:** Long sequential chains (001->002->003->004->005)
 **Better:** Parallel where possible
 
 ### 9. Create Batch Analysis
@@ -149,21 +149,31 @@ Group independent tasks:
 
 **Complexity:** Use highest in batch (S < M). Orchestrator uses for model selection.
 
-### 10. Write Task Files
+### 10. Plan-Only Option (Small Features)
+
+You may skip separate task files if ALL are true:
+- 1-2 tasks total
+- All tasks are S complexity
+- No complex dependencies or tricky edge/error handling
+
+If you use plan-only:
+- Put full task details directly in {name}.plan.md
+- Include Objective, Context, AC/EC/ERR, and Notes sections per task
+- Do NOT create task files
+
+### 11. Write Task Files (if not plan-only)
 
 Create in `{process}/features/[feature]/tasks/[NNN]-[name].md`
 
 Use template from Templates section below.
 
-**Add a Definition of Done checklist** to every task file and include integration/wiring items when applicable.
-
-### 11. Write Plan File
+### 12. Write Plan File
 
 Create `{process}/features/[feature]/{name}.plan.md`
 
 Use template from Templates section below.
 
-### 12. Handoff
+### 13. Handoff
 
 1. Set status to `ready` for tasks with no deps
 2. Update `{process}/project/STATUS.md`
@@ -191,8 +201,9 @@ Use template from Templates section below.
 - [ ] Each task has AC, EC, ERR sections
 - [ ] Each task has Embedded Context with exact types/interfaces
 - [ ] No task sized "L"
-- [ ] Total tests calculable: Σ(ACs + ECs + ERRs)
-- [ ] Each runtime-affecting task includes wiring/integration steps in DoD
+- [ ] Total tests calculable: SUM(ACs + ECs + ERRs)
+- [ ] Task files do not include status fields (status lives in the plan)
+- [ ] If plan-only: task details are fully embedded in the plan and no task files exist
 
 **Dependencies:**
 - [ ] Dependency graph complete
@@ -209,7 +220,6 @@ Use template from Templates section below.
 ```markdown
 # Task [NNN]: [Short Name]
 
-**Status:** backlog
 **Complexity:** S | M
 **Depends On:** [task IDs or "none"]
 **Implements:** R1.1, R1.2 (from plan)
@@ -243,8 +253,8 @@ interface UserStore {
 }
 
 // FIELD MAPPING (for migrations)
-// Old: user.userName → New: user.name
-// Old: user.isAdmin → DELETED (use roles)
+// Old: user.userName -> New: user.name
+// Old: user.isAdmin -> DELETED (use roles)
 ```
 
 **For all tasks:**
@@ -259,12 +269,12 @@ interface UserStore {
 
 ## Acceptance Criteria
 
-### AC-1: [Name] ← R1.1
+### AC-1: [Name] <- R1.1
 - **Given:** [precondition]
 - **When:** [action]
 - **Then:** [expected result]
 
-### AC-2: [Name] ← R1.2
+### AC-2: [Name] <- R1.2
 - **Given:** [precondition]
 - **When:** [action]
 - **Then:** [expected result]
@@ -357,9 +367,9 @@ interface UserStore {
 ## Dependency Graph
 
 ```
-001 ──→ 002 ──→ 004
-          ↓
-        003 ──→ 005
+001 ---> 002 ---> 004
+          v
+        003 ---> 005
 ```
 
 ---
@@ -379,6 +389,51 @@ interface UserStore {
 |----|------|------------|--------|
 | 001 | [name] | S | backlog |
 | 002 | [name] | M | backlog |
+
+---
+
+## Task Details (Inline)
+
+> Use this section only when plan-only is enabled.
+
+### Task 001: [Short Name]
+
+**Complexity:** S
+**Depends On:** [task IDs or "none"]
+**Implements:** R1.1, R1.2
+
+#### Objective
+[One sentence: what this accomplishes and why]
+
+#### Context
+**Relevant Files:**
+- `path/to/file.ts` - [why relevant]
+
+**Embedded Context:**
+- Key invariants that apply
+- Required patterns with code examples
+- Error message formats
+
+#### Acceptance Criteria
+##### AC-1: [Name] <- R1.1
+- Given: [precondition]
+- When: [action]
+- Then: [expected result]
+
+#### Edge Cases
+##### EC-1: [Name]
+- Scenario: [edge condition]
+- Expected: [behavior]
+
+#### Error Cases
+##### ERR-1: [Name]
+- When: [error condition]
+- Then: [error handling]
+- Error Message: [expected message]
+
+#### Notes
+**Implementation Notes:** [filled by implementer]
+**Review Notes:** [filled by reviewer]
 
 ---
 
@@ -449,10 +504,9 @@ Then: responds in under 100ms for 1000 items
 ### Workflow Transitions
 
 You own:
-- `backlog` → `ready` (deps met + AC written)
-- `blocked` → `ready` (blocker resolved)
+- `backlog` -> `ready` in {name}.plan.md (deps met + AC written)
+- `blocked` -> `ready` in {name}.plan.md (blocker resolved)
 
 Document in task files:
 - Planning Notes section
-- Status History
 - Change Log (significant decisions)

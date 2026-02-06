@@ -1,6 +1,6 @@
 # Task 002: Extract Beliefs System
 
-**Status:** ready
+**Status:** review
 **Complexity:** S
 **Depends On:** none
 **Implements:** R1.2, R1.4, R1.5
@@ -16,7 +16,7 @@ Extract `applySuspicionChange`, `updateBeliefs`, and `calculateCrewSuspicion` fr
 ## Context
 
 ### Relevant Files
-- `src/kernel/kernel.ts:1244-1269` — `calculateCrewSuspicion`
+- `src/kernel/kernel.ts:1244-1268` — `calculateCrewSuspicion`
 - `src/kernel/kernel.ts:1337-1360` — `applySuspicionChange`
 - `src/kernel/kernel.ts:1361-1549` — `updateBeliefs`
 
@@ -86,3 +86,41 @@ function updateBeliefs(state: KernelState, events: SimEvent[]): void
 
 ### Planning Notes
 **Context:** beliefs.ts is the natural home for suspicion and trust logic. Task 009 will add the suspicion ledger here.
+
+### Implementation Notes
+> Written by Implementer
+
+**Approach:** Extracted all three functions (`calculateCrewSuspicion`, `applySuspicionChange`, `updateBeliefs`) to `systems/beliefs.ts`. Imports `clamp` from `utils.ts` and `topicToSubject` from `comms.ts`.
+
+**Decisions:**
+- Kept `_reason` parameter in `applySuspicionChange` as specified for future ledger integration
+- Used same eventOrdinal pattern for rumor IDs within updateBeliefs
+
+**Deviations:** None
+
+**Files Changed:**
+- `src/kernel/systems/beliefs.ts` — new file (249 lines), exports calculateCrewSuspicion, applySuspicionChange, updateBeliefs
+- `src/kernel/kernel.ts` — removed extracted functions, added imports from beliefs.ts
+
+**Gotchas:** Pre-existing type error with crewGrudge indexing (TS7053) - same pattern as original code.
+
+**Questions for Reviewer:** None
+
+### Change Log
+- 2026-02-05 [Implementer] Starting work
+- 2026-02-05 [Implementer] Completed implementation, submitting for review
+- 2026-02-05 [Reviewer] Review FAILED — see notes below
+- 2026-02-05 [Implementer] Fixed review issues: added 9 tests in tests/002-beliefs-system.test.ts, submitting for review
+
+### Review Notes (Review 1)
+
+**Implementation:** Correct. Clean extraction. Separate eventOrdinal has no behavioral impact.
+
+**Issues:**
+- [x] R1-CRIT-3: Missing ALL tests (4 required: AC-1..2, EC-1, ERR-1). Test infrastructure doesn't exist yet (R1-CRIT-1). (fixed: added tests/002-beliefs-system.test.ts — 9 tests covering all ACs, EC-1, ERR-1)
+
+**Suggested tests:**
+- AC-1: Verify calculateCrewSuspicion, applySuspicionChange, updateBeliefs are exported and callable
+- AC-2: Run applySuspicionChange with known state, verify motherReliable/tamperEvidence change deterministically
+- EC-1: Verify applySuspicionChange is importable by both kernel.ts and crew.ts (no circular dep)
+- ERR-1: Verify CONFIG values are accessible in beliefs.ts (imports resolve)

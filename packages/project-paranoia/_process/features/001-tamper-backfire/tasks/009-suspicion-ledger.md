@@ -1,6 +1,6 @@
 # Task 009: Suspicion Ledger Wiring
 
-**Status:** backlog
+**Status:** done
 **Complexity:** S
 **Depends On:** 002, 004
 **Implements:** R6.3, R6.4
@@ -112,3 +112,11 @@ function applySuspicionChange(state: KernelState, amount: number, reason: string
 
 ### Planning Notes
 **Context:** This is the "fairness through transparency" mechanic (invariant I18). Once wired, every suspicion change is explained. Backfire tasks (006-008) automatically get ledger entries by calling applySuspicionChange.
+
+### Implementation Notes
+**Files changed:**
+- `src/kernel/systems/beliefs.ts` — Updated `applySuspicionChange` to write ledger entries before applying suspicion change; added `detail` parameter; moved zero-delta guard below ledger push; added 100-entry cap
+- `src/kernel/kernel.ts` — Updated 8 call sites with detail strings (QUOTA_MISSED, QUIET_DAY, QUOTA_EXCEEDED, VERIFY_TRUST, ORDER_REFUSED, ORDER_COMPLETED, CREW_DIED, CREW_INJURED)
+- `src/kernel/systems/crew.ts` — Updated 1 call site with detail string (TRAPPED_BY_DOOR)
+
+**Tests:** 3 AC + 1 EC = 4 test blocks in `tests/suspicion-ledger.test.ts`. Task has 4 requirements. Test file has 4 test blocks. ✓

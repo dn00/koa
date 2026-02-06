@@ -2,6 +2,7 @@ import { CONFIG } from '../config.js';
 import type { KernelState, Proposal } from './types.js';
 import type { NPCId, PlaceId } from '../core/types.js';
 import { makeProposal } from './proposals.js';
+import { handleAlert } from './systems/backfire.js';
 
 export type Command =
     | { type: 'LOCK'; doorId: string }
@@ -18,7 +19,8 @@ export type Command =
     | { type: 'RATIONS'; level: 'low' | 'normal' | 'high' }
     | { type: 'ORDER'; target: NPCId; intent: 'move' | 'report' | 'hold'; place?: PlaceId }
     | { type: 'AUDIT' }
-    | { type: 'VERIFY' };
+    | { type: 'VERIFY' }
+    | { type: 'ALERT'; system: string };
 
 export function proposeCommandEvents(state: KernelState, commands: Command[]): Proposal[] {
     const proposals: Proposal[] = [];
@@ -100,7 +102,7 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
             proposals.push(makeProposal(state, {
                 type: 'TAMPER_SPOOF',
                 actor: 'PLAYER',
-                data: { detail: `Spoofed ${cmd.system} alert.`, strength: 2 },
+                data: { system: cmd.system, detail: `Spoofed ${cmd.system} alert.`, strength: 2 },
             }, ['choice', 'background']));
             proposals.push(makeProposal(state, {
                 type: 'SENSOR_READING',
@@ -351,12 +353,30 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
                 },
             }, ['consequence', 'background']));
         }
+        if (cmd.type === 'ALERT') {
+            const result = handleAlert(state, cmd.system);
+            proposals.push(makeProposal(state, {
+                type: 'SENSOR_READING',
+                actor: 'PLAYER',
+                data: {
+                    reading: {
+                        id: `${state.truth.tick}-alert-confession-${cmd.system}`,
+                        tick: state.truth.tick,
+                        system: 'alert',
+                        confidence: 1,
+                        message: result.message,
+                        source: 'system',
+                    },
+                },
+            }, ['choice', 'background']));
+        }
     }
     return proposals;
 }
 
 function buildOrderResponse(state: KernelState, cmd: Command, accepted: boolean): string {
-    const crew = cmd.type === 'ORDER' ? state.truth.crew[cmd.target] : undefined;
+    if (cmd.type !== 'ORDER') return '...';
+    const crew = state.truth.crew[cmd.target];
     if (!crew) return '...';
     if (!accepted) return `NEGATIVE. Unable to comply.`;
     if (cmd.intent === 'report') {

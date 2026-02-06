@@ -102,11 +102,13 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 ## Active Features
 
 ### 001-tamper-backfire
-**Status:** ready
+**Status:** in-progress (Batches 1-3 done, Batch 4 remaining)
 **Plan:** `_process/features/001-tamper-backfire/tamper-backfire.plan.md`
 
 12 tasks in 4 batches:
-- **Batch 1** (ready now): 001 extract crew, 002 extract beliefs, 003 extract physics, 004 types
-- **Batch 2** (after Batch 1): 005 tamperOp creation, 009 suspicion ledger
-- **Batch 3** (after Batch 2): 006 SUPPRESS backfire, 007 SPOOF backfire, 008 FABRICATE backfire, 011 coming clean
-- **Batch 4** (after Batch 3): 010 ActiveDoubts + VERIFY, 012 ledger display
+- **Batch 1** (done): 001 extract crew, 002 extract beliefs, 003 extract physics, 004 types
+- **Batch 2** (done): 005 tamperOp creation, 009 suspicion ledger
+- **Batch 3** (done): 006 SUPPRESS backfire, 007 SPOOF backfire, 008 FABRICATE backfire, 011 coming clean
+- **Batch 4** (ready): 010 ActiveDoubts + VERIFY, 012 ledger display
+
+**Progress:** 10/12 tasks done, 95 tests passing, 0 type errors

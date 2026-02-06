@@ -11,8 +11,8 @@ import path from 'path';
 
 import { createWorld } from './core/world.js';
 import { createRng, RNG } from './core/rng.js';
-import { TICKS_PER_HOUR, tickToTimeString } from './core/time.js';
-import type { PlaceId, NPCId, World } from './core/types.js';
+import { TICKS_PER_HOUR } from './core/time.js';
+import type { PlaceId, NPCId, DoorId, World } from './core/types.js';
 import { CONFIG } from './config.js';
 
 import { createInitialState } from './kernel/state.js';
@@ -308,7 +308,7 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
         return true;
     }
     if (cmd === 'help') {
-        console.log("Commands: status, crew, bio, threats, audit, scan [room], lock [door], unlock [door], vent [room], seal [room], purge air, reroute [target], spoof [system], suppress [system], fabricate [npc], listen [room], rations [low|normal|high], order [npc] [place|report|hold], wait [ticks]");
+        console.log("Commands: status, crew, bio, threats, audit, scan [room], lock [door], unlock [door], vent [room], seal [room], purge air, reroute [target], spoof [system], suppress [system], fabricate [npc], alert [system], listen [room], rations [low|normal|high], order [npc] [place|report|hold], wait [ticks]");
         console.log(`Rooms: ${placeIds.join(', ')}`);
         console.log(`Doors: ${doorIds.join(', ')}`);
         return true;
@@ -373,12 +373,14 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
         for (let i = 0; i < ticks && running; i++) tick();
         return true;
     }
-    if (cmd === 'lock' && arg && doorIds.includes(arg)) {
-        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'LOCK', doorId: arg }));
+    if (cmd === 'lock' && arg && doorIds.includes(arg as DoorId)) {
+        const doorId = arg as DoorId;
+        mother.execute(5, () => COMMAND_QUEUE.push({ type: 'LOCK', doorId }));
         return true;
     }
-    if (cmd === 'unlock' && arg && doorIds.includes(arg)) {
-        mother.execute(2, () => COMMAND_QUEUE.push({ type: 'UNLOCK', doorId: arg }));
+    if (cmd === 'unlock' && arg && doorIds.includes(arg as DoorId)) {
+        const doorId = arg as DoorId;
+        mother.execute(2, () => COMMAND_QUEUE.push({ type: 'UNLOCK', doorId }));
         return true;
     }
     if (cmd === 'scan' && arg && placeIds.includes(arg as PlaceId)) {
@@ -411,6 +413,10 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
     }
     if (cmd === 'fabricate' && arg) {
         mother.execute(7, () => COMMAND_QUEUE.push({ type: 'FABRICATE', target: arg as NPCId }));
+        return true;
+    }
+    if (cmd === 'alert' && arg) {
+        mother.execute(3, () => COMMAND_QUEUE.push({ type: 'ALERT', system: arg }));
         return true;
     }
     if (cmd === 'listen' && arg && placeIds.includes(arg as PlaceId)) {
@@ -576,7 +582,7 @@ async function main() {
 
     const rl = readline.createInterface({ input, output });
 
-    console.log("Commands: 'lock/unlock [door]', 'scan [room]', 'vent/seal [room]', 'purge air', 'reroute [target]', 'audit', 'spoof [system]', 'suppress [system]', 'fabricate [npc]', 'listen [room]', 'rations [low|normal|high]', 'order [npc] [place|report|hold]'");
+    console.log("Commands: 'lock/unlock [door]', 'scan [room]', 'vent/seal [room]', 'purge air', 'reroute [target]', 'audit', 'spoof [system]', 'suppress [system]', 'fabricate [npc]', 'alert [system]', 'listen [room]', 'rations [low|normal|high]', 'order [npc] [place|report|hold]'");
     console.log(`Rooms: ${world.places.map(p => p.id).join(', ')}`);
     console.log(`Doors: ${world.doors.map(d => d.id).join(', ')}`);
 
