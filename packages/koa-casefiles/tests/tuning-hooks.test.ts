@@ -123,7 +123,7 @@ describe('Task 004: Tuning Hooks', () => {
   describe('AC-2: Director can request signal type', () => {
     test('signalConfig.preferredType is preserved through case generation', () => {
       const result = generateValidatedCase(1, 2, {
-        difficulty: 'easy',
+
         signalConfig: { preferredType: 'self_contradiction' },
       });
 
@@ -247,7 +247,7 @@ describe('Task 004: Tuning Hooks', () => {
     test('pipeline does not inject when signal exists even if type mismatches preference', () => {
       // Run validated pipeline with a preference for self_contradiction
       const result = generateValidatedCase(1, 2, {
-        difficulty: 'easy',
+
         signalConfig: { preferredType: 'scene_presence' },
       });
 
@@ -332,10 +332,10 @@ describe('Integration: Full pipeline wiring', () => {
   // -------------------------------------------------------------------------
 
   describe('solve() always returns signalAnalysis when simulation succeeds', () => {
-    test('signalAnalysis is present for 10 seeds at easy difficulty', () => {
+    test('signalAnalysis is present for 10 seeds at tier 1', () => {
       let successCount = 0;
       for (let seed = 1; seed <= 10; seed++) {
-        const result = solve(seed, false, 'easy');
+        const result = solve(seed, false, 1);
         if (result.failReason === 'sim_failed') continue; // sim failed, no evidence
         successCount++;
 
@@ -347,10 +347,10 @@ describe('Integration: Full pipeline wiring', () => {
       expect(successCount).toBeGreaterThan(0);
     });
 
-    test('signalAnalysis is present for 10 seeds at hard difficulty', () => {
+    test('signalAnalysis is present for 10 seeds at tier 4', () => {
       let successCount = 0;
       for (let seed = 1; seed <= 10; seed++) {
-        const result = solve(seed, false, 'hard');
+        const result = solve(seed, false, 4);
         if (result.failReason === 'sim_failed') continue;
         successCount++;
 
@@ -373,7 +373,7 @@ describe('Integration: Full pipeline wiring', () => {
       };
 
       const result = generateValidatedCase(1, 2, {
-        difficulty: 'easy',
+
         signalConfig,
       });
 
@@ -385,11 +385,13 @@ describe('Integration: Full pipeline wiring', () => {
       }
     });
 
-    test('signalConfig undefined by default (backward compatible)', () => {
+    test('signalConfig auto-derived from tier profile by default', () => {
       const result = generateValidatedCase(1, 2);
 
       if (result) {
-        expect(result.sim.config.signalConfig).toBeUndefined();
+        // Task 005: generateValidatedCase now auto-derives signalConfig from tier
+        expect(result.sim.config.signalConfig).toBeDefined();
+        expect(result.sim.config.signalConfig!.preferredType).toBe('self_contradiction');
       }
     });
   });
@@ -401,7 +403,7 @@ describe('Integration: Full pipeline wiring', () => {
   describe('generateValidatedCase output is consistent with analyzeSignal', () => {
     test('re-analyzing returned evidence produces hasSignal: true', () => {
       for (let seed = 1; seed <= 5; seed++) {
-        const result = generateValidatedCase(seed, 2, { difficulty: 'easy' });
+        const result = generateValidatedCase(seed, 2);
         if (!result) continue;
 
         // Re-running analyzeSignal on the output should still show a signal
@@ -421,7 +423,7 @@ describe('Integration: Full pipeline wiring', () => {
       // Most seeds at easy difficulty should have natural signals
       let foundNatural = false;
       for (let seed = 1; seed <= 20; seed++) {
-        const result = generateValidatedCase(seed, 2, { difficulty: 'easy' });
+        const result = generateValidatedCase(seed, 2);
         if (result && !result.sim.config.injectedSignal) {
           foundNatural = true;
           expect(result.sim.config.injectedSignal).toBeFalsy();

@@ -1,0 +1,67 @@
+{
+  "feature": "005-four-tier-difficulty",
+  "audit_date": "2026-02-05",
+  "verdict": "PASS",
+  "files_reviewed": [
+    "src/types.ts",
+    "src/sim.ts",
+    "src/evidence.ts",
+    "src/cli.ts",
+    "src/game.ts",
+    "src/tier-parser.ts",
+    "src/solver.ts",
+    "src/koa-voice.ts",
+    "src/validators.ts",
+    "tests/difficulty-profiles.test.ts",
+    "tests/wire-profiles.test.ts",
+    "tests/difficulty-signal.test.ts",
+    "tests/cli-tier-parser.test.ts",
+    "tests/four-tier-regression.test.ts"
+  ],
+  "tests_run": {"passed": 137, "failed": 0},
+  "integration_checks": {
+    "module_connections": "pass",
+    "type_compatibility": "pass",
+    "error_handling": "pass",
+    "no_circular_deps": "pass",
+    "e2e_verification": "pass"
+  },
+  "e2e_details": {
+    "entry_point": "npx tsx src/cli.ts --tier <tier>",
+    "app_starts": true,
+    "feature_accessible": true,
+    "full_flow_works": true,
+    "verified": [
+      "--tier 3 --seed 42 -v: produces tier 3 case",
+      "--difficulty hard --seed 42 -v: identical to --tier 4",
+      "--tier challenging --seed 42 -v: identical to --tier 3",
+      "--tier 5 --seed 42: warns and falls back to tier 2",
+      "--tier 1 --generate 20: 100% pass rate",
+      "--tier 4 --generate 20: 100% pass rate"
+    ]
+  },
+  "integration_issues": [
+    {
+      "type": "stale_default",
+      "location": "src/cli.ts:32,144,644",
+      "description": "DEFAULT_DIFFICULTY always uses tier 2 profile for validateCase(), even when running with --tier 3 or --tier 4. Difficulty validation metrics (minAP, contradictions) are evaluated against wrong targets for non-tier-2 runs.",
+      "severity": "low",
+      "rationale": "difficulty validation is a soft gate (does not affect passed boolean at line 1619). Metrics display is cosmetically wrong but core solvability/antiAnticlimax/redHerring checks are unaffected."
+    },
+    {
+      "type": "missing_parameter",
+      "location": "src/game.ts:329",
+      "description": "formatIntroBanner(args.seed, hadSave) does not pass args.tier. Tier label won't appear in game intro banner.",
+      "severity": "low",
+      "rationale": "Cosmetic only. Banner displays without tier label. Game functionality unaffected."
+    }
+  ],
+  "gaps_found": [],
+  "security_issues": [],
+  "removed_as_planned": {
+    "DIFFICULTY_PRESETS": "confirmed removed from sim.ts",
+    "SimulationOptions.difficulty": "confirmed removed from interface",
+    "parseDifficulty_in_cli": "confirmed replaced with parseTier",
+    "parseDifficulty_in_game": "confirmed replaced with parseTier"
+  }
+}

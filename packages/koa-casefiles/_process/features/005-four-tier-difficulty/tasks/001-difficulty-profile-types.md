@@ -1,6 +1,6 @@
 # Task 001: DifficultyProfile Type & Mapping Table
 
-**Status:** ready
+**Status:** done
 **Complexity:** S
 **Depends On:** none
 **Implements:** R1.1, R1.2, R1.3, R1.4, R3.4
@@ -197,7 +197,11 @@ export const DIFFICULTY_TIER_TARGETS: Record<number, {
 **Decisions:** Chose to derive `DIFFICULTY_TIER_TARGETS` from profiles rather than duplicate values. This ensures they can never drift.
 
 ### Implementation Notes
-> Written by Implementer
+- Added `DifficultyTier`, `DifficultyProfile`, `DIFFICULTY_PROFILES`, `profileToDifficultyConfig()` to `types.ts`
+- Added `export type Twist = TwistRule;` alias to fix director.ts import
+- Refactored `DIFFICULTY_TIER_TARGETS` to derive from `DIFFICULTY_PROFILES` via `Object.fromEntries`
+- 18 tests in `tests/difficulty-profiles.test.ts` — all pass
+- Gemini review: PASS
 
 ### Review Notes
 > Written by Reviewer

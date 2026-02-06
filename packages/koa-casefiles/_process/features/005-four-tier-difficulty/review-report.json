@@ -1,0 +1,56 @@
+{
+  "review": 1,
+  "batches": [
+    {
+      "batch": "3",
+      "verdict": "NEEDS-CHANGES",
+      "tasks": [
+        {
+          "id": "004",
+          "required": 6,
+          "found": 5,
+          "match": false,
+          "tests_pass": true,
+          "missing": ["EC-2"],
+          "type_errors": ["src/cli.ts: Argument of type 'number' is not assignable to parameter of type 'DifficultyTier | undefined'"]
+        }
+      ],
+      "issues": [
+        {
+          "task": "004",
+          "type": "missing_tests",
+          "items": ["EC-2 (Both --tier and --difficulty provided)"]
+        },
+        {
+          "task": "004",
+          "type": "type_error",
+          "location": "src/cli.ts",
+          "description": "Functions generateCase, runBatch, etc. define 'tier: number' but pass it to 'simulate' which expects 'DifficultyTier'. Update signatures to use DifficultyTier."
+        }
+      ]
+    },
+    {
+      "batch": "4",
+      "verdict": "PASS",
+      "tasks": [
+        {
+          "id": "006",
+          "required": 6,
+          "found": 6,
+          "match": true,
+          "tests_pass": true
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "needs_changes": 1,
+    "total_issues": 2
+  },
+  "tests_run": {
+    "passed": 39,
+    "failed": 0
+  },
+  "type_check": "fail"
+}

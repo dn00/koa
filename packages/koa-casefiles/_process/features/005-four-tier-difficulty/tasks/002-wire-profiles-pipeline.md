@@ -1,6 +1,6 @@
 # Task 002: Wire Profiles into simulate() Pipeline
 
-**Status:** backlog
+**Status:** done
 **Complexity:** M
 **Depends On:** 001
 **Implements:** R2.1, R2.2, R2.3, R2.4, R2.5
@@ -252,7 +252,21 @@ export interface CaseConfig {
 **Decisions:** Keep `difficulty` on `CaseConfig` as deprecated during transition. Internal code reads `tier` and derives `puzzleDifficulty` from profile.
 
 ### Implementation Notes
-> Written by Implementer
+- Removed `DIFFICULTY_PRESETS` from sim.ts — replaced with `DIFFICULTY_PROFILES` import from types.ts
+- `simulate()` now takes `tier: DifficultyTier = 2`, validates tier, derives profile and difficultyConfig
+- `simulateWithBlueprints()` receives profile/config from `simulate()` instead of computing its own
+- `SimulationOptions.difficulty` removed — tier controls everything
+- `CaseConfig` now has `tier` field; `difficulty` set from `profile.puzzleDifficulty`
+- `evidence.ts`: `getOfflineWindows()` → `getOfflineWindowsByGaps(crimeWindow, gaps)` — takes numeric gaps, preserves protected windows
+- `evidence.ts`: `deriveCulpritAlibiClaim()` reads puzzleDifficulty from `DIFFICULTY_PROFILES[config.tier]`
+- `solver.ts`: `solve(seed, verbose, tier?)` — changed from string difficulty to numeric tier
+- `solver.ts`: `autosolve()` — same change
+- `koa-voice.ts`: `formatIntroBanner(seed, resumed, tier?)` — derives label from `DIFFICULTY_PROFILES[tier].name`
+- `cli.ts`: `DEFAULT_DIFFICULTY` now derived via `profileToDifficultyConfig(DIFFICULTY_PROFILES[2])`
+- `game.ts`: removed `difficulty` option from `simulate()` call and `formatIntroBanner()` call
+- Updated test fixtures: `tuning-hooks.test.ts` (removed difficulty options, changed solve() args from strings to tiers), `pipeline-integration.test.ts` (changed from difficulty strings to tier numbers)
+- 13 tests in `tests/wire-profiles.test.ts` — all pass
+- Gemini review: PASS
 
 ### Review Notes
 > Written by Reviewer

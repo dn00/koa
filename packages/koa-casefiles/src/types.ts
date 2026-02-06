@@ -71,6 +71,9 @@ export interface TwistRule {
     affectsEvidence: string[]; // Evidence IDs this twist affects
 }
 
+/** @deprecated Use TwistRule instead */
+export type Twist = TwistRule;
+
 // ============================================================================
 // Suspicious Acts (Red Herrings doing sketchy things)
 // ============================================================================
@@ -260,12 +263,9 @@ export interface CaseConfig {
     twist?: TwistRule;              // Optional complexity
     suspiciousActs: SuspiciousAct[]; // Red herring behaviors
     distractedWitnesses?: NPCId[];  // NPCs who were at crime scene but didn't notice
-    /**
-     * Difficulty controls how culprit behaves in testimony:
-     * - 'easy': Culprit lies about location → self-contradiction (obvious liar)
-     * - 'medium': Culprit is vague about location → harder to catch
-     * - 'hard': Culprit tells truth → must use motive/opportunity to solve
-     */
+    /** Unified difficulty tier (1-4) */
+    tier?: DifficultyTier;
+    /** @deprecated Use tier instead. Kept for transition period. */
     difficulty?: 'easy' | 'medium' | 'hard';
     injectedSignal?: boolean;       // True if solvability signal was injected post-generation
     signalConfig?: SignalConfig;     // Signal tuning preferences (variety system hook)
@@ -288,6 +288,7 @@ export interface PresenceEvidence extends BaseEvidence {
     npc: NPCId;
     window: WindowId;
     place: PlaceId;
+    isSelfReported?: boolean; // True if obtained via 'whereabouts' interview (may be a lie)
 }
 
 export interface DeviceLogEvidence extends BaseEvidence {
@@ -362,6 +363,71 @@ export interface SimulationResult {
 }
 
 // ============================================================================
+// CaseBundle (Publish Format)
+// ============================================================================
+
+/** NPC data safe for client consumption (no schedule) */
+export interface WorldSnapshotNPC {
+    id: NPCId;
+    name: string;
+    role: string;
+}
+
+/** World data safe for client consumption (no schedules, no relationships) */
+export interface WorldSnapshot {
+    places: Place[];
+    devices: Device[];
+    items: Item[];
+    npcs: WorldSnapshotNPC[];
+}
+
+/** What the player accuses — maps to ACCUSE command dimensions */
+export interface Solution {
+    who: NPCId;
+    what: CrimeType;
+    when: WindowId;
+    where: PlaceId;
+    how: MethodId;
+    why: MotiveType;
+}
+
+/** Validator report included in bundle as public proof of case quality */
+export interface BundleValidatorReport {
+    solvable: boolean;
+    playable: boolean;
+    signalType: SignalType;
+    signalStrength: SignalStrength;
+    keystoneExists: boolean;
+    estimatedMinAP: number;
+    contradictionCount: number;
+    difficulty: DifficultyTier;
+}
+
+/** Ruleset version constant — bump when simulation logic changes */
+export const RULESET_VERSION = '0.1.0';
+
+/** Published case bundle — safe for client consumption, no spoilers */
+export interface CaseBundle {
+    // Metadata
+    version: string;
+    bundleId: string;
+    rulesetVersion: string;
+    generatedAt: string;
+
+    // Public game data
+    seed: number;
+    tier: DifficultyTier;
+    world: WorldSnapshot;
+    suspects: NPCId[];
+
+    // Validation proof
+    validatorReport: BundleValidatorReport;
+
+    // Solution verification (hash only)
+    solutionHash: string;
+}
+
+// ============================================================================
 // Validation
 // ============================================================================
 
@@ -387,6 +453,68 @@ export interface CaseValidation {
 // ============================================================================
 // Difficulty System (Spec Section 13-14)
 // ============================================================================
+
+export type DifficultyTier = 1 | 2 | 3 | 4;
+
+export interface DifficultyProfile {
+    tier: DifficultyTier;
+    name: string;
+    puzzleDifficulty: 'easy' | 'medium' | 'hard';
+    deviceGaps: 0 | 1 | 2;
+    twistRules: TwistType[];
+    redHerringStrength: number;
+    preferredSignalType: SignalType;
+    targets: {
+        minAP: number; maxAP: number;
+        minContradictions: number; maxContradictions: number;
+        minBranching: number;
+    };
+}
+
+export const DIFFICULTY_PROFILES: Record<DifficultyTier, DifficultyProfile> = {
+    1: {
+        tier: 1, name: 'Tutorial',
+        puzzleDifficulty: 'easy', deviceGaps: 0,
+        twistRules: [] as TwistType[],
+        redHerringStrength: 3,
+        preferredSignalType: 'self_contradiction',
+        targets: { minAP: 4, maxAP: 8, minContradictions: 1, maxContradictions: 3, minBranching: 2 },
+    },
+    2: {
+        tier: 2, name: 'Standard',
+        puzzleDifficulty: 'easy', deviceGaps: 0,
+        twistRules: ['false_alibi', 'unreliable_witness'] as TwistType[],
+        redHerringStrength: 5,
+        preferredSignalType: 'self_contradiction',
+        targets: { minAP: 7, maxAP: 14, minContradictions: 3, maxContradictions: 5, minBranching: 2 },
+    },
+    3: {
+        tier: 3, name: 'Challenging',
+        puzzleDifficulty: 'medium', deviceGaps: 1,
+        twistRules: ['false_alibi', 'unreliable_witness', 'planted_evidence'] as TwistType[],
+        redHerringStrength: 7,
+        preferredSignalType: 'device_contradiction',
+        targets: { minAP: 10, maxAP: 16, minContradictions: 4, maxContradictions: 7, minBranching: 3 },
+    },
+    4: {
+        tier: 4, name: 'Expert',
+        puzzleDifficulty: 'hard', deviceGaps: 2,
+        twistRules: ['false_alibi', 'unreliable_witness', 'tampered_device', 'planted_evidence', 'accomplice'] as TwistType[],
+        redHerringStrength: 9,
+        preferredSignalType: 'scene_presence',
+        targets: { minAP: 12, maxAP: 18, minContradictions: 5, maxContradictions: 8, minBranching: 3 },
+    },
+};
+
+export function profileToDifficultyConfig(profile: DifficultyProfile): DifficultyConfig {
+    return {
+        tier: profile.tier,
+        suspectCount: 5,
+        windowCount: 6,
+        twistRules: profile.twistRules,
+        redHerringStrength: profile.redHerringStrength,
+    };
+}
 
 export interface DifficultyConfig {
     tier: 1 | 2 | 3 | 4;
@@ -458,9 +586,6 @@ export const DIFFICULTY_TIER_TARGETS: Record<number, {
     minContradictions: number;
     maxContradictions: number;
     minBranching: number;
-}> = {
-    1: { minAP: 4, maxAP: 8, minContradictions: 1, maxContradictions: 3, minBranching: 2 },
-    2: { minAP: 7, maxAP: 14, minContradictions: 3, maxContradictions: 5, minBranching: 2 },
-    3: { minAP: 10, maxAP: 16, minContradictions: 4, maxContradictions: 7, minBranching: 3 },
-    4: { minAP: 12, maxAP: 18, minContradictions: 5, maxContradictions: 8, minBranching: 3 },
-}
+}> = Object.fromEntries(
+    Object.values(DIFFICULTY_PROFILES).map(p => [p.tier, p.targets])
+) as Record<number, typeof DIFFICULTY_PROFILES[1]['targets']>;

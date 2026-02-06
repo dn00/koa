@@ -1,6 +1,6 @@
 # Task 005: Wire Signal Preference into generateValidatedCase
 
-**Status:** backlog
+**Status:** done
 **Complexity:** S
 **Depends On:** 001
 **Implements:** R5.1, R5.2
@@ -151,7 +151,11 @@ export function generateValidatedCase(
 **Decisions:** Best-effort preference only. No forced injection for type mismatch.
 
 ### Implementation Notes
-> Written by Implementer
+- Added auto-derivation in `generateValidatedCase()`: if `!options.signalConfig`, derives `{ preferredType: profile.preferredSignalType }` from tier profile
+- Uses `if (!options.signalConfig)` guard — respects caller's explicit config (even if only `minStrength` is set)
+- Updated `tuning-hooks.test.ts` backward-compat test: `signalConfig` is now auto-derived (not undefined) by default
+- 6 tests in `tests/difficulty-signal.test.ts` — all pass
+- Gemini review: PASS
 
 ### Review Notes
 > Written by Reviewer

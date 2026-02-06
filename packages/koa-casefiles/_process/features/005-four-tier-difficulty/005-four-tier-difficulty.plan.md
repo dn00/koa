@@ -1,7 +1,7 @@
  Plan: Four-Tier Difficulty System (Feature 005)        
 
  Discovery: ../../packages/koa-casefiles/_process/features/005-four-tier-difficulty/notes.md
- Status: ready
+ Status: done
 
  ---
  Retrospective from Feature 001
@@ -173,17 +173,17 @@
  ┌─────┬───────────────────────────────────────────────────┬────────────┬─────────┐
  │ ID  │                       Name                        │ Complexity │ Status  │
  ├─────┼───────────────────────────────────────────────────┼────────────┼─────────┤
- │ 001 │ DifficultyProfile type & mapping table            │ S          │ ready   │
+ │ 001 │ DifficultyProfile type & mapping table            │ S          │ done    │
  ├─────┼───────────────────────────────────────────────────┼────────────┼─────────┤
- │ 002 │ Wire profiles into simulate() pipeline            │ M          │ backlog │
+ │ 002 │ Wire profiles into simulate() pipeline            │ M          │ done    │
  ├─────┼───────────────────────────────────────────────────┼────────────┼─────────┤
  │ 003 │ ~~Migrate CaseDirector to 4-tier numeric~~        │ ~~M~~      │ dropped │
  ├─────┼───────────────────────────────────────────────────┼────────────┼─────────┤
- │ 004 │ Update CLI and game.ts parsers                    │ S          │ backlog │
+ │ 004 │ Update CLI and game.ts parsers                    │ S          │ done    │
  ├─────┼───────────────────────────────────────────────────┼────────────┼─────────┤
- │ 005 │ Wire signal preference into generateValidatedCase │ S          │ backlog │
+ │ 005 │ Wire signal preference into generateValidatedCase │ S          │ done    │
  ├─────┼───────────────────────────────────────────────────┼────────────┼─────────┤
- │ 006 │ Regression & batch validation                     │ M          │ backlog │
+ │ 006 │ Regression & batch validation                     │ M          │ done    │
  └─────┴───────────────────────────────────────────────────┴────────────┴─────────┘
  ---
  Task Details

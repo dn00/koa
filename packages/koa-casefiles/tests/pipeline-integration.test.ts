@@ -83,12 +83,12 @@ describe('AC-3: Evidence re-derived after injection', () => {
 // ---------------------------------------------------------------------------
 
 describe('AC-4: Solvability rate ≥95%', () => {
-  test('easy difficulty achieves ≥95% solvability over 30 seeds', () => {
+  test('tier 1 achieves ≥95% solvability over 30 seeds', () => {
     let solvable = 0;
     let total = 0;
 
     for (let seed = 1; seed <= 30; seed++) {
-      const result = generateValidatedCase(seed, 2, { difficulty: 'easy' });
+      const result = generateValidatedCase(seed, 1);
       if (result) {
         total++;
         const signal = analyzeSignal(result.evidence, result.sim.config);
@@ -102,12 +102,12 @@ describe('AC-4: Solvability rate ≥95%', () => {
     }
   });
 
-  test('medium difficulty achieves ≥95% solvability over 30 seeds', () => {
+  test('tier 3 achieves ≥95% solvability over 30 seeds', () => {
     let solvable = 0;
     let total = 0;
 
     for (let seed = 1; seed <= 30; seed++) {
-      const result = generateValidatedCase(seed, 2, { difficulty: 'medium' });
+      const result = generateValidatedCase(seed, 3);
       if (result) {
         total++;
         const signal = analyzeSignal(result.evidence, result.sim.config);
@@ -120,12 +120,12 @@ describe('AC-4: Solvability rate ≥95%', () => {
     }
   });
 
-  test('hard difficulty achieves ≥95% solvability over 30 seeds', () => {
+  test('tier 4 achieves ≥95% solvability over 30 seeds', () => {
     let solvable = 0;
     let total = 0;
 
     for (let seed = 1; seed <= 30; seed++) {
-      const result = generateValidatedCase(seed, 2, { difficulty: 'hard' });
+      const result = generateValidatedCase(seed, 4);
       if (result) {
         total++;
         const signal = analyzeSignal(result.evidence, result.sim.config);
