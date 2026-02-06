@@ -1,6 +1,6 @@
 # Task 010: ActiveDoubts + Targeted VERIFY
 
-**Status:** backlog
+**Status:** done
 **Complexity:** M
 **Depends On:** 006, 007, 008
 **Implements:** R7.3, R7.4, R7.5, R7.6
@@ -165,3 +165,9 @@ doubtDecayTicks: num('PARANOIA_DOUBT_DECAY_TICKS', 100),
 
 ### Planning Notes
 **Context:** This transforms VERIFY from maintenance button to tactical tool. The key insight: VERIFY is most valuable right after a backfire, creating a meaningful decision about when to spend the cooldown.
+
+### Implementation Notes
+**Files created:** `tests/010-active-doubts-verify.test.ts`
+**Files modified:** `src/kernel/systems/backfire.ts` (doubt creation after all 3 backfire types + `decayDoubts`), `src/kernel/commands.ts` (VERIFY detects active doubts, sets `verifyDoubtDrop`/`verifyIdleDrop`), `src/kernel/kernel.ts` (doubt resolution in VERIFY_TRUST handler + `decayDoubts` in tick loop), `src/config.ts` (3 new config values)
+**Tests:** 8 test blocks (5 AC + 3 EC), 8 individual tests
+**Note:** VERIFY suspicionDrop no longer uses effectMultiplier — doubt gives fixed -6, idle gives fixed -1. tamperDrop still penalized by recent tampering.

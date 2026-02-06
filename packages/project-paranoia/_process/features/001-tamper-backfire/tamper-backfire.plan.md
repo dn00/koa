@@ -2,7 +2,7 @@
 
 **Discovery:** `_process/features/001-tamper-backfire/discovery.md`
 **Design Doc:** `TAMPER_BACKFIRE_DESIGN.md`
-**Status:** ready
+**Status:** done
 
 ---
 
@@ -145,9 +145,9 @@ Decompose the 1549-line kernel.ts into focused system files, then implement the 
 | 007 | SPOOF backfire | M | done | 3 |
 | 008 | FABRICATE backfire | M | done | 3 |
 | 009 | Suspicion ledger wiring | S | done | 2 |
-| 010 | ActiveDoubts + targeted VERIFY | M | backlog | 4 |
+| 010 | ActiveDoubts + targeted VERIFY | M | done | 4 |
 | 011 | Coming clean (UNSUPPRESS/ALERT) | S | done | 3 |
-| 012 | Ledger + backfire display in STATUS | S | backlog | 4 |
+| 012 | Ledger + backfire display in STATUS | S | done | 4 |
 
 ---
 
@@ -221,3 +221,11 @@ Implementation quality is **good**. All four tasks are correctly implemented:
 - makeReading correctly left in kernel.ts
 - Types match design doc exactly
 - kernel.ts reduced by ~51%
+
+### Integration Audit: 2026-02-05
+
+**Reviewer:** Gemini
+**Verdict:** PASS
+
+All 12 tasks across 4 batches verified. 111 tests passing, 0 type errors, 0 issues.
+Requirements R1–R9 fully covered. Cross-task data flows (backfire → doubt → VERIFY → ledger) confirmed working.

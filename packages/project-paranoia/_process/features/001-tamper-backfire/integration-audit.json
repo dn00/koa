@@ -1,0 +1,115 @@
+{
+  "feature": "001-tamper-backfire",
+  "audit_date": "2026-02-05",
+  "auditor": "Claude (Integration Audit)",
+  "verdict": "PASS",
+  "files_reviewed": [
+    "src/kernel/systems/backfire.ts",
+    "src/kernel/systems/beliefs.ts",
+    "src/kernel/systems/crew.ts",
+    "src/kernel/systems/physics.ts",
+    "src/kernel/kernel.ts",
+    "src/kernel/commands.ts",
+    "src/kernel/perception.ts",
+    "src/kernel/types.ts",
+    "src/kernel/state.ts",
+    "src/kernel/utils.ts",
+    "src/kernel/proposals.ts",
+    "src/config.ts",
+    "src/index.ts",
+    "tests/001-crew-system.test.ts",
+    "tests/002-beliefs-system.test.ts",
+    "tests/003-physics-system.test.ts",
+    "tests/004-tamperop-types.test.ts",
+    "tests/006-suppress-backfire.test.ts",
+    "tests/007-spoof-backfire.test.ts",
+    "tests/008-fabricate-backfire.test.ts",
+    "tests/010-active-doubts-verify.test.ts",
+    "tests/011-coming-clean.test.ts",
+    "tests/012-ledger-display.test.ts",
+    "tests/suspicion-ledger.test.ts",
+    "tests/tamperOp-creation.test.ts"
+  ],
+  "tests_run": {
+    "passed": 111,
+    "failed": 0
+  },
+  "type_check": {
+    "errors": 0,
+    "notes": "Clean — zero errors"
+  },
+  "integration_checks": {
+    "module_connections": "pass",
+    "type_compatibility": "pass",
+    "error_handling": "pass",
+    "no_circular_deps": "pass",
+    "e2e_verification": "pass"
+  },
+  "e2e_details": {
+    "entry_point": "CLI via src/index.ts",
+    "app_starts": true,
+    "feature_accessible": true,
+    "full_flow_works": true,
+    "verified_flows": [
+      "SUPPRESS → TamperOp creation → checkSuppressBackfire → ActiveDoubt → VERIFY resolves",
+      "SPOOF → TamperOp creation → checkSpoofBackfire → cry-wolf escalation → ActiveDoubt → VERIFY resolves",
+      "FABRICATE → TamperOp creation → checkFabricateBackfire → alibi check → ActiveDoubt → VERIFY resolves",
+      "ALERT → handleAlert → CONFESSED status + early/late penalty",
+      "suspicionLedger → applySuspicionChange writes → formatLedgerEntries reads → STATUS displays",
+      "Day recap → formatDayRecap triggered on day transition in index.ts",
+      "Active doubts → formatActiveDoubtsDisplay shown in STATUS",
+      "decayDoubts removes unresolved doubts after 100 ticks",
+      "cleanupTamperOps prunes resolved/backfired ops older than 240 ticks"
+    ]
+  },
+  "cross_task_data_flows": [
+    {
+      "flow": "TamperOp lifecycle (Tasks 005 → 006/007/008 → 010)",
+      "status": "pass",
+      "detail": "kernel.ts creates TamperOps on TAMPER_* events. backfire.ts reads PENDING ops, checks conditions, sets BACKFIRED status and creates ActiveDoubts. VERIFY in commands.ts resolves doubts and related ops."
+    },
+    {
+      "flow": "Suspicion ledger (Tasks 009 → 006/007/008 → 012)",
+      "status": "pass",
+      "detail": "applySuspicionChange in beliefs.ts writes to ledger with reason+detail. All backfire functions call it with specific reasons (SUPPRESS_BACKFIRE, SPOOF_BACKFIRE, FABRICATE_BACKFIRE). perception.ts formatLedgerEntries renders last N entries. index.ts shows in STATUS."
+    },
+    {
+      "flow": "Coming clean (Task 011 → 005)",
+      "status": "pass",
+      "detail": "ALERT command in commands.ts calls handleAlert from backfire.ts. Finds matching SUPPRESS op by system+PENDING status. Sets CONFESSED, removes suppression, applies early/late penalty."
+    },
+    {
+      "flow": "Kernel decomposition (Tasks 001-003) → all subsequent tasks",
+      "status": "pass",
+      "detail": "kernel.ts is thin orchestrator (837 lines). Calls checkSuppressBackfire, checkSpoofBackfire, checkFabricateBackfire, decayDoubts in tick loop. No logic duplication between kernel and extracted systems."
+    }
+  ],
+  "import_graph": {
+    "kernel.ts": ["config", "core/*", "types", "proposals", "commands", "systems/comms", "systems/arcs", "systems/crew", "systems/physics", "systems/beliefs", "systems/backfire", "utils"],
+    "commands.ts": ["config", "types", "core/types", "proposals", "systems/backfire"],
+    "backfire.ts": ["config", "types", "core/types", "systems/beliefs", "utils"],
+    "beliefs.ts": ["config", "types", "core/types", "utils", "systems/comms"],
+    "crew.ts": ["config", "core/rng", "core/world", "types", "core/types", "proposals", "systems/beliefs"],
+    "physics.ts": ["config", "types"],
+    "perception.ts": ["config", "core/types", "types"],
+    "state.ts": ["types", "core/types"],
+    "circular_dependencies": "none"
+  },
+  "requirements_coverage": {
+    "R1_kernel_decomposition": "pass — kernel.ts reduced from 1549 to 837 lines; crew.ts (489), beliefs.ts (262), physics.ts (71) extracted",
+    "R2_tamperop_lifecycle": "pass — TamperOp type defined, PerceptionState extended, ops created on all 3 tamper commands",
+    "R3_suppress_backfire": "pass — checkSuppressBackfire runs each tick, contradiction check, spike formula with injury/death bonuses, cap at 18",
+    "R4_spoof_backfire": "pass — window expiry check, crew response tracking, cry-wolf escalation (6/9/12), trust impact -0.04",
+    "R5_fabricate_backfire": "pass — alibi check (recent sighting + working room + witnesses), spike formula, target trust -0.3 and evidence +20",
+    "R6_suspicion_ledger": "pass — SuspicionLedgerEntry type, ledger in PerceptionState, all applySuspicionChange calls write reason+detail, cap at 100",
+    "R7_active_doubts_verify": "pass — ActiveDoubt type, doubts created on all 3 backfire types, targeted VERIFY -6 vs idle -1, decay at 100 ticks",
+    "R8_coming_clean": "pass — ALERT command type, early confession (≤15 ticks) +2, late confession +6, op status CONFESSED",
+    "R9_ledger_display": "pass — STATUS shows last 5 ledger entries and active doubts, day recap shows net change and top increases/decreases"
+  },
+  "gaps_found": [],
+  "security_issues": [],
+  "notes": [
+    "Resolved doubts are never cleaned up (only unresolved doubts decay). Over a 5-day game this produces at most a few dozen small objects — negligible.",
+    "VERIFY resolving a backfired TamperOp to RESOLVED status reduces future cry-wolf counts. This is arguably a desirable strategic effect of VERIFY."
+  ]
+}

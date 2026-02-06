@@ -7,7 +7,7 @@
 
 import { CONFIG } from '../config.js';
 import type { PlaceId, NPCId } from '../core/types.js';
-import type { KernelState, RoomSnapshot, CrewSighting, IntentLabel, CrewTruth } from './types.js';
+import type { KernelState, RoomSnapshot, CrewSighting, IntentLabel, CrewTruth, SuspicionLedgerEntry, ActiveDoubt } from './types.js';
 
 export interface PerceivedStation {
     power: number | null;
@@ -426,19 +426,22 @@ export function getBiometrics(state: KernelState, npcId: NPCId): BiometricReadin
         };
     }
 
-    // Translate stress to heart rate (60-140 range)
+    // Translate stress + hp to heart rate (60-140 range)
     const baseHR = 65;
-    const stressHR = Math.floor(baseHR + (crew.stress * 0.75));
-    const heartRate = crew.stress > 80 ? `${stressHR} BPM (TACHYCARDIA)` : `${stressHR} BPM`;
+    const hpFactor = crew.hp < 80 ? (100 - crew.hp) * 0.3 : 0; // injury raises resting HR
+    const stressHR = Math.floor(baseHR + (crew.stress * 0.75) + hpFactor);
+    const heartRate = crew.stress > 80 || crew.hp < 40
+        ? `${stressHR} BPM (TACHYCARDIA)`
+        : `${stressHR} BPM`;
 
-    // Translate stress to cortisol
+    // Translate stress + hp to cortisol
     let cortisol = 'NOMINAL';
-    if (crew.stress > 70) cortisol = 'CRITICAL';
-    else if (crew.stress > 50) cortisol = 'ELEVATED';
-    else if (crew.stress > 30) cortisol = 'MILD ELEVATION';
+    if (crew.stress > 70 || crew.hp < 30) cortisol = 'CRITICAL';
+    else if (crew.stress > 50 || crew.hp < 60) cortisol = 'ELEVATED';
+    else if (crew.stress > 30 || crew.hp < 80) cortisol = 'MILD ELEVATION';
 
-    // Tremor from high paranoia or stress
-    const tremor = crew.paranoia > 40 || crew.stress > 60;
+    // Tremor from high paranoia, stress, or injury
+    const tremor = crew.paranoia > 40 || crew.stress > 60 || crew.hp < 50;
 
     // Sleep debt from stress accumulation
     let sleepDebt = 'NONE';
@@ -535,4 +538,79 @@ export function formatThreatLine(threat: PerceivedThreat): string {
     }
 
     return `${confidenceIcon} ${threat.system} ${severity}: ${threat.message}`;
+}
+
+// --- Ledger + Doubt display (Task 012) ---
+
+/**
+ * Format recent suspicion ledger entries for STATUS display.
+ * Returns most recent first, up to `count` entries.
+ */
+export function formatLedgerEntries(ledger: SuspicionLedgerEntry[], count: number): string[] {
+    if (ledger.length === 0) return [];
+    const recent = ledger.slice(-count).reverse();
+    return recent.map(e => {
+        const sign = e.delta >= 0 ? '+' : '';
+        const detail = e.detail.length > 60 ? e.detail.slice(0, 57) + '...' : e.detail;
+        return `  T${e.tick}: ${sign}${e.delta} ${e.reason} (${detail})`;
+    });
+}
+
+/**
+ * Format end-of-day suspicion recap.
+ * Shows start/end suspicion, net change, and top increases/decreases.
+ */
+export function formatDayRecap(
+    ledger: SuspicionLedgerEntry[],
+    dayStartTick: number,
+    dayEndTick: number,
+    dayNumber: number,
+    startSuspicion?: number,
+    endSuspicion?: number,
+): string[] {
+    const dayEntries = ledger.filter(e => e.tick >= dayStartTick && e.tick < dayEndTick);
+    if (dayEntries.length === 0) return [];
+
+    const netChange = dayEntries.reduce((sum, e) => sum + e.delta, 0);
+    const sign = netChange >= 0 ? '+' : '';
+
+    const lines: string[] = [];
+    lines.push(`=== DAY ${dayNumber} SUSPICION SUMMARY ===`);
+    if (startSuspicion !== undefined && endSuspicion !== undefined) {
+        lines.push(`Started: ${startSuspicion}  →  Ended: ${endSuspicion}  (${sign}${netChange})`);
+    } else {
+        lines.push(`Net change: ${sign}${netChange}`);
+    }
+
+    const increases = dayEntries.filter(e => e.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 3);
+    if (increases.length > 0) {
+        lines.push('');
+        lines.push('Top increases:');
+        for (const e of increases) {
+            lines.push(`  +${e.delta} ${e.reason} (${e.detail})`);
+        }
+    }
+
+    const decreases = dayEntries.filter(e => e.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 3);
+    if (decreases.length > 0) {
+        lines.push('');
+        lines.push('Top decreases:');
+        for (const e of decreases) {
+            lines.push(`  ${e.delta} ${e.reason} (${e.detail})`);
+        }
+    }
+
+    return lines;
+}
+
+/**
+ * Format active (unresolved) doubts for STATUS display.
+ */
+export function formatActiveDoubtsDisplay(doubts: ActiveDoubt[], currentTick: number): string[] {
+    const active = doubts.filter(d => !d.resolved);
+    if (active.length === 0) return [];
+    return active.map(d => {
+        const age = currentTick - d.createdTick;
+        return `  ? ${d.topic} (${age} ticks ago) — VERIFY to clear`;
+    });
 }

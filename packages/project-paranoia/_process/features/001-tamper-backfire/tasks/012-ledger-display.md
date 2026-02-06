@@ -1,6 +1,6 @@
 # Task 012: Ledger + Backfire Display in STATUS
 
-**Status:** backlog
+**Status:** done
 **Complexity:** S
 **Depends On:** 009, 010
 **Implements:** R9.1, R9.2
@@ -110,3 +110,8 @@ Active doubts:
 
 ### Planning Notes
 **Context:** This is the player-facing payoff for the ledger system. Without visibility, the ledger is just internal bookkeeping. The display makes suspicion transparent and teaches the player the consequences of their actions.
+
+### Implementation Notes
+**Files created:** `tests/012-ledger-display.test.ts`
+**Files modified:** `src/kernel/perception.ts` (3 formatting functions: `formatLedgerEntries`, `formatDayRecap`, `formatActiveDoubtsDisplay`), `src/index.ts` (wired ledger+doubts into statusLine, day recap on day transition with start/end suspicion tracking)
+**Tests:** 6 test blocks (4 AC + 2 EC), 8 individual tests

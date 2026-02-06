@@ -52,6 +52,18 @@ export function checkSuppressBackfire(state: KernelState): void {
         const spike = calculateSuppressSpike(state, op);
         applySuspicionChange(state, spike, 'SUPPRESS_BACKFIRE',
             `Crew witnessed ${system} crisis while alert suppressed`);
+
+        // Create ActiveDoubt (Task 010)
+        state.perception.activeDoubts.push({
+            id: `doubt-${state.truth.tick}-suppress`,
+            topic: `${system} crisis was hidden`,
+            createdTick: state.truth.tick,
+            severity: op.severity,
+            involvedCrew: [...op.crewAffected],
+            relatedOpId: op.id,
+            system,
+            resolved: false,
+        });
     }
 }
 
@@ -144,6 +156,18 @@ export function checkSpoofBackfire(state: KernelState): void {
                 belief.motherReliable = Math.max(0, belief.motherReliable - 0.04);
             }
         }
+
+        // Create ActiveDoubt (Task 010)
+        state.perception.activeDoubts.push({
+            id: `doubt-${state.truth.tick}-spoof`,
+            topic: `False ${system} alarm exposed`,
+            createdTick: state.truth.tick,
+            severity: op.severity,
+            involvedCrew: [...op.crewAffected],
+            relatedOpId: op.id,
+            system,
+            resolved: false,
+        });
     }
 }
 
@@ -197,6 +221,17 @@ export function checkFabricateBackfire(state: KernelState): void {
             applySuspicionChange(state, spike, 'FABRICATE_BACKFIRE',
                 `Frame job against ${target} exposed — alibi confirmed`);
 
+            // Create ActiveDoubt (Task 010)
+            state.perception.activeDoubts.push({
+                id: `doubt-${state.truth.tick}-fabricate`,
+                topic: `Frame job against ${target} exposed`,
+                createdTick: state.truth.tick,
+                severity: op.severity,
+                involvedCrew: [...op.crewAffected],
+                relatedOpId: op.id,
+                resolved: false,
+            });
+
             // Target becomes extremely distrustful
             const targetBelief = state.perception.beliefs[target];
             if (targetBelief) {
@@ -243,6 +278,16 @@ function calculateFabricateSpike(state: KernelState, op: TamperOp): number {
     }
 
     return Math.min(spike, CONFIG.fabricateBackfireCap);
+}
+
+// --- ALERT / Coming Clean (Task 011) ---
+
+// --- Doubt decay (Task 010) ---
+
+export function decayDoubts(state: KernelState): void {
+    state.perception.activeDoubts = state.perception.activeDoubts.filter(
+        d => d.resolved || (state.truth.tick - d.createdTick) < CONFIG.doubtDecayTicks
+    );
 }
 
 // --- ALERT / Coming Clean (Task 011) ---
