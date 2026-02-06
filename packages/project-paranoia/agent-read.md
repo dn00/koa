@@ -43,6 +43,7 @@ node --import tsx src/index.ts --cmd="status" --save=my-game.json
 | `bio` | 0 | Diegetic biometric readings (HR, cortisol, tremor, compliance) |
 | `threats` | 0 | Active threats with confidence indicators (✓ confirmed, ? uncertain, ✗ conflicting) |
 | `audit` | 8 | Check for tampering residue (exposes your manipulations) |
+| `verify` | 5 | Build trust by addressing crew doubts (80-tick cooldown) |
 
 **Physical Actions:**
 | Command | CPU | Description |

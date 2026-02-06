@@ -159,11 +159,13 @@ export interface TruthState {
         phaseHadDilemma: boolean;      // crisis requiring choice (pressure + choice)
         phaseHadCrewAgency: boolean;   // whisper, sabotage, crew action
         phaseHadDeceptionBeat: boolean; // sensor conflict, uncertainty
+        phaseCommsCount: number;       // whispers+incidents emitted this phase (capped)
     };
     rooms: Record<PlaceId, RoomSystemState>;
     doors: Record<DoorId, { locked: boolean }>;
     crew: Record<NPCId, CrewTruth>;
     arcs: ActiveArc[];
+    arcKindCooldowns: Partial<Record<ArcKind, number>>; // kind -> earliest tick it can respawn
     incidents: SocialIncident[];
 }
 

@@ -276,7 +276,7 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
                     },
                 }, ['choice', 'background']));
             } else {
-                // Check for recent tampering (reduces effectiveness)
+                // Check for recent tampering (reduces tamperDrop effectiveness)
                 const recentTamper = state.perception.evidence.filter(ev => {
                     const age = state.truth.tick - ev.tick;
                     return age <= CONFIG.trustRecoveryTamperWindow && ['spoof', 'suppress', 'fabricate'].includes(ev.kind);
@@ -284,21 +284,31 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
                 const hasTampered = recentTamper.length > 0;
                 const effectMultiplier = hasTampered ? CONFIG.verifyTamperPenalty : 1;
 
+                // Task 010: Targeted VERIFY — active doubt gives bigger reward
+                const activeDoubt = state.perception.activeDoubts.find(d => !d.resolved);
+
                 proposals.push(makeProposal(state, {
                     type: 'SYSTEM_ACTION',
                     actor: 'PLAYER',
                     data: {
                         action: 'VERIFY_TRUST',
-                        suspicionDrop: CONFIG.verifySuspicionDrop * effectMultiplier,
+                        suspicionDrop: activeDoubt ? CONFIG.verifyDoubtDrop : CONFIG.verifyIdleDrop,
                         tamperDrop: CONFIG.verifyTamperDrop * effectMultiplier,
                         powerCost: CONFIG.verifyCpuCost,
                         hasTampered,
+                        hasDoubt: !!activeDoubt,
+                        doubtId: activeDoubt?.id,
                     },
                 }, ['choice', 'consequence', 'background']));
 
-                const message = hasTampered
-                    ? `VERIFY: Cross-referencing telemetry... Partial integrity confirmed. [ANOMALIES DETECTED - reduced trust gain]`
-                    : `VERIFY: Cross-referencing telemetry... Full integrity confirmed. Crew notified.`;
+                let message: string;
+                if (activeDoubt) {
+                    message = `VERIFY: Addressing crew concern — "${activeDoubt.topic}". Evidence cross-referenced. Doubt cleared.`;
+                } else if (hasTampered) {
+                    message = `VERIFY: Cross-referencing telemetry... Partial integrity confirmed. [ANOMALIES DETECTED - reduced trust gain]`;
+                } else {
+                    message = `VERIFY: Cross-referencing telemetry... Full integrity confirmed. Crew notified.`;
+                }
 
                 proposals.push(makeProposal(state, {
                     type: 'SENSOR_READING',

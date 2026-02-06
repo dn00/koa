@@ -7,10 +7,11 @@ import { makeProposal } from './proposals.js';
 import { proposeCommandEvents, type Command } from './commands.js';
 import { proposeCommsEvents } from './systems/comms.js';
 import { proposeArcEvents } from './systems/arcs.js';
+import { maybeActivatePressure } from './systems/pressure.js';
 import { proposeCrewEvents } from './systems/crew.js';
 import { decayTamper, tickSystems, tickPassiveObservation } from './systems/physics.js';
 import { applySuspicionChange, updateBeliefs } from './systems/beliefs.js';
-import { checkSuppressBackfire, checkSpoofBackfire, checkFabricateBackfire } from './systems/backfire.js';
+import { checkSuppressBackfire, checkSpoofBackfire, checkFabricateBackfire, decayDoubts } from './systems/backfire.js';
 import { clamp } from './utils.js';
 
 export type { Command } from './commands.js';
@@ -37,6 +38,7 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
         state.truth.pacing.phaseHadDilemma = false;
         state.truth.pacing.phaseHadCrewAgency = false;
         state.truth.pacing.phaseHadDeceptionBeat = false;
+        state.truth.pacing.phaseCommsCount = 0;
     }
 
     if (state.truth.tick > 0 && state.truth.tick % TICKS_PER_DAY === 0) {
@@ -95,6 +97,7 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
     checkSpoofBackfire(state);
     checkFabricateBackfire(state);
     cleanupTamperOps(state);
+    decayDoubts(state);
 
     // Failure checks
     const engineering = state.truth.rooms['engineering'];
@@ -123,6 +126,9 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
         commandEvents.push(commitEvent(state, p.event));
     }
 
+    // Pressure routing: suspicion-aware activation before proposal generation
+    const pressureProposals = maybeActivatePressure(state, rng);
+
     const truthProposals: Proposal[] = [];
     truthProposals.push(...proposePhaseTransitions(state, previousWindow));
     truthProposals.push(...proposeCrewEvents(state, rng));
@@ -134,6 +140,7 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
         ...proposePerceptionEvents(state, rng),
         ...proposeCommsEvents(state, rng),
         ...arcProposals.perception,
+        ...pressureProposals,
     ];
 
     const combined: ChannelProposal[] = [
@@ -229,8 +236,24 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 truth.station.power = Math.max(0, truth.station.power - powerCost);
                 truth.lastVerifyTick = truth.tick;
 
+                // Task 010: Resolve active doubt if targeting one
+                const hasDoubt = Boolean(event.data?.hasDoubt);
+                const doubtId = event.data?.doubtId as string | undefined;
+                let verifyDetail = 'Cross-referenced telemetry';
+                if (hasDoubt && doubtId) {
+                    const doubt = perception.activeDoubts.find(d => d.id === doubtId);
+                    if (doubt) {
+                        doubt.resolved = true;
+                        verifyDetail = `Cleared doubt: ${doubt.topic}`;
+                        if (doubt.relatedOpId) {
+                            const relatedOp = perception.tamperOps.find(o => o.id === doubt.relatedOpId);
+                            if (relatedOp) relatedOp.status = 'RESOLVED';
+                        }
+                    }
+                }
+
                 // Apply suspicion reduction to all crew
-                applySuspicionChange(state, suspicionDrop, 'VERIFY_TRUST', 'Cross-referenced telemetry');
+                applySuspicionChange(state, suspicionDrop, 'VERIFY_TRUST', verifyDetail);
 
                 // Also reduce tamperEvidence directly
                 for (const npc of Object.values(truth.crew)) {
@@ -569,6 +592,15 @@ function applyEvent(state: KernelState, event: SimEvent) {
         }
         default:
             break;
+    }
+
+    // Deferred side effects from pressure proposals — only applied when event is committed
+    if (event.data?.pressureDoubt) {
+        perception.activeDoubts.push(event.data.pressureDoubt as any);
+    }
+    if (event.data?.pressureSuspicion) {
+        const ps = event.data.pressureSuspicion as { delta: number; reason: string; detail: string };
+        applySuspicionChange(state, ps.delta, ps.reason, ps.detail);
     }
 }
 

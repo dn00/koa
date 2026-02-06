@@ -6,11 +6,9 @@
 
 ## Current Phase
 
-**V1 Complete. V2 in planning.**
+**V2 Features 1-2 complete. Feature 3 remaining.**
 
-V1 delivers the core loop (propose/score/commit, event-driven suspicion, pacing arbiter, 2-meter UI, crew investigation, VERIFY counterplay). All balanced and working.
-
-V2 completes the game as described in CORE_FANTASY.md by filling three design gaps — lies exposed by reality (not just investigation), suspicion-aware pressure shifting, and proactive honest communication with mechanical cost. After V2, all three CORE_FANTASY pillars are fully wired and the choice architecture is complete.
+V1 delivers the core loop. V2 completes the game by filling three design gaps. Gap 1 (Tamper Backfire) is fully implemented — lies are exposed by reality, VERIFY targets specific doubts, and every suspicion change is logged and visible to the player. Gap 2 (Director Pressure Mix) is fully implemented — director routes pressure through physical/social/epistemic channels weighted by crew suspicion. Gap 3 remains.
 
 ---
 
@@ -41,16 +39,16 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 
 | # | Feature | Design Doc | Status | Fills Gap |
 |---|---------|------------|--------|-----------|
-| 1 | **Tamper Backfire** | `TAMPER_BACKFIRE_DESIGN.md` | Planning | Gap 1 |
-| 2 | **Director Pressure Mix** | `DIRECTOR_PRESSURE_MIX.md` | Not started | Gap 2 |
-| 3 | **Announce/Downplay Verb** | Not yet designed | Not started | Gap 3 |
+| 1 | **Tamper Backfire** | `TAMPER_BACKFIRE_DESIGN.md` | **Done** | Gap 1 |
+| 2 | **Director Pressure Mix** | `DIRECTOR_PRESSURE_MIX.md` | **Done** | Gap 2 |
+| 3 | **Announce/Downplay Verb** | `CORE_FANTASY.md` Choice Architecture | **Planned** | Gap 3 |
 
 ### Polish (After core V2)
 
 | Feature | Priority | Description |
 |---------|----------|-------------|
 | Player Visibility Gaps | High | Path blockage display, quota tracker, recovery ETA |
-| Suspicion Ledger UI | High | End-of-day recap, STATUS command shows recent changes |
+| ~~Suspicion Ledger UI~~ | ~~High~~ | ~~End-of-day recap, STATUS command shows recent changes~~ (Done — delivered in 001-tamper-backfire Task 012) |
 | Forensics/Replay | Medium | Post-game truth vs perception timeline reveal |
 | Win Condition Polish | Medium | Victory/defeat screens, ending types, score breakdown |
 | Dead Code Cleanup | Low | Remove legacy `src/engine/`, delete commented-out code |
@@ -99,16 +97,16 @@ The V1 implementation faithfully delivers the core loop from the design docs (pa
 
 ---
 
-## Active Features
+## Completed Features
 
 ### 001-tamper-backfire
-**Status:** in-progress (Batches 1-3 done, Batch 4 remaining)
+**Status:** done (Integration audit PASS)
 **Plan:** `_process/features/001-tamper-backfire/tamper-backfire.plan.md`
 
 12 tasks in 4 batches:
 - **Batch 1** (done): 001 extract crew, 002 extract beliefs, 003 extract physics, 004 types
 - **Batch 2** (done): 005 tamperOp creation, 009 suspicion ledger
 - **Batch 3** (done): 006 SUPPRESS backfire, 007 SPOOF backfire, 008 FABRICATE backfire, 011 coming clean
-- **Batch 4** (ready): 010 ActiveDoubts + VERIFY, 012 ledger display
+- **Batch 4** (done): 010 ActiveDoubts + VERIFY, 012 ledger display
 
-**Progress:** 10/12 tasks done, 95 tests passing, 0 type errors
+**Progress:** 12/12 tasks done, 111 tests passing, 0 type errors

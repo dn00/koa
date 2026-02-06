@@ -17,9 +17,15 @@ export function proposeCommsEvents(state: KernelState, rng: RNG): Proposal[] {
     const truth = state.truth;
     if (truth.phase !== 'evening') return proposals;
 
-    maybeStartIncident(state, rng);
-    proposals.push(...advanceIncidents(state));
+    // Cap comms messages per phase to avoid evening whisper firehose
+    if (truth.pacing.phaseCommsCount >= CONFIG.maxCommsPerPhase) return proposals;
 
+    maybeStartIncident(state, rng);
+    const incidentProposals = advanceIncidents(state);
+    proposals.push(...incidentProposals);
+    truth.pacing.phaseCommsCount += incidentProposals.length;
+
+    if (truth.pacing.phaseCommsCount >= CONFIG.maxCommsPerPhase) return proposals;
     if (truth.tick % CONFIG.whisperInterval !== 0) return proposals;
 
     const roomCrew: Array<[PlaceId, NPCId[]]> = [];
@@ -61,6 +67,7 @@ export function proposeCommsEvents(state: KernelState, rng: RNG): Proposal[] {
             }),
         },
     }, ['uncertainty', 'reaction', 'choice']));
+    truth.pacing.phaseCommsCount += 1;
 
     return proposals;
 }

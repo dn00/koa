@@ -335,7 +335,7 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
             rng.next() * 100 < CONFIG.crewInvestigationChance &&
             (npc.place === 'bridge' || npc.place === 'core'); // Can only investigate at terminals
 
-        if (canInvestigate && shouldInvestigate) {
+        if (canInvestigate && shouldInvestigate && truth.pacing.phaseCommsCount < CONFIG.maxCommsPerPhase) {
             // Check recent evidence for tampering
             const recentEvidence = state.perception.evidence.filter(ev => {
                 const age = truth.tick - ev.tick;
@@ -400,6 +400,7 @@ export function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
                 }, ['consequence', 'background']));
             }
             npc.nextRoleTick = truth.tick + CONFIG.crewInvestigationCooldown;
+            truth.pacing.phaseCommsCount += 1;
         }
 
         // Movement

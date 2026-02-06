@@ -14,6 +14,7 @@ export const CONFIG = {
     maxPerceptionEventsPerTick: num('PARANOIA_MAX_PERCEPTION_EVENTS', 2),
     threatActivationChance: num('PARANOIA_THREAT_ACTIVATION_CHANCE', 1), // % per tick after cooldown
     threatActivationCooldown: num('PARANOIA_THREAT_COOLDOWN', 70), // ticks - frequent crises for challenge
+    arcKindRespawnCooldown: num('PARANOIA_ARC_KIND_RESPAWN_COOLDOWN', 200), // ticks before same arc kind can spawn again
     boredomThreshold: num('PARANOIA_BOREDOM_THRESHOLD', 15), // tolerate lots of quiet
     tensionThreshold: num('PARANOIA_TENSION_THRESHOLD', 5),
 
@@ -40,6 +41,7 @@ export const CONFIG = {
 
     // Comms + rumors
     whisperInterval: num('PARANOIA_WHISPER_INTERVAL', 8),
+    maxCommsPerPhase: num('PARANOIA_MAX_COMMS_PER_PHASE', 6), // cap whispers+incidents per evening phase
     whisperTrustImpact: num('PARANOIA_WHISPER_TRUST_IMPACT', 6),
     whisperGrudgeImpact: num('PARANOIA_WHISPER_GRUDGE_IMPACT', 4),
     rumorDecay: num('PARANOIA_RUMOR_DECAY', 0.02),
@@ -141,7 +143,7 @@ export const CONFIG = {
     // Work + economy - FORGIVING so social layer is the challenge
     yieldInterval: num('PARANOIA_YIELD_INTERVAL', 12),
     quotaPerDay: num('PARANOIA_QUOTA_PER_DAY', 8), // lowered from 10
-    winDays: num('PARANOIA_WIN_DAYS', 5), // survive this many days to win
+    winDays: num('PARANOIA_WIN_DAYS', 3), // survive this many days to win
 
     // Perception + staleness
     roomScanStaleTicks: num('PARANOIA_ROOM_SCAN_STALE', 20),
@@ -176,10 +178,32 @@ export const CONFIG = {
     fabricateBackfireTrustDrop: num('PARANOIA_FABRICATE_BACKFIRE_TRUST', 0.3),
     fabricateBackfireEvidenceGain: num('PARANOIA_FABRICATE_BACKFIRE_EVIDENCE', 20),
 
+    // ActiveDoubts + targeted VERIFY (Task 010)
+    verifyDoubtDrop: num('PARANOIA_VERIFY_DOUBT_DROP', -6),
+    verifyIdleDrop: num('PARANOIA_VERIFY_IDLE_DROP', -1),
+    doubtDecayTicks: num('PARANOIA_DOUBT_DECAY_TICKS', 100),
+
     // ALERT (coming clean) tuning
     alertEarlyWindow: num('PARANOIA_ALERT_EARLY_WINDOW', 15),
     alertEarlySuspicion: num('PARANOIA_ALERT_EARLY_SUSPICION', 2),
     alertLateSuspicion: num('PARANOIA_ALERT_LATE_SUSPICION', 6),
+
+    // Pressure channel system (suspicion-weighted activation routing)
+    suspicionBandLow: num('PARANOIA_SUSPICION_BAND_LOW', 25),
+    suspicionBandHigh: num('PARANOIA_SUSPICION_BAND_HIGH', 45),
+
+    // Channel weights per band (integers 0-100, normalized at runtime)
+    pressureLowPhysical: num('PARANOIA_PRESSURE_LOW_PHYSICAL', 60),
+    pressureLowSocial: num('PARANOIA_PRESSURE_LOW_SOCIAL', 10),
+    pressureLowEpistemic: num('PARANOIA_PRESSURE_LOW_EPISTEMIC', 30),
+
+    pressureMidPhysical: num('PARANOIA_PRESSURE_MID_PHYSICAL', 40),
+    pressureMidSocial: num('PARANOIA_PRESSURE_MID_SOCIAL', 30),
+    pressureMidEpistemic: num('PARANOIA_PRESSURE_MID_EPISTEMIC', 30),
+
+    pressureHighPhysical: num('PARANOIA_PRESSURE_HIGH_PHYSICAL', 20),
+    pressureHighSocial: num('PARANOIA_PRESSURE_HIGH_SOCIAL', 40),
+    pressureHighEpistemic: num('PARANOIA_PRESSURE_HIGH_EPISTEMIC', 40),
 
     // Hazard thresholds (for path blocking)
     radiationHazardThreshold: num('PARANOIA_RADIATION_HAZARD', 6),

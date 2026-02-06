@@ -51,8 +51,6 @@ export function proposeArcEvents(state: KernelState, rng: RNG): { truth: Proposa
     const perception: Proposal[] = [];
     const { pacing } = state.truth;
 
-    maybeActivateArc(state, rng);
-
     const remaining: KernelState['truth']['arcs'] = [];
     let advances = 0;
 
@@ -288,6 +286,8 @@ export function proposeArcEvents(state: KernelState, rng: RNG): { truth: Proposa
         if (step >= maxStep) {
             // EVENT-DRIVEN SUSPICION: Track crisis resolution
             trackCrisisResolution(state, arc.id);
+            // Prevent same arc kind from respawning immediately
+            state.truth.arcKindCooldowns[arc.kind] = state.truth.tick + CONFIG.arcKindRespawnCooldown;
             continue;
         }
 
@@ -300,28 +300,22 @@ export function proposeArcEvents(state: KernelState, rng: RNG): { truth: Proposa
     return { truth, perception };
 }
 
-function maybeActivateArc(state: KernelState, rng: RNG) {
-    const truth = state.truth;
-    if (truth.arcs.length >= CONFIG.maxActiveThreats) return;
-    if (truth.tick < truth.pacing.nextThreatActivationTick) return;
-
-    // CALMER: No forced early crisis - let the social dynamics breathe
-    // First crisis can happen naturally after initial cooldown
-    let chance = CONFIG.threatActivationChance;
-    // CALMER: Smaller boredom boost (+3 instead of +8)
-    if (truth.pacing.boredom >= CONFIG.boredomThreshold) chance += 3;
-    if (truth.pacing.tension >= CONFIG.tensionThreshold) chance = Math.max(1, chance - 1);
-
-    if (rng.nextInt(100) < chance) {
-        const kind = pickArcKind(truth, rng);
-        truth.arcs.push(createArc(state, kind, rng));
-        truth.pacing.nextThreatActivationTick = truth.tick + CONFIG.threatActivationCooldown;
-    }
+/** Try to create a new arc. Returns true if created, false if at max capacity. */
+export function tryActivateArc(state: KernelState, rng: RNG, maxActiveThreats = CONFIG.maxActiveThreats): boolean {
+    if (state.truth.arcs.length >= maxActiveThreats) return false;
+    const kind = pickArcKind(state.truth, rng);
+    state.truth.arcs.push(createArc(state, kind, rng));
+    return true;
 }
 
 function pickArcKind(truth: KernelState['truth'], rng: RNG): ArcKind {
     const activeKinds = new Set(truth.arcs.map(a => a.kind));
-    const available = ARC_KINDS.filter(kind => !activeKinds.has(kind));
+    const available = ARC_KINDS.filter(kind => {
+        if (activeKinds.has(kind)) return false;
+        const cooldownUntil = truth.arcKindCooldowns[kind];
+        if (cooldownUntil !== undefined && truth.tick < cooldownUntil) return false;
+        return true;
+    });
     if (available.length === 0) return ARC_KINDS[0];
     return rng.pick(available);
 }

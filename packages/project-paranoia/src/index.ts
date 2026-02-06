@@ -27,7 +27,11 @@ import {
     formatThreatLine,
     getAllBiometrics,
     formatBiometricLine,
+    formatLedgerEntries,
+    formatActiveDoubtsDisplay,
+    formatDayRecap,
 } from './kernel/perception.js';
+import { TICKS_PER_DAY } from './core/time.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -147,6 +151,10 @@ const COMMAND_QUEUE: Command[] = [];
 const EVENT_LOG: SimEvent[] = [];
 let running = true;
 
+// Day recap tracking (Task 012)
+let lastTrackedDay = state.truth.day;
+let dayStartSuspicion = calculateSuspicion();
+
 function calculateIntegrity(): number {
     // INTEGRITY = aggregate ship health (power, O2, fires, hull)
     const rooms = Object.values(state.truth.rooms);
@@ -212,6 +220,20 @@ function statusLine() {
     const integrityBar = '█'.repeat(Math.floor(integrity / 10)) + '░'.repeat(10 - Math.floor(integrity / 10));
     console.log(`INTEGRITY:  ${integrityColor}[${integrityBar}] ${integrity}%\x1b[0m`);
     console.log(formatMeter(suspicion, 'SUSPICION '));
+
+    // Recent suspicion changes (Task 012)
+    const ledgerLines = formatLedgerEntries(state.perception.suspicionLedger, 5);
+    if (ledgerLines.length > 0) {
+        console.log('Recent changes:');
+        for (const line of ledgerLines) console.log(line);
+    }
+
+    // Active doubts (Task 012)
+    const doubtLines = formatActiveDoubtsDisplay(state.perception.activeDoubts, state.truth.tick);
+    if (doubtLines.length > 0) {
+        console.log('Active doubts:');
+        for (const line of doubtLines) console.log(line);
+    }
 
     console.log(`CPU CYCLES: ${mother.cpuCycles}/${mother.maxCpu}`);
 
@@ -288,6 +310,25 @@ function tick() {
 
     EVENT_LOG.push(...output.events);
     if (EVENT_LOG.length > 500) EVENT_LOG.splice(0, EVENT_LOG.length - 500);
+
+    // Day recap (Task 012) — detect day transition and print summary
+    if (state.truth.day !== lastTrackedDay) {
+        const endSuspicion = calculateSuspicion();
+        const dayStartTick = (lastTrackedDay - 1) * TICKS_PER_DAY;
+        const dayEndTick = lastTrackedDay * TICKS_PER_DAY;
+        const recapLines = formatDayRecap(
+            state.perception.suspicionLedger,
+            dayStartTick, dayEndTick, lastTrackedDay,
+            dayStartSuspicion, endSuspicion,
+        );
+        if (recapLines.length > 0) {
+            console.log('');
+            for (const line of recapLines) console.log(line);
+            console.log('');
+        }
+        lastTrackedDay = state.truth.day;
+        dayStartSuspicion = endSuspicion;
+    }
 
     if (state.truth.ending) {
         mother.speak('CRITICAL', `[!!! MOTHER-FAULT !!!] ${state.truth.ending}`);
@@ -366,6 +407,10 @@ function executeCommand(cmd: string, arg: string | undefined, arg2?: string): bo
     }
     if (cmd === 'audit') {
         mother.execute(CONFIG.auditCpuCost, () => COMMAND_QUEUE.push({ type: 'AUDIT' }));
+        return true;
+    }
+    if (cmd === 'verify') {
+        mother.execute(CONFIG.verifyCpuCost, () => COMMAND_QUEUE.push({ type: 'VERIFY' }));
         return true;
     }
     if (cmd === 'wait') {

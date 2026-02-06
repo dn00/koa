@@ -92,11 +92,13 @@ export function createInitialState(world: World, quotaPerDay: number): KernelSta
                 phaseHadDilemma: false,
                 phaseHadCrewAgency: false,
                 phaseHadDeceptionBeat: false,
+                phaseCommsCount: 0,
             },
             rooms,
             doors,
             crew,
             arcs: [],
+            arcKindCooldowns: {},
             incidents: [],
         },
         perception: {
