@@ -1,0 +1,68 @@
+{
+  "feature": "002-director-pressure-mix",
+  "audit_date": "2026-02-05",
+  "verdict": "PASS",
+  "files_reviewed": [
+    "src/kernel/systems/pressure.ts",
+    "src/kernel/systems/arcs.ts",
+    "src/kernel/kernel.ts",
+    "src/config.ts",
+    "src/kernel/types.ts",
+    "src/kernel/state.ts",
+    "src/kernel/proposals.ts",
+    "src/kernel/systems/beliefs.ts",
+    "src/core/rng.ts",
+    "src/index.ts",
+    "tests/pressure-mix.test.ts",
+    "tests/pressure-routing.test.ts",
+    "tests/social-pressure.test.ts",
+    "tests/epistemic-pressure.test.ts",
+    "tests/pressure-integration.test.ts"
+  ],
+  "tests_run": {"passed": 156, "failed": 0},
+  "integration_checks": {
+    "module_connections": "pass",
+    "type_compatibility": "pass",
+    "error_handling": "pass",
+    "no_circular_deps": "pass",
+    "e2e_verification": "pass"
+  },
+  "e2e_details": {
+    "entry_point": "src/index.ts → stepKernel() → maybeActivatePressure()",
+    "app_starts": true,
+    "feature_accessible": true,
+    "full_flow_works": true,
+    "wiring_chain": [
+      "index.ts:288 calls stepKernel(state, commands, rng)",
+      "kernel.ts:10 imports maybeActivatePressure from pressure.ts",
+      "kernel.ts:129 calls maybeActivatePressure(state, rng) before proposal generation",
+      "kernel.ts:142 merges pressureProposals into perceptionProposals",
+      "kernel.ts:150 selectProposals scores and selects (with pacing boosts)",
+      "kernel.ts:158 updatePacing tracks phaseHadCrewAgency, phaseHadDeceptionBeat, phaseHadDilemma",
+      "pressure.ts:88 calculates suspicion via calculateCrewSuspicion",
+      "pressure.ts:89 routes to getPressureMix → pickChannel",
+      "pressure.ts:94-100 dispatches to physical/social/epistemic handlers",
+      "pressure.ts:95 physical → tryActivateArc (exported from arcs.ts:302)",
+      "pressure.ts:97 social → proposeSocialPressure (3 event types)",
+      "pressure.ts:99 epistemic → proposeEpistemicPressure (3 event types)"
+    ]
+  },
+  "module_boundary_checks": {
+    "pressure_to_arcs": "tryActivateArc exported at arcs.ts:302, returns boolean, called at pressure.ts:95. Old maybeActivateArc removed from proposeArcEvents (confirmed: no matches for maybeActivateArc in arcs.ts).",
+    "pressure_to_beliefs": "calculateCrewSuspicion returns 0-100 number, applySuspicionChange called with correct (state, delta, reason, detail) signature.",
+    "pressure_to_proposals": "makeProposal called with (state, event, tags) matching Proposal interface. Social events use ProposalTag[] = ['reaction', 'choice'|'uncertainty']. Epistemic events use ['uncertainty'].",
+    "kernel_to_pressure": "maybeActivatePressure returns Proposal[], merged into perceptionProposals array. Compatible with ChannelProposal mapping at kernel.ts:147.",
+    "config_integration": "11 pressure config params in config.ts (lines 190-204). PressureRoutingConfig extends PressureConfig with existing threatActivation* params. CONFIG cast at pressure.ts:72."
+  },
+  "ac_coverage": {
+    "R1_types_and_config": "5 tasks done. PressureChannel, PressureMix, PressureConfig, PressureRoutingConfig all exported. getPressureMix and pickChannel tested across all bands.",
+    "R2_director_routing": "maybeActivatePressure wired at kernel.ts:129. Cooldown, boredom/tension modifiers, suspicion-aware channel selection all tested.",
+    "R3_social_events": "3 event types (whisper_campaign, loyalty_test, confrontation). All create COMMS_MESSAGE proposals. pickSuspiciousCrew filters correctly. ActiveDoubt created for loyalty_test.",
+    "R4_epistemic_events": "3 event types (sensor_conflict, audit_prompt, doubt_voiced). sensor_conflict creates SENSOR_READING with confidence<0.6. audit_prompt creates severity-2 ActiveDoubt. doubt_voiced applies +2 suspicion.",
+    "R5_pacing_wiring": "Social proposals have 'reaction' tag + NPC actor → phaseHadCrewAgency. Epistemic proposals have 'uncertainty' → phaseHadDeceptionBeat. Arc proposals across steps have 'pressure' + 'choice' → phaseHadDilemma. Statistical distribution verified. 500-tick simulation passes.",
+    "R6_env_config": "All 11 new params use num() with PARANOIA_ prefix. Existing threatActivation* reused."
+  },
+  "gaps_found": [],
+  "security_issues": [],
+  "type_check": "tsc --noEmit passes with 0 errors"
+}
