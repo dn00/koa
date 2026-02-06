@@ -49,7 +49,7 @@ Batch count: [N]
 This feature has only [N] batches.
 Sub-agents are not appropriate for small features.
 Switching to standard implementation mode.
-See: {process}/prompts/IMPLEMENTER-PLAN.md
+See: {process}/v2/prompts/IMPLEMENTER-PLAN.md
 ```
 **Then STOP and follow IMPLEMENTER-PLAN.md instead.**
 

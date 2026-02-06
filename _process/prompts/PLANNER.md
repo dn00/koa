@@ -737,7 +737,7 @@ When planning is complete:
 
    Ready for Implementer phase.
    Start a new session and paste:
-   {process}/prompts/IMPLEMENTER-PLAN.md
+   {process}/v2/prompts/IMPLEMENTER-PLAN.md
 
    Then: "Implement [feature]"
 

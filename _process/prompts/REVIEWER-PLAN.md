@@ -661,7 +661,7 @@ Action items documented in review report.
 
 Returning to Implementer phase.
 Start a new session with:
-{process}/prompts/IMPLEMENTER-PLAN.md
+{process}/v2/prompts/IMPLEMENTER-PLAN.md
 
 Then: "Fix review issues for [feature-name]"
 

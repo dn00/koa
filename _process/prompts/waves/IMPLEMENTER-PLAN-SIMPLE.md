@@ -1,13 +1,13 @@
 # Plan-Level Implementer (Simple)
 
-> You implement a feature plan using batch-based execution. Claude implements, Gemini reviews.
+> You implement a feature plan using batch-based execution. You implement directly, Gemini reviews.
 
 ---
 
 ## Rules
 
 - **DO NOT ask for confirmation** - execute continuously until done or blocked
-- **ONE agent per BATCH** - never one agent per task
+- **DO NOT use subagents for implementation** - implement all code yourself directly
 - **TOKEN EFFICIENCY over max parallelization**
 - **NEVER review your own code** - Gemini reviews
 - **Read plan once** - complexity is in the batch table
@@ -58,68 +58,20 @@ Find the **Batch Analysis** table. It has everything you need:
 
 **If complexity missing:** Types/config = S, Core logic = M
 
-**Count your waves:**
-- Wave 1 = all batches with no blockers
-- Wave 2 = batches blocked by Wave 1
-- etc.
+### 2. Implement Batch
 
-### 2. Spawn Wave Agents
+For each batch (in dependency order), implement ALL tasks in the batch yourself:
 
-For each unblocked batch, spawn ONE agent:
+1. Read all task files for the batch
+2. Count requirements (ACs, ECs, ERRs) for each task
+3. Write tests FIRST
+4. Implement code to make tests pass
+5. Verify: run tests + type checker
+6. Move to review
 
-```
-Task tool:
-  description: "Implement Batch [N] - [task names]"
-  model: [sonnet if S, opus if M]
-  run_in_background: true
-  prompt: |
-    Read: {process}/prompts/waves/IMPLEMENTER-SUBAGENT-TASK.md
+### 3. Review Batch (Gemini)
 
-    Feature: [name]
-    Batch: [N]
-    Tasks: [NNN]-[name], [NNN]-[name]
-    Task files: {process}/features/[feature]/tasks/
-```
-
-**Track your agents:**
-```
-Batch 1: agent_id = [id]
-Batch 2: agent_id = [id]
-```
-
-**Spawn all wave agents in ONE message** (parallel tool calls).
-
-### 3. Wait
-
-Tell user: "Wave [N] running. [X] agents in background."
-
-Stop. User says "continue" when ready.
-
-### 4. Collect Results
-
-`TaskOutput(task_id)` for each agent.
-
-**Expected JSON from each agent:**
-```json
-{
-  "batch": 1,
-  "status": "done",
-  "tasks": [{"id": "001", "tests_pass": true, "tests_required": 8, "tests_found": 8}],
-  "confidence": {"overall": "high", "concerns": []}
-}
-```
-
-**Verify test counts match:**
-```bash
-grep -c "describe.*AC-\|describe.*EC-\|describe.*ERR-" [test-file]
-```
-
-**If status = "done" and all tests pass:** Continue to review
-**If status = "issues":** Resume agent with `Task tool` + `resume: [agent_id]`
-
-### 5. Review Wave (Gemini)
-
-Skip if ALL batches are S-complexity with passing tests.
+Skip if ALL tasks in the batch are S-complexity with passing tests.
 
 ```bash
 gemini -p "$(cat << 'EOF'
@@ -148,31 +100,22 @@ EOF
 - Mark tasks `done` in plan
 - Add `### Implementation Notes` to each task file (files changed, test count)
 - Update `{process}/project/STATUS.md` (task counts, batch progress)
-- Go to Step 6
+- Go to Step 4
 
 **If NEEDS-CHANGES:**
-1. Resume the implementer agent that wrote the code:
-   ```
-   Task tool:
-     resume: [agent_id]
-     prompt: |
-       Review found issues:
-       [paste issues from Gemini]
+1. Fix the issues yourself
+2. Re-run review (Step 3)
 
-       Fix and verify tests pass.
-   ```
-2. After fix, re-run review (Step 5)
-
-### 6. Next Wave
+### 4. Next Batch
 
 If batches remain:
-- Identify newly unblocked batches
+- Identify next batch (dependency order)
 - Go to Step 2
 
 If all done:
-- Run integration audit (Step 7)
+- Run integration audit (Step 5)
 
-### 7. Integration Audit (Gemini)
+### 5. Integration Audit (Gemini)
 
 ```bash
 gemini -p "$(cat << 'EOF'
@@ -191,32 +134,17 @@ EOF
 
 ## Quick Reference
 
-| What | Model | How |
-|------|-------|-----|
-| S-complexity impl | sonnet | Task tool, background |
-| M-complexity impl | opus | Task tool, background |
-| Critical impl | opus | Task tool, background |
-| All reviews | gemini | CLI, synchronous |
-| Fixes | resume original | Task tool with agent_id |
+| What | How |
+|------|-----|
+| All implementation | Do it yourself directly |
+| All reviews | Gemini CLI, synchronous |
 
 ---
 
 ## Troubleshooting
 
-**Agent resume fails:**
-Spawn new agent with same model. Include context in prompt:
-```
-Previous agent couldn't be resumed.
-Batch [N], Tasks: [list]
-Issues to fix: [paste issues]
-```
-
 **Tests keep failing:**
-Check if spec is ambiguous. Add to concerns in confidence field. Continue anyway if minor.
-
-**Agent wants to skip tests:**
-Invalid excuses: "CLI task", "just wiring", "tested indirectly", "hard to test".
-Every AC/EC/ERR needs an explicit test. No exceptions.
+Check if spec is ambiguous. Continue anyway if minor.
 
 **Gemini review times out:**
 Re-run. If persistent, skip review for S-complexity batches.
@@ -231,23 +159,22 @@ Stop and ask user - plan needs restructuring.
 Maintain state as you go:
 
 ```
-## Wave 1
-| Batch | Model | Status | Review |
-|-------|-------|--------|--------|
-| 1 | sonnet | done | skip (S) |
-| 2 | opus | done | PASS |
+## Batch 1
+| Tasks | Status | Review |
+|-------|--------|--------|
+| 001, 002 | done | skip (S) |
 
-## Wave 2
-| Batch | Model | Status | Review |
-|-------|-------|--------|--------|
-| 3 | opus | done | PASS |
+## Batch 2
+| Tasks | Status | Review |
+|-------|--------|--------|
+| 003 | done | PASS |
 ```
 
 ---
 
 ## Before Finishing
 
-- [ ] All waves complete
+- [ ] All batches complete
 - [ ] All tasks marked done in plan
 - [ ] `{process}/project/STATUS.md` updated
 - [ ] Plan status → `needs-review`
