@@ -39,6 +39,8 @@ const DEFAULT_DIFFICULTY: DifficultyConfig = {
 // CLI Argument Parsing
 // ============================================================================
 
+type Difficulty = 'easy' | 'medium' | 'hard';
+
 interface Args {
     generate: number;
     seed?: number;
@@ -50,6 +52,15 @@ interface Args {
     tune: boolean;
     playability: boolean;
     autosolve: boolean;
+    difficulty?: Difficulty;
+}
+
+function parseDifficulty(str: string): Difficulty | undefined {
+    const lower = str.toLowerCase();
+    if (lower === 'easy' || lower === 'e' || lower === '1') return 'easy';
+    if (lower === 'medium' || lower === 'med' || lower === 'm' || lower === '2') return 'medium';
+    if (lower === 'hard' || lower === 'h' || lower === '3') return 'hard';
+    return undefined;
 }
 
 function parseArgs(): Args {
@@ -64,6 +75,7 @@ function parseArgs(): Args {
     let tune = false;
     let playability = false;
     let autosolve = false;
+    let difficulty: Difficulty | undefined;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -88,6 +100,8 @@ function parseArgs(): Args {
             playability = true;
         } else if (arg === '--autosolve' || arg === '-a') {
             autosolve = true;
+        } else if (arg === '--difficulty' || arg === '-d') {
+            difficulty = parseDifficulty(args[++i]);
         } else if (arg === '--help' || arg === '-h') {
             console.log(`
 KOA Casefiles - Case Generation Validator
@@ -101,6 +115,7 @@ Options:
   --verbose, -v        Show detailed output
   --blueprints, -b     Use blueprint system (new incident templates)
   --tier, -t <n>       Difficulty tier 1-4 (default: 2)
+  --difficulty, -d <d> Puzzle difficulty: easy, medium, hard
   --house <id>         House layout: share_house, cramped_apartment, mcmansion
   --cast <id>          NPC cast: roommates, family, coworkers, friends
   --playability, -p    Check playability with current player constraints
@@ -112,7 +127,7 @@ Options:
         }
     }
 
-    return { generate, seed, verbose, useBlueprints, tier, houseId, castId, tune, playability, autosolve };
+    return { generate, seed, verbose, useBlueprints, tier, houseId, castId, tune, playability, autosolve, difficulty };
 }
 
 // ============================================================================
@@ -615,7 +630,7 @@ if (args.tune) {
     runTuner(args.generate, 0, args.useBlueprints, args.tier);
 } else if (args.autosolve) {
     // Automated solver mode - practical playtest
-    autosolve(args.generate, args.seed ?? 1, args.verbose);
+    autosolve(args.generate, args.seed ?? 1, args.verbose, args.difficulty);
 } else if (args.playability) {
     // Playability check mode
     runPlayabilityCheck(args.generate, 0, args.verbose, args.useBlueprints, args.tier);

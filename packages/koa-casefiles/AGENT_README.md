@@ -61,16 +61,25 @@ npx tsx src/game.ts --seed 42 --agent-mode --reset
 
 ## THE ACCUSATION
 
-When ready, run `ACCUSE` and answer all 6 parts:
+When ready, run `ACCUSE` with 3 required parts. Bonus parts are optional:
 
-| Part | What to Answer | How to Discover |
-|------|----------------|-----------------|
-| **WHO** | Which NPC | Eliminate via alibis, contradictions |
-| **WHAT** | theft / sabotage / prank | Physical evidence descriptions |
-| **HOW** | grabbed / smuggled / hid / etc. | Physical evidence details |
-| **WHEN** | W1-W6 | Device logs, testimony |
-| **WHERE** | Which room | Physical evidence location |
-| **WHY** | grudge / jealousy / revenge / etc. | Gossip interviews |
+| Part | What to Answer | How to Discover | Required? |
+|------|----------------|-----------------|-----------|
+| **WHO** | Which NPC | Eliminate via alibis, contradictions | **Yes** |
+| **WHAT** | theft / sabotage / prank | Physical evidence descriptions | **Yes** |
+| **WHEN** | W1-W6 | Device logs, gossip | **Yes** |
+| **HOW** | grabbed / smuggled / broke / etc. | Physical evidence details | Bonus |
+| **WHERE** | Which room | Gossip hints at location | Bonus |
+| **WHY** | revenge / rivalry / attention / etc. | Gossip interviews | Bonus |
+
+**Syntax:**
+```
+ACCUSE <who> <what> <when>                      # minimum (3 parts)
+ACCUSE <who> <what> <when> <how>                # with method bonus
+ACCUSE <who> <what> <when> <how> <where> <why>  # full solve (6 parts)
+```
+
+Optional parts can be in any order after the 3 required parts.
 
 ---
 

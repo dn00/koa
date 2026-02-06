@@ -260,6 +260,13 @@ export interface CaseConfig {
     twist?: TwistRule;              // Optional complexity
     suspiciousActs: SuspiciousAct[]; // Red herring behaviors
     distractedWitnesses?: NPCId[];  // NPCs who were at crime scene but didn't notice
+    /**
+     * Difficulty controls how culprit behaves in testimony:
+     * - 'easy': Culprit lies about location → self-contradiction (obvious liar)
+     * - 'medium': Culprit is vague about location → harder to catch
+     * - 'hard': Culprit tells truth → must use motive/opportunity to solve
+     */
+    difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 // ============================================================================

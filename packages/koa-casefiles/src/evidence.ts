@@ -111,6 +111,11 @@ function derivePresence(
  * Derive device log evidence from DOOR and MOTION events.
  * Door sensors can identify WHO opened them via smart lock integration.
  * Motion sensors only detect presence, not identity.
+ *
+ * Device coverage is controlled by difficulty:
+ * - EASY: Full coverage (all logs available)
+ * - MEDIUM: One device gap in one non-crime window
+ * - HARD: Multiple gaps, sparse coverage (but always solvable)
  */
 function deriveDeviceLogs(
     world: World,
@@ -118,12 +123,21 @@ function deriveDeviceLogs(
     config?: CaseConfig
 ): DeviceLogEvidence[] {
     const evidence: DeviceLogEvidence[] = [];
+    const difficulty = config?.difficulty ?? 'easy';
+
+    // Determine which windows have "offline" devices based on difficulty
+    const offlineWindows = getOfflineWindows(config?.crimeWindow, difficulty);
 
     for (const event of events) {
+        // Skip events in offline windows (device coverage gaps)
+        if (offlineWindows.has(event.window)) {
+            continue;
+        }
+
         if (event.type === 'DOOR_OPENED' || event.type === 'DOOR_CLOSED') {
             const device = world.devices.find(d => d.id === event.target);
             if (device) {
-                // Door sensors identify WHO opened them (smart lock feature)
+                // Door sensors identify WHO opened them via smart lock
                 // Exception: don't directly identify culprit at crime time (anti-anticlimax)
                 const isCrimeEvent = config &&
                     event.actor === config.culpritId &&
@@ -144,7 +158,7 @@ function deriveDeviceLogs(
                     window: event.window,
                     place: event.place ?? device.place,
                     detail,
-                    actor: isCrimeEvent ? undefined : event.actor, // Include actor for non-crime events
+                    actor: isCrimeEvent ? undefined : event.actor,
                     cites: [event.id],
                 });
             }
@@ -161,19 +175,15 @@ function deriveDeviceLogs(
                     window: event.window,
                     place: event.place ?? device.place,
                     detail: 'Motion detected',
-                    // Motion sensors can't identify - they just detect presence
                     cites: [event.id],
                 });
             }
         }
 
         // Camera snapshots - ambiguous descriptions (anti-anticlimax)
-        // Note: We deliberately do NOT store actor to prevent anti-anticlimax violations.
-        // The ambiguous description is all the player gets.
         if (event.type === 'CAMERA_SNAPSHOT') {
             const device = world.devices.find(d => d.id === event.target);
             if (device && event.actor) {
-                // Get ambiguous description of the person
                 const npc = world.npcs.find(n => n.id === event.actor);
                 const description = getCameraDescription(npc, event.data?.carrying as string | undefined);
 
@@ -185,7 +195,6 @@ function deriveDeviceLogs(
                     window: event.window,
                     place: event.place ?? device.place,
                     detail: `Snapshot: ${description}`,
-                    // actor intentionally omitted - camera evidence is ambiguous by design
                     cites: [event.id],
                 });
             }
@@ -193,6 +202,49 @@ function deriveDeviceLogs(
     }
 
     return evidence;
+}
+
+/**
+ * Determine which windows have "offline" devices based on difficulty.
+ * NEVER makes the crime window offline - that would make the case unsolvable.
+ *
+ * - EASY: No offline windows (full coverage)
+ * - MEDIUM: One non-crime window is offline
+ * - HARD: Two non-crime windows are offline (sparse but solvable)
+ */
+function getOfflineWindows(
+    crimeWindow: WindowId | undefined,
+    difficulty: 'easy' | 'medium' | 'hard'
+): Set<WindowId> {
+    const offline = new Set<WindowId>();
+
+    if (difficulty === 'easy' || !crimeWindow) {
+        return offline; // Full coverage
+    }
+
+    const allWindows: WindowId[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
+    const crimeIdx = allWindows.indexOf(crimeWindow);
+
+    // Never offline: crime window and immediately adjacent windows
+    // This ensures the contradiction is always catchable
+    const protectedWindows = new Set<WindowId>([crimeWindow]);
+    if (crimeIdx > 0) protectedWindows.add(allWindows[crimeIdx - 1]);
+    if (crimeIdx < 5) protectedWindows.add(allWindows[crimeIdx + 1]);
+
+    const candidateOffline = allWindows.filter(w => !protectedWindows.has(w));
+
+    if (difficulty === 'medium' && candidateOffline.length >= 1) {
+        // One gap: earliest non-protected window
+        offline.add(candidateOffline[0]);
+    }
+
+    if (difficulty === 'hard' && candidateOffline.length >= 2) {
+        // Two gaps: earliest and latest non-protected windows
+        offline.add(candidateOffline[0]);
+        offline.add(candidateOffline[candidateOffline.length - 1]);
+    }
+
+    return offline;
 }
 
 /**
@@ -1147,16 +1199,20 @@ export function deriveEvidence(
 }
 
 // ============================================================================
-// Culprit's False Alibi Claim (ALWAYS generated for COMPARE to work)
+// Culprit's Alibi Claim (difficulty-controlled)
 // ============================================================================
 
 /**
- * The culprit always claims to be somewhere other than the crime scene.
- * This creates a discoverable contradiction:
- * - Culprit's testimony: "I was in bedroom all night"
- * - Device logs/presence: Shows culprit was at crime scene
+ * Generate culprit's alibi testimony based on difficulty setting.
  *
- * This makes COMPARE actually useful without needing a twist.
+ * Key insight: Keep self-contradiction at ALL difficulties, but change discoverability.
+ *
+ * - EASY: Culprit lies about CRIME WINDOW → direct, obvious contradiction
+ * - MEDIUM: Culprit lies about DIFFERENT WINDOW → contradiction exists but off-axis
+ * - HARD: Culprit lies + sparse device coverage → requires constraint logic
+ *
+ * This teaches players that COMPARE is powerful (easy), then requires them to
+ * localize before they can dunk (medium), then requires synthesis (hard).
  */
 function deriveCulpritAlibiClaim(
     world: World,
@@ -1167,33 +1223,214 @@ function deriveCulpritAlibiClaim(
     const culprit = world.npcs.find(n => n.id === config.culpritId);
     if (!culprit) return evidence;
 
+    const difficulty = config.difficulty ?? 'easy';
+
     // Find a plausible alibi location (not the crime scene or hidden place)
     const alibiLocations = world.places.filter(
         p => p.id !== config.crimePlace && p.id !== config.hiddenPlace
     );
     const alibiPlace = alibiLocations.length > 0 ? alibiLocations[0].id : 'bedroom';
 
-    // Culprit's self-testimony about their "alibi"
+    if (difficulty === 'hard') {
+        // HARD: Culprit lies about crime window (contradiction exists)
+        // BUT there's ONE competing narrative (rotates per case)
+        // AND device coverage is sparse
+        // This requires synthesis, not just contradiction hunting
+
+        // Culprit's lie (keystone - always present, always catchable)
+        evidence.push({
+            id: makeEvidenceId('testimony'),
+            kind: 'testimony',
+            witness: config.culpritId,
+            window: config.crimeWindow,
+            place: alibiPlace,
+            observable: `${culprit.name} claims to have been in ${alibiPlace} during ${config.crimeWindow}`,
+            confidence: 0.7,
+            cites: [],
+        } as TestimonyEvidence);
+
+        evidence.push({
+            id: makeEvidenceId('presence'),
+            kind: 'presence',
+            npc: config.culpritId,
+            window: config.crimeWindow,
+            place: alibiPlace,
+            cites: ['self_reported_alibi'],
+        } as PresenceEvidence);
+
+        // COMPETING NARRATIVE: Rotate type per case (keeps hard mode varied)
+        // Types: MISREMEMBER, LOOKALIKE, TWO_STEP, CONSTRAINT
+        const seed = config.seed ?? 0;
+        const narrativeTypes = ['misremember', 'lookalike', 'two_step', 'constraint'] as const;
+        const narrativeType = narrativeTypes[seed % narrativeTypes.length];
+
+        const innocents = world.npcs.filter(n => n.id !== config.culpritId);
+        const adjacentWindow = getAdjacentWindow(config.crimeWindow, -1) || 'W2';
+
+        if (innocents.length > 0) {
+            const confusedInnocent = innocents[0];
+            const wrongPlace = world.places.find(p => p.id !== alibiPlace && p.id !== config.crimePlace)?.id || 'kitchen';
+
+            switch (narrativeType) {
+                case 'misremember':
+                    // Innocent has uncertain memory (low confidence, ⚠️ flagged)
+                    evidence.push({
+                        id: makeEvidenceId('testimony'),
+                        kind: 'testimony',
+                        witness: confusedInnocent.id,
+                        window: adjacentWindow,
+                        place: wrongPlace,
+                        observable: `⚠️ ${confusedInnocent.name} thinks they were in ${wrongPlace} during ${adjacentWindow}... maybe?`,
+                        confidence: 0.3,
+                        cites: [],
+                    } as TestimonyEvidence);
+                    evidence.push({
+                        id: makeEvidenceId('presence'),
+                        kind: 'presence',
+                        npc: confusedInnocent.id,
+                        window: adjacentWindow,
+                        place: wrongPlace,
+                        cites: ['uncertain_memory'],
+                    } as PresenceEvidence);
+                    break;
+
+                case 'lookalike':
+                    // Identity ambiguity: witness saw "someone tall" at crime scene
+                    // Could match multiple NPCs - player must use other evidence
+                    evidence.push({
+                        id: makeEvidenceId('testimony'),
+                        kind: 'testimony',
+                        witness: confusedInnocent.id,
+                        window: config.crimeWindow,
+                        place: config.crimePlace,
+                        observable: `⚠️ ${confusedInnocent.name} saw someone near ${config.crimePlace} - couldn't tell who`,
+                        confidence: 0.4,
+                        subjectHint: 'ambiguous figure',
+                        cites: [],
+                    } as TestimonyEvidence);
+                    break;
+
+                case 'two_step':
+                    // Setup happened earlier: suspicious activity in prior window
+                    // Red herring - someone was "casing" the scene but didn't do it
+                    const setupWindow = getAdjacentWindow(config.crimeWindow, -1) || 'W2';
+                    evidence.push({
+                        id: makeEvidenceId('testimony'),
+                        kind: 'testimony',
+                        witness: confusedInnocent.id,
+                        window: setupWindow,
+                        place: config.crimePlace,
+                        observable: `⚠️ ${confusedInnocent.name} was seen "checking out" the ${config.crimePlace} earlier`,
+                        confidence: 0.5,
+                        subject: confusedInnocent.id,
+                        subjectPlace: config.crimePlace,
+                        cites: [],
+                    } as TestimonyEvidence);
+                    break;
+
+                case 'constraint':
+                    // Physics constraint: innocent claims to have done something
+                    // that would have been impossible given other evidence
+                    evidence.push({
+                        id: makeEvidenceId('testimony'),
+                        kind: 'testimony',
+                        witness: confusedInnocent.id,
+                        window: config.crimeWindow,
+                        place: wrongPlace,
+                        observable: `⚠️ ${confusedInnocent.name} claims they heard the commotion from ${wrongPlace}`,
+                        confidence: 0.5,
+                        cites: [],
+                    } as TestimonyEvidence);
+                    // Add note: wrongPlace is NOT adjacent to crimePlace = impossible
+                    break;
+            }
+        }
+
+        return evidence;
+    }
+
+    if (difficulty === 'medium') {
+        // MEDIUM: Culprit lies about a DIFFERENT window (off-axis)
+        // Contradiction exists but requires asking the right question first
+        // Player must localize the crime window, THEN find the lie in adjacent window
+        const offAxisWindow = getAdjacentWindow(config.crimeWindow, -1) || getAdjacentWindow(config.crimeWindow, 1);
+        const lieWindow = offAxisWindow || config.crimeWindow;
+
+        evidence.push({
+            id: makeEvidenceId('testimony'),
+            kind: 'testimony',
+            witness: config.culpritId,
+            window: lieWindow,
+            place: alibiPlace,
+            observable: `${culprit.name} claims to have been in ${alibiPlace} during ${lieWindow}`,
+            confidence: 0.8,
+            cites: [],
+        } as TestimonyEvidence);
+
+        evidence.push({
+            id: makeEvidenceId('presence'),
+            kind: 'presence',
+            npc: config.culpritId,
+            window: lieWindow,
+            place: alibiPlace,
+            cites: ['self_reported_alibi'],
+        } as PresenceEvidence);
+
+        // Culprit is vague about crime window itself (doesn't directly lie about it)
+        evidence.push({
+            id: makeEvidenceId('testimony'),
+            kind: 'testimony',
+            witness: config.culpritId,
+            window: config.crimeWindow,
+            place: config.crimePlace,
+            observable: `${culprit.name} doesn't remember exactly where they were during ${config.crimeWindow}`,
+            confidence: 0.3, // Evasive
+            cites: [],
+        } as TestimonyEvidence);
+
+        return evidence;
+    }
+
+    // EASY (default): Usually crime window, sometimes off-axis (teaches localization)
+    // 70% crime window, 30% off-axis - but full device coverage makes both easy
+    const seed = config.seed ?? 0;
+    const useOffAxis = (seed % 10) < 3; // 30% chance based on seed
+    const lieWindow = useOffAxis
+        ? (getAdjacentWindow(config.crimeWindow, -1) || config.crimeWindow)
+        : config.crimeWindow;
+
     evidence.push({
         id: makeEvidenceId('testimony'),
         kind: 'testimony',
         witness: config.culpritId,
-        window: config.crimeWindow,
+        window: lieWindow,
         place: alibiPlace,
-        observable: `${culprit.name} claims to have been here during ${config.crimeWindow}`,
+        observable: `${culprit.name} claims to have been here during ${lieWindow}`,
         confidence: 0.8, // Confident lie
         cites: [],
     } as TestimonyEvidence);
 
-    // Culprit's false presence claim (contradicts their real presence at crime scene)
     evidence.push({
         id: makeEvidenceId('presence'),
         kind: 'presence',
         npc: config.culpritId,
-        window: config.crimeWindow,
+        window: lieWindow,
         place: alibiPlace,
-        cites: ['self_reported_alibi'], // Flagged as self-reported
+        cites: ['self_reported_alibi'],
     } as PresenceEvidence);
 
     return evidence;
+}
+
+/**
+ * Get adjacent window (offset -1 = earlier, +1 = later)
+ */
+function getAdjacentWindow(window: WindowId, offset: number): WindowId | null {
+    const windowOrder: WindowId[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
+    const idx = windowOrder.indexOf(window);
+    const newIdx = idx + offset;
+    if (newIdx >= 0 && newIdx < windowOrder.length) {
+        return windowOrder[newIdx];
+    }
+    return null;
 }

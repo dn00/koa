@@ -17,7 +17,7 @@ This starts a mystery case. You are the detective. KOA is the snarky house AI.
 
 ## How to Play
 
-**Goal:** Figure out WHO did it, WHAT they did, HOW, WHEN, WHERE, and WHY.
+**Goal:** Figure out WHO did it, WHAT they did, and WHEN. Bonus points for HOW, WHERE, and WHY.
 
 **You have 4 days, 3 Action Points (AP) per day = 12 AP total (+2 from leads = 14 max)**
 
@@ -94,6 +94,8 @@ npx tsx src/cli.ts --playability --generate 50          # Check playability
 npx tsx src/cli.ts --tune --generate 50                 # Grid search tuner
 npx tsx src/cli.ts --autosolve --generate 20            # Run solver on 20 cases
 npx tsx src/cli.ts --autosolve --generate 1 --seed 14 -v # Verbose trace for one seed
+npx tsx src/validate-seeds.ts --count 100               # Batch seed validator
+npx tsx src/validate-seeds.ts --count 50 --verbose      # With per-seed details
 ```
 
 ---
@@ -111,13 +113,26 @@ Removed after playtest - added stress without adding fun. Code preserved for har
 Once per game, KOA analyzes your evidence and hints at a **keystone contradiction** - two pieces that can't both be true. Finding this narrows your suspects significantly.
 
 ### Accusation Format
-When you `ACCUSE`, you must answer:
+When you `ACCUSE`, provide 3 required parts + optional bonus:
+
+**Required (3 core):**
 - **WHO** - Which NPC did it?
 - **WHAT** - What was the crime? (theft/sabotage/prank)
-- **HOW** - Method used? (grabbed/smuggled/hid/etc.)
 - **WHEN** - Which window?
-- **WHERE** - Crime location?
-- **WHY** - Motive type? (grudge/jealousy/revenge/etc.)
+
+**Optional Bonus (any order):**
+- **HOW** - Method used? (grabbed/smuggled/broke/etc.)
+- **WHERE** - Crime location? (accepts origin OR found location)
+- **WHY** - Motive type? (revenge/rivalry/attention/etc.)
+
+**Syntax:**
+```
+ACCUSE carol sabotage W2                           # minimum (3 parts)
+ACCUSE carol sabotage W2 reprogrammed              # with HOW bonus
+ACCUSE carol sabotage W2 reprogrammed kitchen attention  # full solve
+```
+
+**Scoring:** Core correct = WIN. Bonus parts add to score but don't block win if wrong.
 
 ---
 
@@ -125,9 +140,11 @@ When you `ACCUSE`, you must answer:
 
 **Default:** `share_house` with `roommates` cast (Alice, Bob, Carol, Dan, Eve)
 
-**Rooms:** living_room, kitchen, bedroom_a, bedroom_b, bathroom
+**Rooms:** `living`, `kitchen`, `bedroom`, `office`, `garage`
 
 **Devices:** door sensors, motion sensors (check with `LOGS door W3`, etc.)
+
+**Note:** Gossip includes exact SEARCH syntax, e.g., `"Living Room (SEARCH: living)"`
 
 ---
 
@@ -167,70 +184,128 @@ When you `ACCUSE`, you must answer:
    - Type 6: Device log vs witness claim about third party
    - Subject tracking: Testimony about person X updates X's whereabouts
 
+8. **Accusation System Overhaul (Latest)**
+   - **3 required parts:** WHO, WHAT, WHEN (core solve)
+   - **3 optional bonus:** HOW, WHERE, WHY (add to score)
+   - **WHERE accepts both:** origin (crimePlace) OR found (hiddenPlace)
+   - **Bonus parts don't block win:** wrong bonus = lower score, not loss
+   - Per spec Section 5.6: WHERE was always intended to be optional
+
+9. **Batch Seed Validator** - `src/validate-seeds.ts`
+   - Validates 100+ seeds at once
+   - Reports: playability, discoverability, AP distribution, clarity
+   - Outputs curated seed list (playable + clear first move)
+   - Run: `npx tsx src/validate-seeds.ts --count 100`
+
+   **Latest Results (100 seeds):**
+   ```
+   Playable:           94%
+   First move clarity: 100% clear
+   All 6 parts discoverable: 100%
+   Avg min AP:         8.3
+   Keystone exists:    94%
+   False alibi exists: 80%
+   ```
+
 7. **Automated Solver** - `src/solver.ts`
    - Deterministic "perfect player" for mechanical validation
    - Strategy: gossip → search crime scene → logs → interview 3 → accuse
    - Validates: evidence findable, commands work, no blockers
    - Does NOT validate: actual solvability (uses naive logic)
 
-### ⏳ Next: Priority 3 - Shape Detection
-**Goal:** Cases feel different based on their "shape" (reasoning pattern).
+### ✅ Done: Priority 3 - Difficulty Control System
+**Goal:** Let players/devs control puzzle difficulty independently from seed.
 
-1. Add `shape` field to `CaseConfig` type
-2. Detect shape from blueprint type + evidence patterns:
-   - `classic` - Standard theft: find who was where when
-   - `frame_job` - Evidence points to wrong person, find the plant
-   - `two_step` - Crime has setup phase, look earlier in timeline
-   - `collusion` - Two people working together
-   - `constraint` - Logic puzzle, process of elimination
+**Philosophy:** Keep self-contradiction at ALL difficulties, but change *discoverability*.
+- **Easy** teaches COMPARE = powerful
+- **Medium** requires localization before dunking
+- **Hard** requires synthesis, not just contradiction hunting
 
-3. Wire shape to bark system for shape-specific tells:
+**Three Knobs Implemented:**
 
-| Shape | KOA's Tell (hint without spoiling) |
-|-------|-------------------------------------|
-| classic | "Someone wanted {item}. Someone hid {item}. Practically tradition." |
-| frame_job | "This evidence is too clean." |
-| two_step | "Start earlier. The first domino is never the loudest." |
-| collusion | "One person couldn't pull this off. Two could." |
-| constraint | "This will not be solved by vibes. It will be solved by math." |
+| Knob | Easy | Medium | Hard |
+|------|------|--------|------|
+| **Culprit's lie** | 70% crime window, 30% off-axis | Off-axis window | Crime window (buried) |
+| **Device coverage** | Full | Partial gaps | Sparse |
+| **Competing narrative** | None | None | Rotates (see below) |
 
-### ⏳ Next: Priority 4 - Wire Blueprints to game.ts
-**Goal:** Play cases generated from blueprint system (richer variety).
+**How Each Difficulty Feels:**
 
-1. Add `--blueprints` flag to `game.ts`
-2. Blueprint → shape mapping
+**EASY:** Usually crime window, sometimes off-axis. Full device coverage. Teaches COMPARE and localization.
+```
+70%: Dan claims kitchen during W3 (crime window) → Direct catch
+30%: Dan claims kitchen during W2 (off-axis) → Still easy with full logs, but teaches localization
+```
 
-**Available Blueprints (10 total in `src/blueprints/`):**
+**MEDIUM:** Culprit lies about DIFFERENT window, vague about crime window.
+```
+Dan claims kitchen during W2 (not crime window) → Device logs contradict
+Dan "doesn't remember" W3 → Suspicious evasiveness
+Player must: (1) identify W3 is crime window, (2) notice no alibi for W3, (3) find the W2 lie
+```
 
-| Category | Blueprint | Description | Methods | Shape |
-|----------|-----------|-------------|---------|-------|
-| **Theft** | `quick_snatch` | Fast grab-and-go | grabbed, pocketed, smuggled | classic |
-| | `opportunistic_theft` | Wait for distraction | grabbed, pocketed | classic |
-| | `premeditated_theft` | Scout + tamper + steal | grabbed, smuggled | two_step |
-| **Sabotage** | `device_sabotage` | Mess with electronics | unplugged, reprogrammed, broke | classic |
-| | `recipe_sabotage` | Ruin cooking | swapped, reprogrammed, broke | classic |
-| | `event_sabotage` | Ruin event (accomplice) | broke, unplugged, reprogrammed | collusion |
-| **Prank** | `item_relocation` | Move to ridiculous spot | relocated, disguised | classic |
-| | `item_swap` | Swap items | swapped, disguised | classic |
-| | `disappearance` | Hide/bury/donate | hid, buried, donated | classic |
-| | `message_prank` | Plant a message | relocated, disguised | classic |
+**HARD:** Culprit lies about crime window, plus ONE competing narrative (rotates per case):
+```
+Narrative Types (rotate by seed):
+- MISREMEMBER: ⚠️ Innocent uncertain about non-crime window (conf 0.3)
+- LOOKALIKE:   ⚠️ Witness saw "ambiguous figure" at scene
+- TWO_STEP:    ⚠️ Innocent was "casing" the scene earlier (red herring)
+- CONSTRAINT:  ⚠️ Innocent claims impossible observation (physics eliminates)
+```
 
-### 📋 Later: Priority 5 - Reasoning Variety Blueprints
-**Goal:** Cases that require different reasoning strategies.
+**Solver Results (Verified):**
+```
+Difficulty | Self-Contradiction | Solve Rate | What Makes It Harder
+-----------|-------------------|------------|----------------------
+easy       | 90%               | 100%       | 30% require localization
+medium     | 0% (off-axis)     | 100%       | Lie not in crime window
+hard       | 93%               | 100%       | Competing narratives
+```
 
-1. **Frame Job** - Evidence deliberately planted to implicate innocent
-   - Key insight: evidence is "too clean" or "too convenient"
-   - Must find the planter, not just who evidence points to
+**Fairness Contract:**
+- Contradiction ALWAYS exists at all difficulties
+- Crime window device logs are NEVER offline
+- Hard mode competing narratives are ⚠️ flagged and distinguishable
+- One keystone pair always catches the culprit
 
-2. **The Lie** - Someone's alibi IS the clue
-   - Witness claims to be somewhere they weren't
-   - Contradiction between testimony and physical evidence
-   - False alibi = they're hiding something
+**CLI Usage:**
+```bash
+npx tsx src/game.ts --seed 42 --difficulty easy    # Teach COMPARE
+npx tsx src/game.ts --seed 42 --difficulty medium  # Require localization
+npx tsx src/game.ts --seed 42 --difficulty hard    # Require synthesis
 
-3. **Inside Job** - Victim is actually the culprit
-   - "Theft" was staged for insurance/attention
-   - Evidence trail leads back to reporter
-   - Motive: debt, attention-seeking, frame someone
+npx tsx src/cli.ts --autosolve --generate 50 --difficulty hard  # Validate
+```
+
+---
+
+### ⏳ Priority 4-5: Variety System
+**Goal:** Prevent cases from feeling samey. Different shapes require different openers.
+
+**See:** `VARIETY.md` for full design doc covering:
+- Case shapes (classic, frame_job, two_step, collusion, constraint, false_alarm, inside_job)
+- Liar models (confident_lie, omission, misremember, misleading_truth)
+- Coverage profiles (full, partial, sparse)
+- Twist slots (one modifier per case)
+- Probabilistic difficulty (rates, not rules)
+- Weekly themes (cheap content scaling)
+
+**Quick Reference - Existing Blueprints:**
+
+| Category | Blueprint | Shape |
+|----------|-----------|-------|
+| Theft | `quick_snatch`, `opportunistic_theft` | classic |
+| Theft | `premeditated_theft` | two_step |
+| Sabotage | `device_sabotage`, `recipe_sabotage` | classic |
+| Sabotage | `event_sabotage` | collusion |
+| Prank | `item_relocation`, `item_swap`, `disappearance`, `message_prank` | classic |
+
+**Implementation Phases:**
+1. Shape system + blueprint wiring
+2. Liar models
+3. Probabilistic difficulty
+4. Twist slots
+5. Themes (optional)
 
 ---
 
@@ -244,9 +319,11 @@ When you `ACCUSE`, you must answer:
 | `src/player.ts` | Session, leads, cover-up |
 | `src/validators.ts` | Playability metrics |
 | `src/solver.ts` | Automated solver |
+| `src/validate-seeds.ts` | Batch seed validator (new) |
 | `src/evidence.ts` | Evidence derivation from events |
 | `src/actions.ts` | SEARCH, INTERVIEW, LOGS, COMPARE |
 | `src/barks.ts` | KOA voice triggers |
+| `AGENT_README.md` | LLM agent playtest guide |
 
 ### Autosolve Metrics (Smart Solver)
 ```

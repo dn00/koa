@@ -306,16 +306,49 @@ function buildSmartAccusation(
         return best;
     };
 
+    // 0. SIGNATURE MOTIVE - The strongest signal on medium/hard difficulty
+    // If someone has a signature motive phrase (e.g., "desperate for attention"),
+    // they're likely the culprit even without contradictions.
+    // On easy mode, self-contradiction trumps this. On medium/hard, this is primary.
+    if (!who && suspectsWithSignatureMotive.size === 1) {
+        // Only one person has signature motive - high confidence
+        who = Array.from(suspectsWithSignatureMotive)[0];
+        log(`  WHO: ${who} (unique signature motive)`);
+    }
+
     // 1. Self-contradictor with motive - pick the one with MOST contradictions
-    who = findMostSuspiciousWithMotive(selfContradictorCounts);
-    if (who) {
-        log(`  WHO: ${who} (self-contradiction + motive, ${selfContradictorCounts.get(who)}x)`);
+    if (!who) {
+        who = findMostSuspiciousWithMotive(selfContradictorCounts);
+        if (who) {
+            log(`  WHO: ${who} (self-contradiction + motive, ${selfContradictorCounts.get(who)}x)`);
+        }
     }
 
     // 2. Any self-contradictor - pick the one with MOST contradictions
     if (!who && selfContradictorCounts.size > 0) {
         who = findMostSuspicious(selfContradictorCounts);
         if (who) log(`  WHO: ${who} (self-contradiction, ${selfContradictorCounts.get(who)}x)`);
+    }
+
+    // 2.5. Signature motive holder (even if not unique) - beats crime scene liars
+    if (!who && suspectsWithSignatureMotive.size > 0) {
+        // Multiple signature motive holders - pick one with any contradiction
+        for (const suspect of suspectsWithSignatureMotive) {
+            const hasAnyContradiction =
+                selfContradictorCounts.has(suspect) ||
+                crimeSceneContradictorCounts.has(suspect) ||
+                deviceContradictorCounts.has(suspect);
+            if (hasAnyContradiction) {
+                who = suspect;
+                log(`  WHO: ${who} (signature motive + contradiction)`);
+                break;
+            }
+        }
+        // If none have contradictions, just pick first signature motive holder
+        if (!who) {
+            who = Array.from(suspectsWithSignatureMotive)[0];
+            log(`  WHO: ${who} (signature motive, no contradictions)`);
+        }
     }
 
     // 3. Crime scene liar with motive
@@ -456,7 +489,7 @@ function buildSmartAccusation(
 /**
  * Smart solve using comprehensive investigation
  */
-export function solve(seed: number, verbose: boolean = false): SolveResult {
+export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy' | 'medium' | 'hard'): SolveResult {
     const trace: string[] = [];
     let apUsed = 0;
 
@@ -466,7 +499,7 @@ export function solve(seed: number, verbose: boolean = false): SolveResult {
     };
 
     // Generate case
-    const result = simulate(seed, 2, {});
+    const result = simulate(seed, 2, { difficulty });
     if (!result) {
         return { seed, solved: false, correct: false, coreCorrect: false, apUsed: 0, failReason: 'sim_failed', trace };
     }
@@ -715,8 +748,9 @@ export function solve(seed: number, verbose: boolean = false): SolveResult {
 /**
  * Run solver across multiple seeds and report results
  */
-export function autosolve(count: number, startSeed: number = 1, verbose: boolean = false): void {
-    console.log(`\nSmart Autosolving ${count} cases starting from seed ${startSeed}...\n`);
+export function autosolve(count: number, startSeed: number = 1, verbose: boolean = false, difficulty?: 'easy' | 'medium' | 'hard'): void {
+    const diffLabel = difficulty ? ` [${difficulty.toUpperCase()}]` : '';
+    console.log(`\nSmart Autosolving ${count} cases${diffLabel} starting from seed ${startSeed}...\n`);
 
     const results: SolveResult[] = [];
     const failures: SolveResult[] = [];
@@ -725,7 +759,7 @@ export function autosolve(count: number, startSeed: number = 1, verbose: boolean
         const seed = startSeed + i;
         if (verbose) console.log(`\n--- Seed ${seed} ---`);
 
-        const result = solve(seed, verbose);
+        const result = solve(seed, verbose, difficulty);
         results.push(result);
 
         const status = result.correct ? '✅' : result.solved ? '⚠️' : '❌';

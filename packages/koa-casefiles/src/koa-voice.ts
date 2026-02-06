@@ -106,13 +106,15 @@ function pick<T>(arr: T[]): T {
 /**
  * Format the intro banner
  */
-export function formatIntroBanner(seed: number, resumed: boolean): string {
+export function formatIntroBanner(seed: number, resumed: boolean, difficulty?: 'easy' | 'medium' | 'hard'): string {
     const resumeNote = resumed ? ' [RESUMED]' : '';
+    const diffLabel = difficulty ? ` [${difficulty.toUpperCase()}]` : '';
+    const caseInfo = `Case #${seed}${resumeNote}${diffLabel}`;
     return `
 ┌─────────────────────────────────────────────────────┐
 │  🏠 KOA - Kind of an Asshole (Smart Home AI v2.4)  │
 ├─────────────────────────────────────────────────────┤
-│  Case #${seed.toString().padEnd(4)}${resumeNote.padEnd(32)}│
+│  ${caseInfo.padEnd(49)}│
 │                                                     │
 │  I run this house. I see everything.                │
 │  Someone did something. Let's find out who.         │

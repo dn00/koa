@@ -137,6 +137,8 @@ function detectCaseShape(config: import('./types.js').CaseConfig): CaseShape {
 // Types & Args
 // ============================================================================
 
+type Difficulty = 'easy' | 'medium' | 'hard';
+
 interface GameArgs {
     seed: number;
     agentMode: boolean;
@@ -144,6 +146,15 @@ interface GameArgs {
     reset?: boolean;     // Reset saved state
     houseId?: string;    // House layout to use
     castId?: string;     // Cast of NPCs to use
+    difficulty?: Difficulty;  // Case difficulty
+}
+
+function parseDifficulty(str: string): Difficulty | undefined {
+    const lower = str.toLowerCase();
+    if (lower === 'easy' || lower === 'e' || lower === '1') return 'easy';
+    if (lower === 'medium' || lower === 'med' || lower === 'm' || lower === '2') return 'medium';
+    if (lower === 'hard' || lower === 'h' || lower === '3') return 'hard';
+    return undefined;
 }
 
 function parseArgs(): GameArgs {
@@ -154,6 +165,7 @@ function parseArgs(): GameArgs {
     let reset = false;
     let houseId: string | undefined;
     let castId: string | undefined;
+    let difficulty: Difficulty | undefined;
 
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--seed' || args[i] === '-s') {
@@ -168,10 +180,12 @@ function parseArgs(): GameArgs {
             houseId = args[++i];
         } else if (args[i] === '--cast') {
             castId = args[++i];
+        } else if (args[i] === '--difficulty' || args[i] === '-d') {
+            difficulty = parseDifficulty(args[++i]);
         }
     }
 
-    return { seed, agentMode, cmd, reset, houseId, castId };
+    return { seed, agentMode, cmd, reset, houseId, castId, difficulty };
 }
 
 // ============================================================================
@@ -266,6 +280,7 @@ async function main() {
     const result = simulate(args.seed, 2, {
         houseId: args.houseId,
         castId: args.castId,
+        difficulty: args.difficulty,
     });
     if (!result) {
         console.error('Failed to generate case.');
@@ -315,7 +330,7 @@ async function main() {
     // =========================================================================
     const rl = createInterface({ input, output });
 
-    print(koa.formatIntroBanner(args.seed, hadSave), args.agentMode);
+    print(koa.formatIntroBanner(args.seed, hadSave, args.difficulty), args.agentMode);
 
     // Fire CASE_OPEN bark (only on fresh start)
     if (!hadSave) {
@@ -806,63 +821,91 @@ async function main() {
                 }
 
                 case 'ACCUSE': {
-                    // Full accusation: WHO WHAT HOW WHEN WHERE WHY
-                    // e.g., ACCUSE alice theft grabbed W3 garage revenge
-                    if (cmdArgs.length < 6) {
+                    // Core accusation: WHO WHAT WHEN (3 required)
+                    // Optional bonus: HOW, WHERE, WHY
+                    // e.g., ACCUSE alice theft W3
+                    // or:   ACCUSE alice theft W3 grabbed kitchen revenge (with optionals)
+                    if (cmdArgs.length < 3) {
                         throw new Error(
-                            'Usage: ACCUSE <who> <what> <how> <when> <where> <why>\n' +
+                            'Usage: ACCUSE <who> <what> <when> [how] [where] [why]\n' +
+                            '\n' +
+                            '  REQUIRED (3 parts):\n' +
                             '  who:   alice, bob, carol, dan, eve\n' +
                             '  what:  theft, sabotage, prank, disappearance\n' +
-                            '  how:   grabbed/pocketed/smuggled (theft)\n' +
-                            '         broke/unplugged/reprogrammed (sabotage)\n' +
-                            '         relocated/swapped/disguised (prank)\n' +
-                            '         hid/buried/donated (disappearance)\n' +
                             '  when:  W1, W2, W3, W4, W5, W6\n' +
+                            '\n' +
+                            '  OPTIONAL BONUS (in any order after required):\n' +
+                            '  how:   grabbed/pocketed/smuggled/broke/unplugged/reprogrammed/etc.\n' +
                             '  where: kitchen, living, bedroom, office, garage\n' +
                             '  why:   envy, embarrassment, cover_up, rivalry, attention, revenge, chaos'
                         );
                     }
 
-                    const [who, what, how, when, where, why] = cmdArgs.map(a => a.toLowerCase());
+                    // Parse required args
+                    const [who, what, when] = cmdArgs.slice(0, 3).map(a => a.toLowerCase());
+
+                    // Parse optional args (can be in any order)
+                    const optionalArgs = cmdArgs.slice(3).map(a => a.toLowerCase());
+                    let how: string | null = null;
+                    let where: string | null = null;
+                    let why: string | null = null;
+
+                    for (const arg of optionalArgs) {
+                        if (VALID_METHODS.includes(arg as MethodId)) {
+                            how = arg;
+                        } else if (VALID_PLACES.includes(arg)) {
+                            where = arg;
+                        } else if (VALID_MOTIVES.includes(arg as MotiveType)) {
+                            why = arg;
+                        } else {
+                            throw new Error(`Unknown optional argument: ${arg}`);
+                        }
+                    }
                     const config = session.config;
 
-                    // Validate inputs
+                    // Validate required inputs
                     if (!config.suspects.includes(who)) {
                         throw new Error(`Unknown suspect: ${who}. Valid: ${config.suspects.join(', ')}`);
                     }
                     if (!VALID_CRIME_TYPES.includes(what as CrimeType)) {
                         throw new Error(`Unknown crime type: ${what}. Valid: ${VALID_CRIME_TYPES.join(', ')}`);
                     }
-                    if (!VALID_METHODS.includes(how as MethodId)) {
-                        throw new Error(`Unknown method: ${how}. Valid: ${VALID_METHODS.join(', ')}`);
-                    }
-                    // Also check that method matches crime type
-                    const validMethodsForCrime = METHODS_BY_CRIME[what as CrimeType];
-                    if (!validMethodsForCrime.includes(how as MethodId)) {
-                        throw new Error(`Method "${how}" doesn't match crime type "${what}". Valid for ${what}: ${validMethodsForCrime.join(', ')}`);
-                    }
                     if (!VALID_WINDOWS.includes(when.toUpperCase())) {
                         throw new Error(`Unknown window: ${when}. Valid: ${VALID_WINDOWS.join(', ')}`);
                     }
-                    if (!VALID_PLACES.includes(where)) {
-                        throw new Error(`Unknown place: ${where}. Valid: ${VALID_PLACES.join(', ')}`);
-                    }
-                    if (!VALID_MOTIVES.includes(why as MotiveType)) {
-                        throw new Error(`Unknown motive: ${why}. Valid: ${VALID_MOTIVES.join(', ')}`);
+
+                    // Validate optional inputs if provided
+                    if (how !== null) {
+                        const validMethodsForCrime = METHODS_BY_CRIME[what as CrimeType];
+                        if (!validMethodsForCrime.includes(how as MethodId)) {
+                            throw new Error(`Method "${how}" doesn't match crime type "${what}". Valid for ${what}: ${validMethodsForCrime.join(', ')}`);
+                        }
                     }
 
-                    // Check each part
-                    const results = {
+                    // Check required parts (3 core)
+                    const results: Record<string, boolean> = {
                         who: who === config.culpritId,
                         what: what === config.crimeType,
-                        how: how === config.crimeMethod.methodId,
                         when: when.toUpperCase() === config.crimeWindow,
-                        where: where === config.crimePlace,
-                        why: why === config.motive.type,
                     };
 
+                    // Check optional parts only if provided
+                    if (how !== null) {
+                        results.how = how === config.crimeMethod.methodId;
+                    }
+                    if (where !== null) {
+                        // Accept either crimePlace (origin) or hiddenPlace (found) as correct
+                        results.where = where === config.crimePlace || where === config.hiddenPlace;
+                    }
+                    if (why !== null) {
+                        results.why = why === config.motive.type;
+                    }
+
+                    const totalParts = Object.keys(results).length;
                     const correctCount = Object.values(results).filter(Boolean).length;
-                    const allCorrect = correctCount === 6;
+                    const coreCorrect = results.who && results.what && results.when;
+                    // Win if core 3 are correct - bonus parts add to score but don't block win
+                    const allCorrect = coreCorrect;
 
                     // Calculate score
                     const firstTrySolve = true; // TODO: Track failed accusations
@@ -895,7 +938,7 @@ async function main() {
 
                         print(
                             `❌ NOT QUITE!\n\n` +
-                            `You got ${correctCount}/6 correct.\n` +
+                            `You got ${correctCount}/${totalParts} correct.\n` +
                             `Wrong: ${wrongParts.join(', ')}\n\n` +
                             `The real culprit gets away with their shenanigans...`,
                             agentMode,

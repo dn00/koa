@@ -90,6 +90,7 @@ import {
     type CaseHistory,
 } from './gossip/index.js';
 import { ACTIVITIES, type ActivityType } from './activities.js';
+import { CaseDirector, type DifficultyTier, type DirectorConfig } from './director.js';
 
 // ============================================================================
 // Event Generation Helpers
@@ -889,16 +890,59 @@ function maybeGenerateTwist(
     world: World,
     culpritId: NPCId,
     rng: RNG,
-    allowedTwists?: TwistType[]
+    allowedTwists?: TwistType[],
+    difficulty?: 'easy' | 'medium' | 'hard'
 ): TwistRule | undefined {
-    // 80% chance of a twist (or 0% if no twists allowed)
+    const culprit = world.npcs.find(n => n.id === culpritId)!;
+    const innocents = world.npcs.filter(n => n.id !== culpritId);
+
+    // DIFFICULTY-CONTROLLED TWIST SELECTION
+    if (difficulty) {
+        switch (difficulty) {
+            case 'easy':
+                // Force culprit to have false_alibi → guaranteed self-contradiction
+                return {
+                    type: 'false_alibi',
+                    actor: culpritId,
+                    description: `${culprit.name} claims they were elsewhere all evening (they weren't)`,
+                    affectsEvidence: [],
+                };
+
+            case 'medium':
+                // No false_alibi for culprit - give twist to innocent or none
+                // Culprit only has crime scene lie (from testimony), no self-contradiction
+                if (innocents.length > 0 && rng.nextInt(100) < 50) {
+                    const witness = rng.pick(innocents);
+                    return {
+                        type: 'unreliable_witness',
+                        actor: witness.id,
+                        description: `${witness.name}'s testimony is off (they lost track of time)`,
+                        affectsEvidence: [],
+                    };
+                }
+                return undefined; // No twist - culprit tells truth about location
+
+            case 'hard':
+                // Culprit tells truth - only motive/opportunity signal
+                // Maybe give innocent a false_alibi to create red herring
+                if (innocents.length > 0 && rng.nextInt(100) < 40) {
+                    const decoy = rng.pick(innocents);
+                    return {
+                        type: 'false_alibi',
+                        actor: decoy.id,
+                        description: `${decoy.name} lies about whereabouts (hiding something innocent)`,
+                        affectsEvidence: [],
+                    };
+                }
+                return undefined; // No twist
+        }
+    }
+
+    // LEGACY RANDOM BEHAVIOR (when no difficulty specified)
     if (!allowedTwists || allowedTwists.length === 0) return undefined;
     if (rng.nextInt(100) >= 80) return undefined;
 
     const type = rng.pick(allowedTwists);
-
-    const culprit = world.npcs.find(n => n.id === culpritId)!;
-    const innocents = world.npcs.filter(n => n.id !== culpritId);
 
     switch (type) {
         case 'false_alibi':
@@ -964,6 +1008,14 @@ export interface SimulationOptions {
     houseId?: string;
     /** Cast of NPCs to use (defaults to 'roommates') */
     castId?: string;
+    /**
+     * Difficulty control - determines how culprit behaves:
+     * - 'easy': Culprit self-contradicts (false_alibi) → obvious liar
+     * - 'medium': Culprit lies about crime scene only → connect the dots
+     * - 'hard': Culprit tells truth → only motive/opportunity signal
+     * - undefined: Random (legacy behavior)
+     */
+    difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 // ============================================================================
@@ -1119,8 +1171,8 @@ export function simulate(
 
     // (Red Herrings are now fully emergent inside simulateRoutines)
 
-    // Maybe add a twist (based on difficulty tier)
-    const twist = maybeGenerateTwist(world, chosen.npc.id, rng, difficultyConfig.twistRules);
+    // Maybe add a twist (based on difficulty tier or explicit difficulty)
+    const twist = maybeGenerateTwist(world, chosen.npc.id, rng, difficultyConfig.twistRules, options.difficulty);
 
     // Aftermath: all windows after crime window
     const aftermathWindows = allWindowIds.slice(crimeWindowIndex + 1);
@@ -1172,6 +1224,7 @@ export function simulate(
         twist,
         suspiciousActs,
         distractedWitnesses: chosen.distractedWitness ? [chosen.distractedWitness.id] : undefined,
+        difficulty: options.difficulty,
     };
 
     return {
@@ -1287,8 +1340,8 @@ function simulateWithBlueprints(
     // Override with the plan's method
     crimeMethod.methodId = plan.variantId;
 
-    // Maybe add a twist
-    const twist = maybeGenerateTwist(world, plan.culprit, rng, difficultyConfig.twistRules);
+    // Maybe add a twist (based on difficulty tier or explicit difficulty)
+    const twist = maybeGenerateTwist(world, plan.culprit, rng, difficultyConfig.twistRules, options.difficulty);
 
     // Aftermath: all windows after crime window
     const aftermathWindows = allWindowIds.slice(crimeWindowIndex + 1);
@@ -1335,6 +1388,7 @@ function simulateWithBlueprints(
         twist,
         suspiciousActs,
         distractedWitnesses: distractedWitnesses.length > 0 ? distractedWitnesses : undefined,
+        difficulty: options.difficulty,
     };
 
     return {
