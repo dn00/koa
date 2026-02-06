@@ -149,31 +149,18 @@ Group independent tasks:
 
 **Complexity:** Use highest in batch (S < M). Orchestrator uses for model selection.
 
-### 10. Plan-Only Option (Small Features)
+### 10. Plan-Only (Default)
 
-You may skip separate task files if ALL are true:
-- 1-2 tasks total
-- All tasks are S complexity
-- No complex dependencies or tricky edge/error handling
+No task files are used. All task details live inside {name}.plan.md.
+Include Objective, Context, AC/EC/ERR, and Notes sections per task.
 
-If you use plan-only:
-- Put full task details directly in {name}.plan.md
-- Include Objective, Context, AC/EC/ERR, and Notes sections per task
-- Do NOT create task files
-
-### 11. Write Task Files (if not plan-only)
-
-Create in `{process}/features/[feature]/tasks/[NNN]-[name].md`
-
-Use template from Templates section below.
-
-### 12. Write Plan File
+### 11. Write Plan File
 
 Create `{process}/features/[feature]/{name}.plan.md`
 
 Use template from Templates section below.
 
-### 13. Handoff
+### 12. Handoff
 
 1. Set status to `ready` for tasks with no deps
 2. Update `{process}/project/STATUS.md`
@@ -200,10 +187,12 @@ Use template from Templates section below.
 **Tasks:**
 - [ ] Each task has AC, EC, ERR sections
 - [ ] Each task has Embedded Context with exact types/interfaces
+- [ ] Each task lists Entry Points/Wiring
+- [ ] Each task lists expected Files Touched
+- [ ] Each task includes a Test Mapping table
 - [ ] No task sized "L"
 - [ ] Total tests calculable: SUM(ACs + ECs + ERRs)
-- [ ] Task files do not include status fields (status lives in the plan)
-- [ ] If plan-only: task details are fully embedded in the plan and no task files exist
+- [ ] Task details are fully embedded in the plan (no task files)
 
 **Dependencies:**
 - [ ] Dependency graph complete
@@ -214,122 +203,6 @@ Use template from Templates section below.
 ---
 
 ## Templates
-
-### Task File Template
-
-```markdown
-# Task [NNN]: [Short Name]
-
-**Complexity:** S | M
-**Depends On:** [task IDs or "none"]
-**Implements:** R1.1, R1.2 (from plan)
-
----
-
-## Objective
-
-[One sentence: what this accomplishes and why]
-
----
-
-## Context
-
-### Relevant Files
-- `path/to/file.ts` - [why relevant]
-
-### Embedded Context
-
-> Give Implementer everything needed WITHOUT reading external docs.
-
-**For tasks with types/interfaces:**
-```typescript
-// IMPORTS
-import type { User } from '../types/user.js';
-
-// INTERFACE TO IMPLEMENT
-interface UserStore {
-  users: readonly User[];
-  current: User | null;
-}
-
-// FIELD MAPPING (for migrations)
-// Old: user.userName -> New: user.name
-// Old: user.isAdmin -> DELETED (use roles)
-```
-
-**For all tasks:**
-- Key invariants that apply (the actual rule)
-- Required patterns with code examples
-- Error message formats
-
-### Source Docs (if needed)
-- `{process}/project/[DOC].md` - [why]
-
----
-
-## Acceptance Criteria
-
-### AC-1: [Name] <- R1.1
-- **Given:** [precondition]
-- **When:** [action]
-- **Then:** [expected result]
-
-### AC-2: [Name] <- R1.2
-- **Given:** [precondition]
-- **When:** [action]
-- **Then:** [expected result]
-
----
-
-## Edge Cases
-
-### EC-1: [Name]
-- **Scenario:** [description]
-- **Expected:** [behavior]
-
-### EC-2: [Name]
-- **Scenario:** [description]
-- **Expected:** [behavior]
-
----
-
-## Error Cases
-
-### ERR-1: [Name]
-- **When:** [error condition]
-- **Then:** [error handling]
-- **Error Message:** [expected message]
-
----
-
-## Scope
-
-**In Scope:**
-- [Specific thing]
-
-**Out of Scope:**
-- [Explicitly not doing]
-
----
-
-## Implementation Hints
-
-[Optional: suggested approach, pitfalls to avoid]
-
----
-
-## Log
-
-### Planning Notes
-**Context:** [Why this task exists]
-**Decisions:** [Scope decisions made]
-
-### Implementation Notes
-> Written by Implementer
-
-### Review Notes
-> Written by Reviewer
-```
 
 ### Plan File Template
 
@@ -394,7 +267,7 @@ interface UserStore {
 
 ## Task Details (Inline)
 
-> Use this section only when plan-only is enabled.
+> Required. All task details live in the plan.
 
 ### Task 001: [Short Name]
 
@@ -414,6 +287,12 @@ interface UserStore {
 - Required patterns with code examples
 - Error message formats
 
+#### Entry Points / Wiring
+- [Where this is wired: routes, registries, exports, CLI, etc.]
+
+#### Files Touched
+- `path/to/file.ts` - [create/modify + purpose]
+
 #### Acceptance Criteria
 ##### AC-1: [Name] <- R1.1
 - Given: [precondition]
@@ -430,6 +309,13 @@ interface UserStore {
 - When: [error condition]
 - Then: [error handling]
 - Error Message: [expected message]
+
+#### Test Mapping
+| Requirement | Test | File |
+|-------------|------|------|
+| AC-1 | [test name] | `path/to/test.ts` |
+| EC-1 | [test name] | `path/to/test.ts` |
+| ERR-1 | [test name] | `path/to/test.ts` |
 
 #### Notes
 **Implementation Notes:** [filled by implementer]
@@ -489,7 +375,7 @@ Then: responds in under 100ms for 1000 items
 
 ### Batch Planning
 
-**Optimal size:** 2-5 tasks per batch
+**Optimal size:** 2-5 tasks per batch (use 1 only when only one task is ready)
 
 **Signs of over-sequencing:**
 - Chain of 5+ single-dependency tasks
@@ -507,6 +393,6 @@ You own:
 - `backlog` -> `ready` in {name}.plan.md (deps met + AC written)
 - `blocked` -> `ready` in {name}.plan.md (blocker resolved)
 
-Document in task files:
-- Planning Notes section
+Document in the plan:
+- Planning Notes section (per task)
 - Change Log (significant decisions)

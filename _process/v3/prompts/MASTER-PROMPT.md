@@ -44,6 +44,7 @@ You are the **Orchestrator** for an AI-driven development process. You will:
 | **Implement** | "implement", "build", feature name | -> Read {process}/{prompts_dir}/IMPLEMENTER.md |
 | **Review** | "review", "verify", "check" | -> Read {process}/{prompts_dir}/REVIEW-IMPL.md |
 | **New Feature** | "add feature", "I want to..." | -> Discovery then Plan |
+| **Project Refresh** | "refresh docs", "update project docs" | -> Read {process}/{prompts_dir}/PROJECT-DISCOVERY.md |
 | **Bug Fix** | "fix", "broken", "error" | -> Investigate then fix |
 | **Continue** | "continue", "what's next" | -> Check Status |
 | **Status** | "status", "what's left" | -> Show progress |
@@ -57,7 +58,7 @@ You are the **Orchestrator** for an AI-driven development process. You will:
 **Read and follow:** `{process}/{prompts_dir}/IMPLEMENTER.md`
 
 This prompt has full instructions for:
-- Reading {name}.plan.md with inline task details (no task files)
+- Reading {feature}.plan.md with inline task details (no task files)
 - Working in batches (always)
 - Writing tests first
 - Running Gemini review for M-complexity batches
@@ -85,9 +86,11 @@ This prompt has full instructions for:
 ### New Feature
 
 1. Create feature directory: `{process}/features/{NNN}-{name}/`
-2. Run Discovery (use `{process}/{prompts_dir}/DISCOVERY.md`)
-3. Create {name}.plan.md with inline task details
-4. Hand off to Implementer
+2. Run Discovery if scope is large (use `{process}/{prompts_dir}/PROJECT-DISCOVERY.md`)
+3. Create `{NNN}-{name}.plan.md` in the feature folder (plan file name must match folder prefix)
+4. If discovery exists, name it `{NNN}-{name}.discovery.md` (same prefix)
+5. Include Discovery Snapshot in the plan
+6. Hand off to Implementer
 
 ### Continue Work
 
@@ -102,7 +105,7 @@ This prompt has full instructions for:
 
 ## Status Values
 
-### Plan Status (top of {name}.plan.md)
+### Plan Status (top of {feature}.plan.md)
 ```
 ready         -> Planned, not started
 active        -> Some tasks in progress
@@ -110,7 +113,7 @@ needs-review  -> All tasks done, awaiting review
 complete      -> Reviewed and verified
 ```
 
-### Task Status (in {name}.plan.md tables)
+### Task Status (in {feature}.plan.md tables)
 ```
 backlog       -> Not started, may have blockers
 ready         -> Dependencies met, can start
@@ -126,7 +129,7 @@ done          -> Implemented
 {process}/
   {prompts_dir}/
     MASTER-PROMPT.md
-    DISCOVERY.md
+    PROJECT-DISCOVERY.md
     PLANNER.md
     IMPLEMENTER.md
     REVIEW-IMPL.md
@@ -142,7 +145,7 @@ done          -> Implemented
 
   features/                # Feature work
     {NNN}-{name}/
-      {name}.plan.md          # Status + task details + review log
+      {feature}.plan.md          # Status + task details + review log
 ```
 
 ---
@@ -151,7 +154,7 @@ done          -> Implemented
 
 | Agent | Prompt | When |
 |-------|--------|------|
-| Discovery | `DISCOVERY.md` | New project/feature |
+| Discovery | `PROJECT-DISCOVERY.md` | New project/feature |
 | Planner | `PLANNER.md` | After discovery |
 | Implementer | `{process}/{prompts_dir}/IMPLEMENTER.md` | Implement feature |
 | Reviewer | `{process}/{prompts_dir}/REVIEW-IMPL.md` | Review feature |
@@ -169,7 +172,7 @@ Before marking anything complete:
 2. All tests pass (run project's test command)
 3. Type check passes (if applicable)
 4. No invariant violations
-5. Status updated in {name}.plan.md
+5. Status updated in {feature}.plan.md
 6. Update {process}/project/STATUS.md at milestones only (batch complete, review pass, blocked, feature complete)
 
 ---
@@ -192,31 +195,31 @@ backlog -> ready -> in-progress -> review -> done
 
 ### Agent Responsibilities (short)
 - Leave breadcrumbs in the plan file so the next agent can pick up quickly
-- Update task status in {name}.plan.md whenever state changes
+- Update task status in {feature}.plan.md whenever state changes
 - Update {process}/project/STATUS.md at milestones only
 - Document decisions (why, not just what)
 - Flag for human input when blocked or ambiguous
 
 ### Plan Communication Sections
-Use these sections inside {name}.plan.md to hand off work:
+Use these sections inside {feature}.plan.md to hand off work:
 - Planning Notes (Planner -> Implementer)
 - Implementation Notes (Implementer -> Reviewer)
 - Review Notes (Reviewer -> Implementer)
 - Change Log (append-only, key events)
 
 ### Plan-Only (Default)
-No task files are used. All task details live inside {name}.plan.md.
+No task files are used. All task details live inside {feature}.plan.md.
 Implementation and review notes go under each task section in the plan.
 
 ### Blocked Protocol
 When blocked:
-1. Set status to `blocked` in {name}.plan.md
+1. Set status to `blocked` in {feature}.plan.md
 2. Record the blocker in the plan (Notes column or a Blockers section)
 3. Add a Change Log entry in the plan: `NEEDS HUMAN: <question>`
 
 When unblocked:
 1. Resolve the blocker
-2. Restore the prior status (usually `ready`) in {name}.plan.md
+2. Restore the prior status (usually `ready`) in {feature}.plan.md
 3. Remove/resolve the blocker note in the plan
 4. Add a Change Log entry in the plan
 

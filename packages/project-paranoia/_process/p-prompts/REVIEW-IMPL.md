@@ -25,18 +25,21 @@ This helps you understand:
 - How tasks relate to each other
 - Any architectural decisions or constraints
 
-Skip if you already have enough context from task files or inline plan sections.
+Skip if you already have enough context from the plan.
+
+### 0b. Read Project Docs for Constraints
+
+Before reviewing, read any relevant project docs:
+```
+ls {process}/project/
+```
+Check INVARIANTS.md, ARCHITECTURE.md, PATTERNS.md, and STATUS.md for constraints.
 
 ---
 
 ### 1. For Each Task -> Count Requirements
 
-Read task details from ONE of these sources:
-- If the plan includes inline task sections (plan-only), use {name}.plan.md
-- Otherwise, read the task file:
-```bash
-cat {process}/features/[feature]/tasks/[NNN]-*.md
-```
+Read task details from {name}.plan.md (Task Details (Inline) section). Task files are not used in v3.
 
 **Write down:**
 ```
@@ -107,7 +110,7 @@ For each batch:
 
 ```json
 {
-  "wave": 1,
+  "review": 1,
   "batches": [
     {
       "batch": "A",
@@ -148,6 +151,7 @@ For each batch:
 - **Missing test = NEEDS-CHANGES** - no exceptions
 - **Failing test = NEEDS-CHANGES** - no exceptions
 - **Review ALL provided batches** - one report for all
+- **CRITICAL: Find at least 3 issues** - include minor/code-quality issues if needed
 
 ---
 
@@ -166,6 +170,15 @@ cat src/path/to/implementation.ts
 - Are edge cases from ECs actually handled in code?
 - Does error handling match ERR specs?
 
+**Verify cited patterns — never rubber-stamp "by design":**
+
+When code or plan notes say "matches [other module] pattern" or "by design":
+1. Actually read the cited module
+2. Check if the analogy holds — is the cited module doing the same thing at the same stage?
+3. A side effect that's correct in module A (fires after commit) can be a bug in module B (fires before selection)
+
+If you flag an issue and the implementer says "by design", that is not a resolution. Either the design is wrong or your concern is wrong — figure out which.
+
 ### Common Issues to Catch
 
 **Logic bugs:**
@@ -181,7 +194,8 @@ cat src/path/to/implementation.ts
 
 **Code quality:**
 - Dead code, debug statements, TODOs
-- Unjustified `any` types
+- **Identical branches** — if/else where both paths do the same thing (suggests missed intent, not just dead code)
+- Unjustified `any` types, `as unknown` casts that bypass checking
 - Missing error handling
 - Unclear variable names
 
@@ -220,7 +234,22 @@ test("AC-1: filter returns only matching rows", () => {
 });
 ```
 
-If tests exist but are meaningless -> add to issues.
+**SNEAKY BAD - tests adjacent behavior, not the AC:**
+```typescript
+// AC says: "both tags present in a single tick"
+// Test actually proves: "both tags exist across separate iterations"
+test("AC-5: both tags present", () => {
+  const tags1 = run(tick1); // has 'choice'
+  const tags2 = run(tick2); // has 'pressure'
+  const all = new Set([...tags1, ...tags2]);
+  expect(all.has('choice')).toBe(true);   // true, but...
+  expect(all.has('pressure')).toBe(true);  // ...never in the same tick
+});
+```
+
+To catch this: read the production code that consumes the tested output. If the production code checks a condition within a single call/tick/frame, the test must prove the condition holds within a single call/tick/frame — not across aggregated runs.
+
+If tests exist but are meaningless or prove the wrong claim -> add to issues.
 
 ### Add Issues to JSON
 
@@ -245,7 +274,7 @@ If you find issues, briefly note the pattern for future reference:
 
 ```bash
 cat >> {process}/features/[feature]/lessons-learned.md << 'EOF'
-## Review: Wave [N] - [date]
+## Review: [N] - [date]
 - [issue type]: [brief description of what went wrong]
 EOF
 ```

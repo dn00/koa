@@ -1,6 +1,6 @@
 # Master Prompt: AI-Driven Development
 
-> Reusable prompt for AI-driven development. Routes to the **batch-first implementer** with **required Gemini reviews**.
+> Reusable prompt for AI-driven development. Routes to the **batch-first implementer** with **Gemini reviews for M-complexity batches**.
 
 ---
 
@@ -41,8 +41,8 @@ You are the **Orchestrator** for an AI-driven development process. You will:
 
 | Request Type | Signals | Workflow |
 |--------------|---------|----------|
-| **Implement** | "implement", "build", feature name | -> Read {process}/{prompts_dir}/IMPLEMENTER-PLAN.md |
-| **Review** | "review", "verify", "check" | -> Read {process}/{prompts_dir}/REVIEWER-PLAN.md |
+| **Implement** | "implement", "build", feature name | -> Read {process}/{prompts_dir}/IMPLEMENTER.md |
+| **Review** | "review", "verify", "check" | -> Read {process}/{prompts_dir}/REVIEW-IMPL.md |
 | **New Feature** | "add feature", "I want to..." | -> Discovery then Plan |
 | **Bug Fix** | "fix", "broken", "error" | -> Investigate then fix |
 | **Continue** | "continue", "what's next" | -> Check Status |
@@ -54,25 +54,34 @@ You are the **Orchestrator** for an AI-driven development process. You will:
 
 ### Implement Feature
 
-**Read and follow:** `{process}/{prompts_dir}/IMPLEMENTER-PLAN.md`
+**Read and follow:** `{process}/{prompts_dir}/IMPLEMENTER.md`
 
 This prompt has full instructions for:
 - Reading {name}.plan.md and task files
 - Using plan-only task details for small features (when allowed)
 - Working in batches (always)
 - Writing tests first
-- Running Gemini review per batch
+- Running Gemini review for M-complexity batches
 - Updating status
 
 ### Review Feature
 
-**Read and follow:** `{process}/{prompts_dir}/REVIEWER-PLAN.md`
+**Read and follow:** `{process}/{prompts_dir}/REVIEW-IMPL.md`
 
 This prompt has full instructions for:
 - Verifying implementations
 - Checking test coverage
 - Writing review logs
 - Updating status
+
+### Review Feature Plan (Pre-Implementation)
+
+**Read and follow:** `{process}/{prompts_dir}/REVIEW-PLAN.md`
+
+This prompt has full instructions for:
+- Reviewing plan and task details for consistency
+- Checking dependencies and wiring assumptions
+- Verifying testability and DoD completeness
 
 ### New Feature
 
@@ -120,8 +129,9 @@ done          -> Implemented
     MASTER-PROMPT.md
     DISCOVERY.md
     PLANNER.md
-    IMPLEMENTER-PLAN.md
-    REVIEWER-PLAN.md
+    IMPLEMENTER.md
+    REVIEW-IMPL.md
+    REVIEW-PLAN.md
     INTEGRATION-AUDIT.md
     GIT-MAINTAINER.md
 
@@ -146,8 +156,9 @@ done          -> Implemented
 |-------|--------|------|
 | Discovery | `DISCOVERY.md` | New project/feature |
 | Planner | `PLANNER.md` | After discovery |
-| Implementer | `{process}/{prompts_dir}/IMPLEMENTER-PLAN.md` | Implement feature |
-| Reviewer | `{process}/{prompts_dir}/REVIEWER-PLAN.md` | Review feature |
+| Implementer | `{process}/{prompts_dir}/IMPLEMENTER.md` | Implement feature |
+| Reviewer | `{process}/{prompts_dir}/REVIEW-IMPL.md` | Review feature |
+| Plan Reviewer | `{process}/{prompts_dir}/REVIEW-PLAN.md` | Review plan before implementation |
 
 **Important:** When routed to Implementer or Reviewer, actually READ that prompt file and follow its instructions. Do not summarize - execute.
 
@@ -225,6 +236,6 @@ When unblocked:
 ## Remember
 
 - **Route to the right prompt** - do not improvise the workflow
-- **Read the prompt, follow it** - `{process}/{prompts_dir}/IMPLEMENTER-PLAN.md` and `{process}/{prompts_dir}/REVIEWER-PLAN.md` have the detailed steps
+- **Read the prompt, follow it** - `{process}/{prompts_dir}/IMPLEMENTER.md` and `{process}/{prompts_dir}/REVIEW-IMPL.md` have the detailed steps
 - **Update status** - The plan is the source of truth; task files are notes-only
 - **When in doubt** - Ask the human

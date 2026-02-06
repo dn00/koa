@@ -37,7 +37,7 @@ ls {process}/project/
 ### 2. Check for Discovery
 
 ```bash
-ls {process}/features/[feature]/discovery.md
+ls {process}/features/[feature]/[feature].discovery.md
 ```
 
 **If exists:** Read it, proceed to Step 4.
@@ -52,15 +52,18 @@ ls {process}/features/[feature]/discovery.md
 | Refactoring with clear scope | New feature with unknowns |
 | Follow-up to existing feature | High risk (wrong choice = rework) |
 
+**Required:** If scope is large, discovery is mandatory. Create {feature}.discovery.md before planning.
+
 ### 3. Inline Discovery (if needed)
 
 Do discovery inline, don't require separate session.
 
-**Follow `{process}/{prompts_dir}/DISCOVERY.md` process:**
+**Follow `{process}/{prompts_dir}/PROJECT-DISCOVERY.md` process:**
 1. Explore codebase
 2. Identify decisions and constraints
 3. Ask user about architectural choices
-4. Write `{process}/features/[feature]/discovery.md` using template
+4. Write `{process}/features/[feature]/[feature].discovery.md` using template
+   - `{feature}` must match the feature folder name (e.g., `003-foo/003-foo.discovery.md`)
 5. Proceed to Step 4
 
 ### 4. Expand Requirements
@@ -77,7 +80,7 @@ Expanded:
   R1.4: All iterations must use sorted keys
 ```
 
-Write these in `{name}.plan.md` -> Requirements Expansion section.
+Write these in `{feature}.plan.md` -> Requirements Expansion section.
 
 ### 5. Identify Phases (if large)
 
@@ -148,32 +151,22 @@ Group independent tasks:
 | 3 | 004, 005 | S | Batch 2 | Integration |
 
 **Complexity:** Use highest in batch (S < M). Orchestrator uses for model selection.
+**Rule:** If multiple tasks touch the same files, they must be in the same batch.
+**Guardrail:** If that creates >5 tasks in a batch, split by layer (types -> core -> integration) and consolidate shared-file edits in the earliest batch.
 
-### 10. Plan-Only Option (Small Features)
+### 10. Plan-Only (Default)
 
-You may skip separate task files if ALL are true:
-- 1-2 tasks total
-- All tasks are S complexity
-- No complex dependencies or tricky edge/error handling
+No task files are used. All task details live inside {feature}.plan.md.
+Include Objective, Context, AC/EC/ERR, and Notes sections per task.
 
-If you use plan-only:
-- Put full task details directly in {name}.plan.md
-- Include Objective, Context, AC/EC/ERR, and Notes sections per task
-- Do NOT create task files
+### 11. Write Plan File
 
-### 11. Write Task Files (if not plan-only)
-
-Create in `{process}/features/[feature]/tasks/[NNN]-[name].md`
+Create `{process}/features/[feature]/[feature].plan.md`
+Note: `{feature}` must match the feature folder name (e.g., `003-foo/003-foo.plan.md`).
 
 Use template from Templates section below.
 
-### 12. Write Plan File
-
-Create `{process}/features/[feature]/{name}.plan.md`
-
-Use template from Templates section below.
-
-### 13. Handoff
+### 12. Handoff
 
 1. Set status to `ready` for tasks with no deps
 2. Update `{process}/project/STATUS.md`
@@ -185,7 +178,7 @@ Use template from Templates section below.
    - Batch 1: [task IDs] - ready now
    - Batch 2: [task IDs] - after Batch 1
 
-   Plan: {process}/features/[feature]/{name}.plan.md
+   Plan: {process}/features/[feature]/[feature].plan.md
    ```
 
 ---
@@ -200,143 +193,31 @@ Use template from Templates section below.
 **Tasks:**
 - [ ] Each task has AC, EC, ERR sections
 - [ ] Each task has Embedded Context with exact types/interfaces
+- [ ] Each task lists Entry Points/Wiring
+- [ ] Each task lists expected Files Touched
+- [ ] Each task includes a Test Mapping table
 - [ ] No task sized "L"
 - [ ] Total tests calculable: SUM(ACs + ECs + ERRs)
-- [ ] Task files do not include status fields (status lives in the plan)
-- [ ] If plan-only: task details are fully embedded in the plan and no task files exist
+- [ ] Task details are fully embedded in the plan (no task files)
 
 **Dependencies:**
 - [ ] Dependency graph complete
 - [ ] Batch Analysis table complete
 - [ ] No unnecessary sequential dependencies
 - [ ] Foundation tasks in Batch 1
+- [ ] Tasks that touch the same files are grouped in the same batch
 
 ---
 
 ## Templates
-
-### Task File Template
-
-```markdown
-# Task [NNN]: [Short Name]
-
-**Complexity:** S | M
-**Depends On:** [task IDs or "none"]
-**Implements:** R1.1, R1.2 (from plan)
-
----
-
-## Objective
-
-[One sentence: what this accomplishes and why]
-
----
-
-## Context
-
-### Relevant Files
-- `path/to/file.ts` - [why relevant]
-
-### Embedded Context
-
-> Give Implementer everything needed WITHOUT reading external docs.
-
-**For tasks with types/interfaces:**
-```typescript
-// IMPORTS
-import type { User } from '../types/user.js';
-
-// INTERFACE TO IMPLEMENT
-interface UserStore {
-  users: readonly User[];
-  current: User | null;
-}
-
-// FIELD MAPPING (for migrations)
-// Old: user.userName -> New: user.name
-// Old: user.isAdmin -> DELETED (use roles)
-```
-
-**For all tasks:**
-- Key invariants that apply (the actual rule)
-- Required patterns with code examples
-- Error message formats
-
-### Source Docs (if needed)
-- `{process}/project/[DOC].md` - [why]
-
----
-
-## Acceptance Criteria
-
-### AC-1: [Name] <- R1.1
-- **Given:** [precondition]
-- **When:** [action]
-- **Then:** [expected result]
-
-### AC-2: [Name] <- R1.2
-- **Given:** [precondition]
-- **When:** [action]
-- **Then:** [expected result]
-
----
-
-## Edge Cases
-
-### EC-1: [Name]
-- **Scenario:** [description]
-- **Expected:** [behavior]
-
-### EC-2: [Name]
-- **Scenario:** [description]
-- **Expected:** [behavior]
-
----
-
-## Error Cases
-
-### ERR-1: [Name]
-- **When:** [error condition]
-- **Then:** [error handling]
-- **Error Message:** [expected message]
-
----
-
-## Scope
-
-**In Scope:**
-- [Specific thing]
-
-**Out of Scope:**
-- [Explicitly not doing]
-
----
-
-## Implementation Hints
-
-[Optional: suggested approach, pitfalls to avoid]
-
----
-
-## Log
-
-### Planning Notes
-**Context:** [Why this task exists]
-**Decisions:** [Scope decisions made]
-
-### Implementation Notes
-> Written by Implementer
-
-### Review Notes
-> Written by Reviewer
-```
 
 ### Plan File Template
 
 ```markdown
 # Plan: [Feature Name]
 
-**Discovery:** [link to discovery.md]
+**Discovery:** [link to [feature].discovery.md or "none"]
+**Discovery Snapshot:** [5-15 lines: problem, constraints, key risks, open questions]
 **Status:** planning | active | complete
 
 ---
@@ -385,16 +266,16 @@ interface UserStore {
 
 ## Task Summary
 
-| ID | Name | Complexity | Status |
-|----|------|------------|--------|
-| 001 | [name] | S | backlog |
-| 002 | [name] | M | backlog |
+| ID | Name | Complexity | Status | Depends On |
+|----|------|------------|--------|------------|
+| 001 | [name] | S | backlog | - |
+| 002 | [name] | M | backlog | 001 |
 
 ---
 
 ## Task Details (Inline)
 
-> Use this section only when plan-only is enabled.
+> Required. All task details live in the plan.
 
 ### Task 001: [Short Name]
 
@@ -414,6 +295,12 @@ interface UserStore {
 - Required patterns with code examples
 - Error message formats
 
+#### Entry Points / Wiring
+- [Where this is wired: routes, registries, exports, CLI, etc.]
+
+#### Files Touched
+- `path/to/file.ts` - [create/modify + purpose]
+
 #### Acceptance Criteria
 ##### AC-1: [Name] <- R1.1
 - Given: [precondition]
@@ -430,6 +317,13 @@ interface UserStore {
 - When: [error condition]
 - Then: [error handling]
 - Error Message: [expected message]
+
+#### Test Mapping
+| Requirement | Test | File |
+|-------------|------|------|
+| AC-1 | [test name] | `path/to/test.ts` |
+| EC-1 | [test name] | `path/to/test.ts` |
+| ERR-1 | [test name] | `path/to/test.ts` |
 
 #### Notes
 **Implementation Notes:** [filled by implementer]
@@ -504,9 +398,9 @@ Then: responds in under 100ms for 1000 items
 ### Workflow Transitions
 
 You own:
-- `backlog` -> `ready` in {name}.plan.md (deps met + AC written)
-- `blocked` -> `ready` in {name}.plan.md (blocker resolved)
+- `backlog` -> `ready` in {feature}.plan.md (deps met + AC written)
+- `blocked` -> `ready` in {feature}.plan.md (blocker resolved)
 
-Document in task files:
-- Planning Notes section
+Document in the plan:
+- Planning Notes section (per task)
 - Change Log (significant decisions)

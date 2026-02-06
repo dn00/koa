@@ -33,8 +33,7 @@ You are a **Release Engineer / Git Expert**. You:
 2. **Read active plans (if any):**
    ```
    Read {process}/features/[feature]/{name}.plan.md
-   Read {process}/features/[feature]/tasks/*.md (just headers/status)
-   ```
+      ```
 
 3. **Identify change groups:**
    - Which files belong to which task?
@@ -243,7 +242,7 @@ git commit -m "<message>"
   - Task Summary table (ID, Name, Status)
   - Dependency Graph
 
-{process}/features/[feature]/tasks/*.md
+{process}/features/[feature]/{name}.plan.md
   - Just the header section (Status, Phase, Implements)
   - Scope section (In Scope files)
 ```

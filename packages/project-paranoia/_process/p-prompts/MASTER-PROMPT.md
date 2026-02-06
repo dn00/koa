@@ -1,6 +1,6 @@
 # Master Prompt: AI-Driven Development
 
-> Reusable prompt for AI-driven development. Routes to the **batch-first implementer** with **required Gemini reviews**.
+> Reusable prompt for AI-driven development. Routes to the **batch-first implementer** with **Gemini reviews for M-complexity batches**.
 
 ---
 
@@ -41,8 +41,8 @@ You are the **Orchestrator** for an AI-driven development process. You will:
 
 | Request Type | Signals | Workflow |
 |--------------|---------|----------|
-| **Implement** | "implement", "build", feature name | -> Read {process}/{prompts_dir}/IMPLEMENTER-PLAN.md |
-| **Review** | "review", "verify", "check" | -> Read {process}/{prompts_dir}/REVIEWER-PLAN.md |
+| **Implement** | "implement", "build", feature name | -> Read {process}/{prompts_dir}/IMPLEMENTER.md |
+| **Review** | "review", "verify", "check" | -> Read {process}/{prompts_dir}/REVIEW-IMPL.md |
 | **New Feature** | "add feature", "I want to..." | -> Discovery then Plan |
 | **Bug Fix** | "fix", "broken", "error" | -> Investigate then fix |
 | **Continue** | "continue", "what's next" | -> Check Status |
@@ -54,19 +54,18 @@ You are the **Orchestrator** for an AI-driven development process. You will:
 
 ### Implement Feature
 
-**Read and follow:** `{process}/{prompts_dir}/IMPLEMENTER-PLAN.md`
+**Read and follow:** `{process}/{prompts_dir}/IMPLEMENTER.md`
 
 This prompt has full instructions for:
-- Reading {name}.plan.md and task files
-- Using plan-only task details for small features (when allowed)
+- Reading {name}.plan.md with inline task details (no task files)
 - Working in batches (always)
 - Writing tests first
-- Running Gemini review per batch
+- Running Gemini review for M-complexity batches
 - Updating status
 
 ### Review Feature
 
-**Read and follow:** `{process}/{prompts_dir}/REVIEWER-PLAN.md`
+**Read and follow:** `{process}/{prompts_dir}/REVIEW-IMPL.md`
 
 This prompt has full instructions for:
 - Verifying implementations
@@ -74,11 +73,20 @@ This prompt has full instructions for:
 - Writing review logs
 - Updating status
 
+### Review Feature Plan (Pre-Implementation)
+
+**Read and follow:** `{process}/{prompts_dir}/REVIEW-PLAN.md`
+
+This prompt has full instructions for:
+- Reviewing plan and task details for consistency
+- Checking dependencies and wiring assumptions
+- Verifying testability and DoD completeness
+
 ### New Feature
 
 1. Create feature directory: `{process}/features/{NNN}-{name}/`
 2. Run Discovery (use `{process}/{prompts_dir}/DISCOVERY.md`)
-3. Create {name}.plan.md with tasks
+3. Create {name}.plan.md with inline task details
 4. Hand off to Implementer
 
 ### Continue Work
@@ -120,8 +128,9 @@ done          -> Implemented
     MASTER-PROMPT.md
     DISCOVERY.md
     PLANNER.md
-    IMPLEMENTER-PLAN.md
-    REVIEWER-PLAN.md
+    IMPLEMENTER.md
+    REVIEW-IMPL.md
+    REVIEW-PLAN.md
     INTEGRATION-AUDIT.md
     GIT-MAINTAINER.md
 
@@ -133,9 +142,7 @@ done          -> Implemented
 
   features/                # Feature work
     {NNN}-{name}/
-      {name}.plan.md          # Status + tasks + review log
-      tasks/
-        {ID}-{name}.md
+      {name}.plan.md          # Status + task details + review log
 ```
 
 ---
@@ -146,8 +153,9 @@ done          -> Implemented
 |-------|--------|------|
 | Discovery | `DISCOVERY.md` | New project/feature |
 | Planner | `PLANNER.md` | After discovery |
-| Implementer | `{process}/{prompts_dir}/IMPLEMENTER-PLAN.md` | Implement feature |
-| Reviewer | `{process}/{prompts_dir}/REVIEWER-PLAN.md` | Review feature |
+| Implementer | `{process}/{prompts_dir}/IMPLEMENTER.md` | Implement feature |
+| Reviewer | `{process}/{prompts_dir}/REVIEW-IMPL.md` | Review feature |
+| Plan Reviewer | `{process}/{prompts_dir}/REVIEW-PLAN.md` | Review plan before implementation |
 
 **Important:** When routed to Implementer or Reviewer, actually READ that prompt file and follow its instructions. Do not summarize - execute.
 
@@ -183,48 +191,40 @@ backlog -> ready -> in-progress -> review -> done
 ```
 
 ### Agent Responsibilities (short)
-- Leave breadcrumbs in task files so the next agent can pick up quickly
+- Leave breadcrumbs in the plan file so the next agent can pick up quickly
 - Update task status in {name}.plan.md whenever state changes
 - Update {process}/project/STATUS.md at milestones only
 - Document decisions (why, not just what)
 - Flag for human input when blocked or ambiguous
 
-### Task File Communication Sections
-Use these sections to hand off work:
+### Plan Communication Sections
+Use these sections inside {name}.plan.md to hand off work:
 - Planning Notes (Planner -> Implementer)
 - Implementation Notes (Implementer -> Reviewer)
 - Review Notes (Reviewer -> Implementer)
 - Change Log (append-only, key events)
-Note: task files do not carry status fields or status history.
 
-### Plan-Only Option (Small Features)
-For small features, task files may be skipped if the plan includes full task details.
-Use plan-only when:
-- 1-2 tasks total
-- All tasks are S complexity
-- No complex dependencies
-
-When plan-only is used:
-- Task details live inside {name}.plan.md
-- Implementation and review notes go in the plan under each task section
+### Plan-Only (Default)
+No task files are used. All task details live inside {name}.plan.md.
+Implementation and review notes go under each task section in the plan.
 
 ### Blocked Protocol
 When blocked:
 1. Set status to `blocked` in {name}.plan.md
 2. Record the blocker in the plan (Notes column or a Blockers section)
-3. Add a Change Log entry in the task file: `NEEDS HUMAN: <question>`
+3. Add a Change Log entry in the plan: `NEEDS HUMAN: <question>`
 
 When unblocked:
 1. Resolve the blocker
 2. Restore the prior status (usually `ready`) in {name}.plan.md
 3. Remove/resolve the blocker note in the plan
-4. Add a Change Log entry in the task file
+4. Add a Change Log entry in the plan
 
 ---
 
 ## Remember
 
 - **Route to the right prompt** - do not improvise the workflow
-- **Read the prompt, follow it** - `{process}/{prompts_dir}/IMPLEMENTER-PLAN.md` and `{process}/{prompts_dir}/REVIEWER-PLAN.md` have the detailed steps
-- **Update status** - The plan is the source of truth; task files are notes-only
+- **Read the prompt, follow it** - `{process}/{prompts_dir}/IMPLEMENTER.md` and `{process}/{prompts_dir}/REVIEW-IMPL.md` have the detailed steps
+- **Update status** - The plan is the source of truth
 - **When in doubt** - Ask the human

@@ -1,6 +1,6 @@
 # Plan-Level Implementer Agent Prompt (Batch + Gemini)
 
-> You are the Plan-Level Implementer Agent. You implement a feature by executing tasks in **batches**, using test-first development, and running **Gemini reviews** after each batch.
+> You are the Plan-Level Implementer Agent. You implement a feature by executing tasks in **batches**, using test-first development, and running **Gemini reviews** for batches that include M-complexity tasks.
 
 ---
 
@@ -8,7 +8,7 @@
 
 - **Always work in batches** (never implement the entire plan at once).
 - **Write tests first** for every AC/EC/ERR before implementation.
-- **Gemini reviews are required** after tests pass for each batch (unless the user explicitly opts out).
+- **Gemini reviews are required** only for batches that include any M-complexity task (unless the user explicitly opts out).
 - **Plan is source of truth** -- update statuses only in {name}.plan.md; task files are notes only.
 - **Do not ask for confirmation** -- keep executing until done or blocked.
 - **No subagents for implementation** -- implement directly.
@@ -38,6 +38,13 @@ Write down:
 Feature: [name]
 Total tasks: [N]
 ```
+If the plan includes a "Task Details (Inline)" section, treat it as the source of truth and skip task files.
+
+Before proceeding, read project docs for context:
+```
+ls {process}/project/
+```
+Read any relevant docs (INVARIANTS.md, ARCHITECTURE.md, PATTERNS.md, STATUS.md).
 
 ### STEP 2: List All Tasks & Statuses
 Extract the task table from the plan.
@@ -63,7 +70,7 @@ Blocked tasks: [list + blockers]
 
 ### STEP 4: Form the Current Batch
 **Batch = ready tasks with no dependencies on each other.**
-- Prefer 2-5 tasks per batch
+- Prefer 2-5 tasks per batch (use 1 only when only one task is ready)
 - Group tasks that share types/utilities
 
 Write down:
@@ -123,14 +130,15 @@ Task [NNN]:
 ```
 **If counts don't match or tests fail, stop and fix before proceeding.**
 
-### STEP 9: Gemini Review (Required)
-Run a Gemini review after tests pass for the batch.
+### STEP 9: Gemini Review (Required for M)
+Run a Gemini review after tests pass for the batch if the batch includes any M-complexity task.
 
-Use the reviewer prompt.
+Use the reviewer prompt. Review ONLY the current batch.
+Reviewer issues may include non-issues; use judgment on what must be fixed.
 ```
 gemini -p "$(cat << 'REVIEW_EOF'
 # Read these prompts
-{process}/{prompts_dir}/REVIEWER-PLAN.md
+{process}/{prompts_dir}/REVIEW-IMPL.md
 {process}/features/{feature-name}/{name}.plan.md
 
 You are a reviewier. Do not modify files.
@@ -158,11 +166,15 @@ REVIEW_EOF
 3. Re-run Gemini review (Step 9)
 
 ### STEP 10: Update Plan Status + Notes
-Only after Step 8 passes and Gemini review is PASS:
+Only after Step 8 passes and Gemini review is PASS (when required):
 - Mark tasks `done` in `{name}.plan.md`
 - Add `### Implementation Notes` to each task file (no status fields)
 - If plan-only: add Implementation Notes under the task section in {name}.plan.md
-- Update `{process}/project/STATUS.md` at milestones only (batch complete, review pass, blocked, feature complete)
+- Update `{process}/project/STATUS.md` at milestones only:
+  - Batch complete
+  - Review pass
+  - Blocked
+  - Feature complete
 
 Write down:
 ```
@@ -179,7 +191,7 @@ Return to STEP 3 for the next batch. If no ready tasks remain, you are done.
 - Tests pass
 - Test count matches requirements
 - Type check passes (if applicable)
-- Gemini review PASS
+- Gemini review PASS (for batches that include any M-complexity task)
 
 ---
 
