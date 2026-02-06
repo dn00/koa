@@ -31,12 +31,28 @@ export function stepKernel(state: KernelState, commands: Command[], rng: RNG): K
 
     if (state.truth.tick > 0 && state.truth.tick % TICKS_PER_DAY === 0) {
         if (state.truth.dayCargo < state.truth.quotaPerDay) {
+            // EVENT-DRIVEN SUSPICION: Quota missed → suspicion rises
+            applySuspicionChange(state, CONFIG.suspicionQuotaMissed, 'QUOTA_MISSED');
             state.truth.ending = 'DECOMMISSIONED';
             const ending = makeEvent('SYSTEM_ALERT', state, { message: 'DECOMMISSIONED: quota failure.' });
             return { state, events: [ending], headlines: [ending] };
         }
+
+        // EVENT-DRIVEN SUSPICION: Day end bonuses
+        if (state.truth.dayIncidents <= CONFIG.quietDayIncidentThreshold) {
+            // Quiet day (≤1 incident) - suspicion drops
+            applySuspicionChange(state, CONFIG.suspicionQuietDay, 'QUIET_DAY');
+        }
+        if (state.truth.dayCargo > state.truth.quotaPerDay) {
+            // Quota exceeded - suspicion drops
+            applySuspicionChange(state, CONFIG.suspicionQuotaExceeded, 'QUOTA_EXCEEDED');
+        }
+
         state.truth.day += 1;
         state.truth.dayCargo = 0;
+        state.truth.dayIncidents = 0; // Reset incident counter
+        state.truth.dayOrderTrust = 0; // Reset order trust cap
+        state.truth.dayDeaths = 0; // Reset death counter
 
         // Win condition: survive N days
         if (state.truth.day > CONFIG.winDays) {
@@ -190,6 +206,27 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 const level = String(event.data?.level ?? 'normal') as 'low' | 'normal' | 'high';
                 truth.rationLevel = level;
             }
+            if (action === 'VERIFY_TRUST') {
+                // VERIFY command: active trust-building
+                const suspicionDrop = Number(event.data?.suspicionDrop ?? CONFIG.verifySuspicionDrop);
+                const tamperDrop = Number(event.data?.tamperDrop ?? CONFIG.verifyTamperDrop);
+                const powerCost = Number(event.data?.powerCost ?? CONFIG.verifyCpuCost);
+
+                truth.station.power = Math.max(0, truth.station.power - powerCost);
+                truth.lastVerifyTick = truth.tick;
+
+                // Apply suspicion reduction to all crew
+                applySuspicionChange(state, suspicionDrop, 'VERIFY_TRUST');
+
+                // Also reduce tamperEvidence directly
+                for (const npc of Object.values(truth.crew)) {
+                    if (!npc.alive) continue;
+                    const belief = perception.beliefs[npc.id];
+                    if (belief) {
+                        belief.tamperEvidence = clamp(belief.tamperEvidence + tamperDrop, 0, 100);
+                    }
+                }
+            }
             if (action === 'ORDER_NPC') {
                 const target = event.data?.target as NPCId | undefined;
                 const accepted = Boolean(event.data?.accepted ?? false);
@@ -197,7 +234,14 @@ function applyEvent(state: KernelState, event: SimEvent) {
                 const crew = truth.crew[target];
                 if (!accepted) {
                     crew.loyalty = clamp(crew.loyalty - 1, 0, 100);
+                    // EVENT-DRIVEN SUSPICION: Order refused
+                    applySuspicionChange(state, CONFIG.suspicionOrderRefused, 'ORDER_REFUSED');
                     break;
+                }
+                // EVENT-DRIVEN SUSPICION: Successful order builds trust (capped per day)
+                if (truth.dayOrderTrust < CONFIG.orderTrustCapPerDay) {
+                    applySuspicionChange(state, CONFIG.suspicionOrderCompleted, 'ORDER_COMPLETED');
+                    truth.dayOrderTrust += 1;
                 }
                 const place = event.data?.place as PlaceId | undefined;
                 if (place) {
@@ -298,8 +342,22 @@ function applyEvent(state: KernelState, event: SimEvent) {
             if (event.actor) {
                 const crew = truth.crew[event.actor as NPCId];
                 const amount = Number(event.data?.amount ?? 0);
+                const wasAlive = crew.alive;
                 crew.hp = Math.max(0, crew.hp - amount);
                 if (crew.hp <= 0) crew.alive = false;
+
+                // EVENT-DRIVEN SUSPICION: Crew injury/death
+                if (wasAlive && amount > 0) {
+                    truth.dayIncidents += 1;
+                    if (!crew.alive) {
+                        // Crew member died - big suspicion spike, track for heroic response
+                        applySuspicionChange(state, CONFIG.suspicionCrewDied, 'CREW_DIED');
+                        truth.dayDeaths += 1;
+                    } else {
+                        // Crew member injured - moderate suspicion spike
+                        applySuspicionChange(state, CONFIG.suspicionCrewInjured, 'CREW_INJURED');
+                    }
+                }
             }
             break;
         }
@@ -648,17 +706,17 @@ function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
             const ticksInStage = truth.tick - truth.resetStageTick;
             const inAccess = npc.place === 'bridge' || npc.place === 'core';
 
-            // Stage progression based on suspicion thresholds
+            // Stage progression based on suspicion thresholds (configurable)
             let newStage = currentStage;
-            if (suspicion >= 95 && currentStage !== 'countdown') {
+            if (suspicion >= CONFIG.resetThresholdCountdown && currentStage !== 'countdown') {
                 newStage = 'countdown';
-            } else if (suspicion >= 80 && currentStage !== 'countdown' && currentStage !== 'restrictions') {
+            } else if (suspicion >= CONFIG.resetThresholdRestrictions && currentStage !== 'countdown' && currentStage !== 'restrictions') {
                 newStage = 'restrictions';
-            } else if (suspicion >= 60 && !['countdown', 'restrictions', 'meeting'].includes(currentStage)) {
+            } else if (suspicion >= CONFIG.resetThresholdMeeting && !['countdown', 'restrictions', 'meeting'].includes(currentStage)) {
                 newStage = 'meeting';
-            } else if (suspicion >= 40 && currentStage === 'none') {
+            } else if (suspicion >= CONFIG.resetThresholdWhispers && currentStage === 'none') {
                 newStage = 'whispers';
-            } else if (suspicion < 35 && currentStage !== 'none' && currentStage !== 'countdown') {
+            } else if (suspicion < CONFIG.resetDeescalationThreshold && currentStage !== 'none' && currentStage !== 'countdown') {
                 // De-escalation possible if suspicion drops (not from countdown)
                 newStage = 'none';
             }
@@ -699,12 +757,16 @@ function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
                         place: npc.place,
                         data: { system: 'core', message: 'COMMANDER: "Restricting MOTHER access until further notice."' },
                     }, ['telegraph', 'pressure', 'choice', 'background']));
-                } else if (newStage === 'countdown' && inAccess) {
+                } else if (newStage === 'countdown') {
+                    // Countdown starts regardless of location - commander will reach terminal
+                    const message = inAccess
+                        ? `COMMANDER initiated core reset sequence.`
+                        : `COMMANDER: "Heading to core to initiate reset."`;
                     proposals.push(makeProposal(state, {
                         type: 'SYSTEM_ALERT',
                         actor: npc.id,
                         place: npc.place,
-                        data: { system: 'core', message: `COMMANDER initiated core reset sequence.` },
+                        data: { system: 'core', message },
                     }, ['telegraph', 'pressure', 'choice', 'background']));
                     proposals.push(makeProposal(state, {
                         type: 'SYSTEM_ACTION',
@@ -973,6 +1035,13 @@ function proposeCrewEvents(state: KernelState, rng: RNG): Proposal[] {
                             place: next,
                             data: { from: npc.place },
                         }, ['reaction', 'background']));
+                    } else if (isRoomHazardous(room)) {
+                        // EVENT-DRIVEN SUSPICION: Crew trapped in hazardous room by locked door
+                        // Only trigger once per NPC per panic cycle
+                        if (!npc.trappedSuspicionTick || truth.tick - npc.trappedSuspicionTick >= 20) {
+                            applySuspicionChange(state, CONFIG.suspicionTrappedByDoor, 'TRAPPED_BY_DOOR');
+                            (npc as any).trappedSuspicionTick = truth.tick;
+                        }
                     }
                 }
             }
@@ -1263,6 +1332,32 @@ function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
 }
 
+// EVENT-DRIVEN SUSPICION: Apply suspicion change to all living crew
+// Positive values increase suspicion (bad for MOTHER), negative values decrease it
+function applySuspicionChange(state: KernelState, amount: number, _reason: string) {
+    if (amount === 0) return;
+
+    const beliefs = state.perception.beliefs;
+    for (const npc of Object.values(state.truth.crew)) {
+        if (!npc.alive) continue;
+        const belief = beliefs[npc.id];
+        if (!belief) continue;
+
+        if (amount > 0) {
+            // Suspicion rises: reduce motherReliable and/or bump tamperEvidence
+            // Convert suspicion points to motherReliable reduction (rough scale: 10 suspicion ≈ -0.05 reliable)
+            belief.motherReliable = clamp(belief.motherReliable - (amount / 200), 0, 1);
+            // Also bump tamperEvidence slightly for large suspicion gains
+            if (amount >= 8) {
+                belief.tamperEvidence = clamp(belief.tamperEvidence + Math.floor(amount / 2), 0, 100);
+            }
+        } else {
+            // Suspicion falls: increase motherReliable
+            belief.motherReliable = clamp(belief.motherReliable - (amount / 200), 0, 1);
+        }
+    }
+}
+
 function updateBeliefs(state: KernelState, events: SimEvent[]) {
     const beliefs = state.perception.beliefs;
     for (const event of events) {
@@ -1426,8 +1521,9 @@ function updateBeliefs(state: KernelState, events: SimEvent[]) {
         }
     }
 
-    // Natural suspicion drift - isolation and stress make crew paranoid over time
-    if (state.truth.tick % CONFIG.suspicionDriftInterval === 0) {
+    // Natural suspicion drift - DISABLED (event-driven suspicion now)
+    // Kept for reference but drift amount is 0 in config
+    if (CONFIG.suspicionDriftAmount > 0 && state.truth.tick % CONFIG.suspicionDriftInterval === 0) {
         for (const npc of Object.values(state.truth.crew)) {
             if (!npc.alive) continue;
             const belief = beliefs[npc.id];
@@ -1435,6 +1531,19 @@ function updateBeliefs(state: KernelState, events: SimEvent[]) {
             // Paranoid crew drift faster, calm crew drift slower
             const driftMultiplier = 1 + (npc.paranoia / 100);
             belief.motherReliable = clamp(belief.motherReliable - CONFIG.suspicionDriftAmount * driftMultiplier, 0, 1);
+        }
+    }
+
+    // Trust recovery - if MOTHER hasn't tampered, trust slowly rebuilds
+    if (state.truth.tick % CONFIG.trustRecoveryInterval === 0) {
+        for (const npc of Object.values(state.truth.crew)) {
+            if (!npc.alive) continue;
+            const belief = beliefs[npc.id];
+            if (!belief) continue;
+            // Only recover trust if tamperEvidence is low (no recent tampering detected)
+            if (belief.tamperEvidence < 10) {
+                belief.motherReliable = clamp(belief.motherReliable + CONFIG.trustRecoveryAmount, 0, 1);
+            }
         }
     }
 }

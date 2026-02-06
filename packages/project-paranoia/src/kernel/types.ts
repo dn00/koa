@@ -53,6 +53,7 @@ export interface CrewTruth {
     panicUntilTick?: number;
     nextRoleTick?: number;
     orderUntilTick?: number;
+    trappedSuspicionTick?: number; // Last tick when trapped-by-door suspicion was applied
     schedule: NPC['schedule'];
 }
 
@@ -92,6 +93,12 @@ export interface TruthState {
     resetCountdown?: number;
     resetStage: 'none' | 'whispers' | 'meeting' | 'restrictions' | 'countdown';
     resetStageTick: number; // when current stage started
+    // Event-driven suspicion tracking
+    dayIncidents: number; // count of bad incidents this day (crises, injuries, deaths)
+    dayOrderTrust: number; // suspicion gained from orders this day (capped)
+    dayDeaths: number; // deaths this day (for heroic response check)
+    activeCrisisStarts: Record<string, number>; // arcId -> tick started (for quick resolution tracking)
+    lastVerifyTick: number; // last tick VERIFY was used (for cooldown)
     station: {
         power: number;
         comms: number;

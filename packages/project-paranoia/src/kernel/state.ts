@@ -69,6 +69,11 @@ export function createInitialState(world: World, quotaPerDay: number): KernelSta
             resetCountdown: undefined,
             resetStage: 'none',
             resetStageTick: 0,
+            dayIncidents: 0,
+            dayOrderTrust: 0,
+            dayDeaths: 0,
+            activeCrisisStarts: {},
+            lastVerifyTick: -1000,
             station: {
                 power: 100,
                 comms: 100,

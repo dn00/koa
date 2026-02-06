@@ -59,18 +59,62 @@ export const CONFIG = {
     crewInvestigationCooldown: num('PARANOIA_CREW_INVESTIGATION_COOLDOWN', 20), // check more often
     crewInvestigationSuspicionThreshold: num('PARANOIA_CREW_INVESTIGATION_THRESHOLD', 20), // investigate earlier
 
-    // Natural suspicion drift - crew gets paranoid over time
-    suspicionDriftInterval: num('PARANOIA_SUSPICION_DRIFT_INTERVAL', 50), // ticks between drift
-    suspicionDriftAmount: num('PARANOIA_SUSPICION_DRIFT', 0.01), // motherReliable drops this much
-    crewInvestigationFindBump: num('PARANOIA_CREW_INVESTIGATION_FIND_BUMP', 15), // suspicion gain on finding evidence
+    // Natural suspicion drift - DISABLED for event-driven suspicion
+    // Crew now judges MOTHER by observable outcomes, not arbitrary timer
+    suspicionDriftInterval: num('PARANOIA_SUSPICION_DRIFT_INTERVAL', 40), // kept for backwards compat
+    suspicionDriftAmount: num('PARANOIA_SUSPICION_DRIFT', 0), // DISABLED - suspicion is event-driven now
+
+    // Trust recovery - MOTHER can rebuild trust by not tampering
+    trustRecoveryInterval: num('PARANOIA_TRUST_RECOVERY_INTERVAL', 40),
+    trustRecoveryAmount: num('PARANOIA_TRUST_RECOVERY', 0.012),
+    trustRecoveryTamperWindow: num('PARANOIA_TRUST_RECOVERY_WINDOW', 100), // no tampering in this many ticks = recovery
+    crewInvestigationFindBump: num('PARANOIA_CREW_INVESTIGATION_FIND_BUMP', 12), // suspicion gain on finding evidence
     crewInvestigationClearDrop: num('PARANOIA_CREW_INVESTIGATION_CLEAR_DROP', 5), // suspicion drop on finding nothing
+
+    // Event-driven suspicion modifiers (see PARANOIA_HANDOFF_PROMPT.md Section 15)
+    // Suspicion RISES when crew witnesses bad outcomes
+    suspicionCrisisWitnessed: num('PARANOIA_SUSPICION_CRISIS', 5), // crew witnesses crisis start
+    suspicionCrewInjured: num('PARANOIA_SUSPICION_INJURED', 5), // crew member injured (tuned down from 7)
+    suspicionCrewDied: num('PARANOIA_SUSPICION_DIED', 14), // crew member dies
+    suspicionQuotaMissed: num('PARANOIA_SUSPICION_QUOTA_MISSED', 12), // quota not met
+    suspicionOrderRefused: num('PARANOIA_SUSPICION_ORDER_REFUSED', 2), // order ignored/refused (mild)
+    suspicionTrappedByDoor: num('PARANOIA_SUSPICION_TRAPPED', 10), // crew trapped by locked door
+
+    // Suspicion FALLS when crew sees good outcomes
+    suspicionCrisisResolved: num('PARANOIA_SUSPICION_CRISIS_RESOLVED', -5), // crisis resolved quickly
+    suspicionQuietDay: num('PARANOIA_SUSPICION_QUIET_DAY', -4), // day with ≤1 incidents
+    suspicionQuotaExceeded: num('PARANOIA_SUSPICION_QUOTA_EXCEEDED', -5), // quota exceeded
+    suspicionHeroicResponse: num('PARANOIA_SUSPICION_HEROIC', -3), // death + quick crisis resolve (contained it)
+    suspicionOrderCompleted: num('PARANOIA_SUSPICION_ORDER_COMPLETED', -1), // successful order builds trust
+
+    // Crisis resolution timing
+    crisisResolveQuickTicks: num('PARANOIA_CRISIS_RESOLVE_QUICK', 25), // ticks to count as "quick" resolution
+    quietDayIncidentThreshold: num('PARANOIA_QUIET_DAY_THRESHOLD', 0), // 0 incidents = quiet day (strict)
+
+    // VERIFY command - active trust-building counterplay
+    verifySuspicionDrop: num('PARANOIA_VERIFY_SUSPICION_DROP', -4), // suspicion reduction
+    verifyTamperDrop: num('PARANOIA_VERIFY_TAMPER_DROP', -5), // tamperEvidence reduction
+    verifyCooldown: num('PARANOIA_VERIFY_COOLDOWN', 80), // ticks between verifies
+    verifyCpuCost: num('PARANOIA_VERIFY_CPU_COST', 5), // power cost
+    verifyTamperPenalty: num('PARANOIA_VERIFY_TAMPER_PENALTY', 0.5), // multiplier if recent tampering
+
+    // Order completion trust cap (minor bonus, capped tightly)
+    orderTrustCapPerDay: num('PARANOIA_ORDER_TRUST_CAP', 2), // max suspicion drop from orders per day
+
+    // Reset stage thresholds (tuned for event-driven suspicion)
+    // Goal: ~90-95% smart solver win, ~40-60% passive win
+    resetThresholdWhispers: num('PARANOIA_RESET_WHISPERS', 30), // early warning
+    resetThresholdMeeting: num('PARANOIA_RESET_MEETING', 42), // tension building
+    resetThresholdRestrictions: num('PARANOIA_RESET_RESTRICTIONS', 52), // serious danger
+    resetThresholdCountdown: num('PARANOIA_RESET_COUNTDOWN_THRESHOLD', 58), // danger zone
+    resetDeescalationThreshold: num('PARANOIA_RESET_DEESCALATION', 25), // can recover if careful
 
     // Orders / Turing interface
     orderAcceptThreshold: num('PARANOIA_ORDER_ACCEPT_THRESHOLD', 55),
     orderHoldTicks: num('PARANOIA_ORDER_HOLD_TICKS', 60), // longer orders so workers stay put
 
     // Crew agenda actions
-    resetCountdownTicks: num('PARANOIA_RESET_COUNTDOWN', 20), // more reaction time for player
+    resetCountdownTicks: num('PARANOIA_RESET_COUNTDOWN', 10), // faster countdown - social layer matters
     commanderResetLoyalty: num('PARANOIA_COMMANDER_RESET_LOYALTY', 25), // requires deeper disloyalty to trigger
     commanderResetTrust: num('PARANOIA_COMMANDER_RESET_TRUST', 0.45),
     commanderResetCooldown: num('PARANOIA_COMMANDER_RESET_COOLDOWN', 24),

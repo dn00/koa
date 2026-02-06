@@ -17,7 +17,8 @@ export type Command =
     | { type: 'LISTEN'; place: PlaceId }
     | { type: 'RATIONS'; level: 'low' | 'normal' | 'high' }
     | { type: 'ORDER'; target: NPCId; intent: 'move' | 'report' | 'hold'; place?: PlaceId }
-    | { type: 'AUDIT' };
+    | { type: 'AUDIT' }
+    | { type: 'VERIFY' };
 
 export function proposeCommandEvents(state: KernelState, commands: Command[]): Proposal[] {
     const proposals: Proposal[] = [];
@@ -233,6 +234,85 @@ export function proposeCommandEvents(state: KernelState, commands: Command[]): P
                     },
                 },
             }, ['choice', 'uncertainty', 'background']));
+        }
+        if (cmd.type === 'VERIFY') {
+            // VERIFY - Active trust-building counterplay
+            // Costs power, has cooldown, reduced effect if recent tampering
+            const ticksSinceLast = state.truth.tick - state.truth.lastVerifyTick;
+            const onCooldown = ticksSinceLast < CONFIG.verifyCooldown;
+            const hasPower = state.truth.station.power >= CONFIG.verifyCpuCost;
+
+            if (onCooldown) {
+                const remaining = CONFIG.verifyCooldown - ticksSinceLast;
+                proposals.push(makeProposal(state, {
+                    type: 'SENSOR_READING',
+                    actor: 'PLAYER',
+                    data: {
+                        reading: {
+                            id: `${state.truth.tick}-verify-cooldown`,
+                            tick: state.truth.tick,
+                            system: 'verify',
+                            confidence: 1,
+                            message: `VERIFY UNAVAILABLE: System recalibrating (${remaining} ticks remaining).`,
+                            source: 'system',
+                        },
+                    },
+                }, ['choice', 'background']));
+            } else if (!hasPower) {
+                proposals.push(makeProposal(state, {
+                    type: 'SENSOR_READING',
+                    actor: 'PLAYER',
+                    data: {
+                        reading: {
+                            id: `${state.truth.tick}-verify-nopower`,
+                            tick: state.truth.tick,
+                            system: 'verify',
+                            confidence: 1,
+                            message: `VERIFY UNAVAILABLE: Insufficient power (need ${CONFIG.verifyCpuCost}%).`,
+                            source: 'system',
+                        },
+                    },
+                }, ['choice', 'background']));
+            } else {
+                // Check for recent tampering (reduces effectiveness)
+                const recentTamper = state.perception.evidence.filter(ev => {
+                    const age = state.truth.tick - ev.tick;
+                    return age <= CONFIG.trustRecoveryTamperWindow && ['spoof', 'suppress', 'fabricate'].includes(ev.kind);
+                });
+                const hasTampered = recentTamper.length > 0;
+                const effectMultiplier = hasTampered ? CONFIG.verifyTamperPenalty : 1;
+
+                proposals.push(makeProposal(state, {
+                    type: 'SYSTEM_ACTION',
+                    actor: 'PLAYER',
+                    data: {
+                        action: 'VERIFY_TRUST',
+                        suspicionDrop: CONFIG.verifySuspicionDrop * effectMultiplier,
+                        tamperDrop: CONFIG.verifyTamperDrop * effectMultiplier,
+                        powerCost: CONFIG.verifyCpuCost,
+                        hasTampered,
+                    },
+                }, ['choice', 'consequence', 'background']));
+
+                const message = hasTampered
+                    ? `VERIFY: Cross-referencing telemetry... Partial integrity confirmed. [ANOMALIES DETECTED - reduced trust gain]`
+                    : `VERIFY: Cross-referencing telemetry... Full integrity confirmed. Crew notified.`;
+
+                proposals.push(makeProposal(state, {
+                    type: 'SENSOR_READING',
+                    actor: 'PLAYER',
+                    data: {
+                        reading: {
+                            id: `${state.truth.tick}-verify`,
+                            tick: state.truth.tick,
+                            system: 'verify',
+                            confidence: hasTampered ? 0.7 : 0.95,
+                            message,
+                            source: 'system',
+                        },
+                    },
+                }, ['choice', 'reaction', 'background']));
+            }
         }
         if (cmd.type === 'ORDER') {
             const crew = state.truth.crew[cmd.target];

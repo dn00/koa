@@ -3,6 +3,60 @@ import type { RNG } from '../../core/rng.js';
 import type { KernelState, Proposal, ArcKind, PlaceId } from '../types.js';
 import { makeProposal } from '../proposals.js';
 
+// Track crisis starts/resolutions for event-driven suspicion
+function trackCrisisStart(state: KernelState, arcId: string, targetPlace: PlaceId) {
+    state.truth.activeCrisisStarts[arcId] = state.truth.tick;
+    state.truth.dayIncidents += 1;
+
+    // Check if crew is nearby to witness the crisis
+    const crewNearby = Object.values(state.truth.crew).filter(c => {
+        if (!c.alive) return false;
+        if (c.place === targetPlace) return true;
+        // Check adjacency via doors
+        const adjacent = state.world.doors
+            .filter(d => d.from === targetPlace || d.to === targetPlace)
+            .map(d => d.from === targetPlace ? d.to : d.from);
+        return adjacent.includes(c.place);
+    });
+
+    if (crewNearby.length > 0) {
+        // Apply suspicion via beliefs (matching kernel.ts pattern)
+        for (const npc of Object.values(state.truth.crew)) {
+            if (!npc.alive) continue;
+            const belief = state.perception.beliefs[npc.id];
+            if (!belief) continue;
+            belief.motherReliable = Math.max(0, Math.min(1, belief.motherReliable - CONFIG.suspicionCrisisWitnessed / 200));
+        }
+    }
+}
+
+function trackCrisisResolution(state: KernelState, arcId: string) {
+    const startTick = state.truth.activeCrisisStarts[arcId];
+    if (startTick !== undefined) {
+        const resolutionTime = state.truth.tick - startTick;
+        if (resolutionTime <= CONFIG.crisisResolveQuickTicks) {
+            // Quick resolution - suspicion drops (good for MOTHER)
+            for (const npc of Object.values(state.truth.crew)) {
+                if (!npc.alive) continue;
+                const belief = state.perception.beliefs[npc.id];
+                if (!belief) continue;
+                belief.motherReliable = Math.max(0, Math.min(1, belief.motherReliable - CONFIG.suspicionCrisisResolved / 200));
+            }
+
+            // Heroic response bonus: if there were deaths but crisis was contained quickly
+            if (state.truth.dayDeaths > 0) {
+                for (const npc of Object.values(state.truth.crew)) {
+                    if (!npc.alive) continue;
+                    const belief = state.perception.beliefs[npc.id];
+                    if (!belief) continue;
+                    belief.motherReliable = Math.max(0, Math.min(1, belief.motherReliable - CONFIG.suspicionHeroicResponse / 200));
+                }
+            }
+        }
+        delete state.truth.activeCrisisStarts[arcId];
+    }
+}
+
 let arcOrdinal = 0;
 
 const ARC_KINDS: ArcKind[] = ['air_scrubber', 'power_surge', 'ghost_signal', 'fire_outbreak', 'radiation_leak', 'solar_flare'];
@@ -25,6 +79,11 @@ export function proposeArcEvents(state: KernelState, rng: RNG): { truth: Proposa
 
         const step = arc.stepIndex;
         const target = arc.target;
+
+        // EVENT-DRIVEN SUSPICION: Track crisis start at step 0
+        if (step === 0) {
+            trackCrisisStart(state, arc.id, target);
+        }
 
         if (arc.kind === 'air_scrubber') {
             if (step === 0) {
@@ -242,6 +301,8 @@ export function proposeArcEvents(state: KernelState, rng: RNG): { truth: Proposa
         advances += 1;
         const maxStep = getArcMaxStep(arc.kind);
         if (step >= maxStep) {
+            // EVENT-DRIVEN SUSPICION: Track crisis resolution
+            trackCrisisResolution(state, arc.id);
             continue;
         }
 

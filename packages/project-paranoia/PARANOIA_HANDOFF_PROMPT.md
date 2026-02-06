@@ -141,6 +141,10 @@ src/
 - `fabricate [npc]` - Fake hostile log
 - `listen [room]` - Intercept whispers
 
+### Trust Building (Counterplay)
+- `verify` - Cross-reference telemetry to prove honesty (costs power, has cooldown, -4 suspicion)
+- `audit` - Check logs for tampering evidence
+
 ### System
 - `wait [ticks]` - Advance time
 - `save` / `load`
@@ -186,6 +190,8 @@ This creates a cascade: fabricate too much → target becomes HOSTILE → violen
 | Category | Key Values |
 |----------|------------|
 | Threats | maxActiveThreats: **2**, activation: **1%**, cooldown: **70 ticks** |
+| Reset Thresholds | whispers: **30**, meeting: **45**, restrictions: **55**, countdown: **65** |
+| Suspicion | drift: **0.015**/40 ticks, recovery: **0.012**/40 ticks (when clean) |
 | Arc Steps | first step: 10-20 ticks, subsequent: 15-30 ticks |
 | Budgets | truth events: 4, perception: 2, headlines: 3 |
 | Damage | suffocation: **8**, burn: 2, radiation: 2 |
@@ -200,7 +206,7 @@ This creates a cascade: fabricate too much → target becomes HOSTILE → violen
 | Solar Flare | blackoutTicks: 25 |
 | Hazards | radiationThreshold: 6, radiationDecay: **1**, tempCooling: **2** |
 
-*Bold values tuned for balance: ~99.5% smart solver win, ~60% passive win.*
+*Bold values tuned for balance: ~88% smart solver win, ~65% passive win (with event-driven suspicion).*
 
 ## 10. V1 Completion Checklist
 
@@ -212,6 +218,7 @@ This creates a cascade: fabricate too much → target becomes HOSTILE → violen
 6. [x] Cut `sensorIntegrity` and `crewTrust` (commented out, not deleted)
 7. [x] Add confidence traffic lights to threat display (✓ confirmed, ? uncertain, ✗ conflicting)
 8. [x] Wire fabrications to rumor/grudge system (fabricate → grudge spread → violence cascade)
+9. [x] Event-driven suspicion (Section 15) - suspicion from observable outcomes, not timers
 
 ## 11. V2 Candidates (Post-V1)
 
@@ -234,39 +241,47 @@ The "WOW" reveal at end of game:
 
 ## 12. Balance Verification (Solver Testing)
 
-### Current Balance State
+### Current Balance State (Event-Driven Suspicion)
 Testing with smart solver vs passive autoplay establishes fairness bounds:
 
-| Mode | Win Rate | Notes |
-|------|----------|-------|
-| Smart Solver | **99.5%** (199/200) | Game is provably fair |
-| Passive Play | **61.5%** (123/200) | Challenging but achievable |
+| Mode | SURVIVED | UNPLUGGED | Other | Notes |
+|------|----------|-----------|-------|-------|
+| Smart Solver | **88%** | **11.5%** | 0.5% | Paranoia is a real threat |
+| Passive Play | **65%** | **1%** | 34% | Physical threats dominate |
 
-**The One Failure (Seed 1014):** Fire in mines at T1113 during final day extraction (7/8 cargo). Extreme timing edge case - not a balance problem.
+**Key insights:**
+- Smart solver: Good play keeps suspicion manageable but ~12% still hit UNPLUGGED
+- Passive play: Dies mostly to quota/meltdown before paranoia matters
+- Average peak suspicion: ~51 (countdown threshold: 61)
 
 ### Key Tuning Applied
 ```
-threatActivationCooldown: 100 → 70 (more frequent crises)
-maxActiveThreats: 1 → 2 (simultaneous crises possible)
-tempCoolingRate: 2 (new - faster room cooling after fire)
-radiationDecayInterval: 1 (fast decay = fair game)
-quotaPerDay: 8 (forgiving - social layer is the challenge)
-winDays: 5 (survive 5 days to win)
+# Crisis + physical threats
+threatActivationCooldown: 70 (frequent crises)
+maxActiveThreats: 2 (simultaneous crises possible)
+tempCoolingRate: 2 (faster room cooling)
+radiationDecayInterval: 1 (fast decay)
+quotaPerDay: 8 (forgiving)
+winDays: 5 (5 days to win)
+
+# Event-driven suspicion
+suspicionDriftAmount: 0 (DISABLED - event-driven now)
+suspicionCrisisWitnessed: 5
+suspicionCrewInjured: 7
+suspicionCrisisResolved: -5
+resetThresholdCountdown: 61
 ```
 
 ### Testing Scripts
 ```bash
-# Smart solver - should be ~100%
-npx tsx scripts/solver.ts 100
+# Smart solver - should be ~88%
+npx tsx scripts/smart-solver.ts 200
 
-# Passive stress test - should be ~50-60%
-npx tsx scripts/stress-test.ts 100
+# Passive stress test - should be ~65%
+npx tsx scripts/stress-test.ts 200
 
 # Debug specific seed
 npx tsx scripts/debug-solver.ts 1014
-
-# Instrumented metrics collection
-npx tsx scripts/solver-metrics.ts 200
 ```
 
 ## 13. Identified Gaps (Future Work)
@@ -312,3 +327,155 @@ npx tsx scripts/solver-metrics.ts 200
 2. **Quota Tracker** - Show "QUOTA: 3/8 (ON TRACK)" or "QUOTA: 1/8 (AT RISK)"
 3. **Recovery ETA** - Show "mess: recovering O2 (12 ticks)" after venting
 4. **Crisis Protection** - Reduce fire chance in mines during W2 shift window
+
+## 14. Social Layer Analysis (FIXED - Event-Driven Suspicion)
+
+### The Solution: Suspicion From Observable Outcomes
+
+With event-driven suspicion implemented, the social layer now **causes meaningful losses**:
+
+| Metric | Before | After | Notes |
+|--------|--------|-------|-------|
+| Smart solver UNPLUGGED | **0%** | **11.5%** | Paranoia is a real threat |
+| Avg peak suspicion | 59.6 | 51 | More dynamic range |
+| Games reaching countdown | **0** | **~25%** | Danger zone is reachable |
+
+**The game is called PARANOIA and paranoia can kill you.**
+
+### How Event-Driven Suspicion Works
+
+Suspicion accumulates from **observable outcomes**, not timers:
+
+```
+Crisis witnessed by crew:     +5 suspicion
+  └─ Quick resolution:        -5 suspicion  (net: 0 if handled well)
+  └─ Slow/no resolution:      +0            (net: +5)
+
+Crew injured:                 +7 suspicion
+Crew dies:                   +14 suspicion
+Quota missed:                +12 suspicion
+Crew trapped by locked door: +10 suspicion
+
+Quiet day (no incidents):     -4 suspicion
+Quota exceeded:               -5 suspicion
+```
+
+### Why This Works
+
+1. **Fair** - Paranoia is earned through observable failures
+2. **Skill-based** - Good crisis handling reduces net suspicion
+3. **Accumulative** - Even with good play, suspicion slowly rises (+1-2 per crisis net)
+4. **Has counterplay** - Unlike timers, players can influence outcomes
+
+### Suspicion Formula (unchanged)
+```
+suspicion = (tamperEvidence/100)*40 + (1-motherReliable)*35 + rumors['mother_rogue']*25
+```
+
+Event-driven suspicion modifies `motherReliable` and `tamperEvidence` based on outcomes.
+
+## 15. Event-Driven Suspicion (IMPLEMENTED)
+
+Suspicion now rises/falls based on what crew **witnesses**, not arbitrary timers. This makes paranoia feel **earned** and creates skill-based gameplay.
+
+### Design: Suspicion From Observable Outcomes
+
+Natural drift is disabled. Suspicion changes based on observable events:
+
+**Suspicion RISES when:**
+| Event | Rationale | Amount |
+|-------|-----------|--------|
+| Crew witnesses crisis start | "Why didn't MOTHER prevent this?" | +5 |
+| Crew member injured | "MOTHER let them get hurt" | +7 |
+| Crew member dies | "MOTHER killed them / failed to save them" | +14 |
+| Tampering detected (audit finds evidence) | "MOTHER is lying to us" | +12 |
+| Quota missed | "MOTHER is failing at its job" | +12 |
+| Order refused/ignored | "MOTHER isn't listening" | +2 |
+| Crew trapped by locked door | "MOTHER is trying to kill us" | +10 |
+
+**Suspicion FALLS when:**
+| Event | Rationale | Amount |
+|-------|-----------|--------|
+| Crisis resolved quickly (< 25 ticks) | "MOTHER handled it well" | -5 |
+| Day passes without incidents | "Maybe we overreacted" | -4 |
+| Quota exceeded | "MOTHER is performing well" | -5 |
+| Crew healed/saved from danger | "MOTHER protected us" | -5 |
+
+### Why This Approach Works
+
+1. **Fair** - Paranoia is earned, not arbitrary
+2. **Skill-based** - Good play keeps suspicion low, bad play accumulates it
+3. **Thematic** - Crew judges MOTHER by observable results
+4. **Creates moral tension** - Sometimes you MUST tamper to save them, knowing it increases suspicion
+
+### The Tragic Loop
+
+*"A fire breaks out. I could vent the room to save the station, but crew is inside. I fabricate a sensor reading to lure them out first. I save their lives. They find the fabrication. Now they want to kill me for lying - the lie that saved them."*
+
+This is the core PARANOIA fantasy: **damned if you do, damned if you don't**.
+
+### Implementation Details
+
+Key files modified:
+- `config.ts` - Event-driven suspicion modifiers, VERIFY config, disabled natural drift
+- `types.ts` - Added `dayIncidents`, `dayOrderTrust`, `dayDeaths`, `activeCrisisStarts`, `lastVerifyTick`
+- `state.ts` - Initialize new tracking fields
+- `kernel.ts` - Apply suspicion on damage/death, order refusal, VERIFY_TRUST action, day boundary
+- `commands.ts` - Added VERIFY command with cooldown, power cost, tamper penalty
+- `systems/arcs.ts` - Track crisis starts/resolutions, heroic response bonus
+
+Key mechanics:
+- **VERIFY command** - Active trust-building: -4 suspicion, costs power, 80-tick cooldown, half effect if recent tampering
+- **Successful orders** - Micro-recovery: -1 suspicion each, capped at -2/day
+- **Quick crisis resolution** - Partially offsets crisis witnessed suspicion
+- **Heroic response** - Extra -3 if death occurred but crisis contained quickly
+- **Zero-incident days** - -4 suspicion bonus (reward good play)
+
+### Current Balance (IMPLEMENTED)
+
+| Mode | SURVIVED | UNPLUGGED | Other | Notes |
+|------|----------|-----------|-------|-------|
+| Smart Solver (with VERIFY) | **93.5%** | **6%** | 0.5% | Active counterplay works |
+| Smart Solver (no VERIFY) | **85%** | **15%** | 0% | Still at risk without counterplay |
+| Passive Play | **59%** | **10%** | 31% | Social layer bites |
+
+**Key insights:**
+- VERIFY command gives players ~8% survival boost through active trust-building
+- Passive play hits UNPLUGGED 10% of the time (social layer matters!)
+- Avg peak suspicion: ~44 (threshold: 58 for countdown)
+- Failed games avg suspicion: ~57
+
+### Testing Scripts
+
+```bash
+# Smart solver (uses VERIFY) - should be ~93%
+npx tsx scripts/smart-solver.ts 200
+
+# Passive stress test - should be ~59% SURVIVED, ~10% UNPLUGGED
+npx tsx scripts/stress-test.ts 200
+```
+
+### Tuning Parameters
+
+```
+# Suspicion rises (config.ts)
+suspicionCrisisWitnessed: 5      # +5 when crew nearby
+suspicionCrewInjured: 5          # +5 on injury (tuned down)
+suspicionCrewDied: 14            # +14 on death
+suspicionTrappedByDoor: 10       # +10 when trapped by locked door
+
+# Suspicion falls
+suspicionCrisisResolved: -5      # -5 for quick (<25 tick) resolution
+suspicionQuietDay: -4            # -4 for zero-incident day
+suspicionHeroicResponse: -3      # -3 extra if death + quick resolve
+suspicionOrderCompleted: -1      # -1 per successful order (cap: 2/day)
+
+# VERIFY command
+verifySuspicionDrop: -4          # base suspicion reduction
+verifyCooldown: 80               # ticks between uses
+verifyCpuCost: 5                 # power cost
+verifyTamperPenalty: 0.5         # half effect if recent tampering
+
+# Thresholds
+resetThresholdCountdown: 58      # suspicion level to trigger reset
+```
