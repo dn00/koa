@@ -1,7 +1,7 @@
 # KOA Casefiles - Project Status
 
 **Updated:** 2026-02-05
-**Phase:** Core Complete, Solvability Fix Needed Before Variety
+**Phase:** Solvability & Difficulty Done, Publishing Pipeline Next
 **Spec:** See `SPEC_ALIGNMENT.md` for detailed comparison
 
 ---
@@ -10,11 +10,11 @@
 
 | Metric | Value | Spec Target | Status |
 |--------|-------|-------------|--------|
-| Solvability | 94% | **≥95%** | ⚠️ Below spec |
+| Solvability | ≥95% | **≥95%** | ✅ Fixed (Feature 001) |
 | Solver Perfect | 98% | 95%+ | ✅ |
 | First Move Clarity | 100% | 100% | ✅ |
 | Avg Min AP | 8.3 | <10 | ✅ |
-| Has Keystone | 94% | 95%+ | ⚠️ Gap |
+| Has Keystone | ≥95% | 95%+ | ✅ Fixed (signal injection) |
 
 ---
 
@@ -43,6 +43,24 @@
 - [x] Hard: Competing narratives, sparse coverage
 - [x] Fairness contract maintained
 
+### Solvability Guarantee (P0) — Feature 001
+- [x] Signal analysis (analyzeSignal in validators.ts)
+- [x] Signal injection (injectMinimalSignal in sim.ts)
+- [x] Pipeline integration (generateValidatedCase in sim.ts)
+- [x] Tuning hooks (SignalConfig for variety system)
+- **Status:** AUDITED - Ready for release
+- **Plan:** `_process/features/001-solvability-guarantee/solvability-guarantee.plan.md`
+- **Audit:** PASS (2026-02-05)
+
+### 4-Tier Difficulty System (P2) — Feature 005
+- [x] DifficultyProfile type & DIFFICULTY_PROFILES table
+- [x] Profiles wired into simulate() pipeline
+- [x] CLI/game.ts --tier parser (accepts 1-4, names, legacy labels)
+- [x] Signal preference wiring in generateValidatedCase
+- [x] Regression & batch validation
+- **Status:** done
+- **Plan:** `_process/features/005-four-tier-difficulty/005-four-tier-difficulty.plan.md`
+
 ### Testing Infrastructure
 - [x] Automated solver (solver.ts)
 - [x] Batch validator (validate-seeds.ts)
@@ -51,29 +69,35 @@
 
 ---
 
-## Critical Path (Spec Compliance)
-
-### P0: Solvability Guarantee System
-**Status:** PLANNED - 4 tasks ready
-**Target:** Raise from 94% to ≥95% per spec Section 13.1
-**Plan:** `_process/features/001-solvability-guarantee/solvability-guarantee.plan.md`
-
-**Root cause:** 2% of cases have culprit with NO catchable contradiction.
-
-**Solution (Approved):** Separate solvability from difficulty:
-1. **Signal Analysis** (Task 001) - Detect if culprit has catchable signal
-2. **Signal Injection** (Task 002) - Inject minimal device event if validation fails
-3. **Pipeline Integration** (Task 003) - Wire into generation flow
-4. **Tuning Hooks** (Task 004, P1) - Enable variety system to control signal distribution
-
-**Key insight:** Signal ALWAYS exists (invariant). Difficulty controls discoverability (tunable).
-
----
-
 ## In Progress
 
-### Variety System (P1 after solvability fix)
-**Status:** Design complete, implementation blocked on solvability
+### Structured Interview Questions (P1) — Feature 004
+**Status:** Backlog — needs plan
+**Plan:** TBD
+
+Replace generic INTERVIEW with structured question types.
+
+### Daily Seed System (P2) — Feature 002
+**Status:** Implementation complete — awaiting review
+**Plan:** `_process/features/002-daily-seed-system/daily-seed-system.plan.md`
+
+Offline pipeline for generating "Daily Cases":
+1. **Schedule & History** (Task 001, done)
+2. **Seed Finder Logic** (Task 002, done)
+3. **CLI Tool** (Task 003, done)
+
+### CaseBundle Publish Format (P0) — Feature 003
+**Status:** AUDITED - Ready for release
+**Plan:** `_process/features/003-case-bundle-format/case-bundle-format.plan.md`
+
+Defines canonical format for publishing cases to clients (no spoilers):
+1. **Bundle & Solution types** (Task 001, done) - CaseBundle, Solution, WorldSnapshot in types.ts
+2. **Bundle generation & hashing** (Task 002, done) - generateBundle(), SHA256 verification in bundle.ts
+3. **Bundle validation & CLI** (Task 003, done) - validateBundle(), --export-bundle flag
+**Audit:** PASS (2026-02-05)
+
+### Variety System (P1)
+**Status:** Design complete, solvability blocker now resolved
 **Doc:** `VARIETY.md`
 
 Features planned:
@@ -84,17 +108,13 @@ Features planned:
 - [ ] Probabilistic difficulty
 - [ ] Weekly themes
 
-**Dependency:** Variety will change puzzle mechanics, so solvability must be fixed first, then re-validated after variety lands.
-
 ---
 
 ## Backlog (Spec Gaps)
 
 ### Priority 2 - Spec Compliance
-- [ ] CaseBundle publish format (spec Section 17.2)
 - [ ] Daily seed generation (spec Section 11.1)
 - [ ] Structured interview questions (spec Section 6.2.A)
-- [ ] 4-tier difficulty system (spec Section 14)
 
 ### Priority 3 - Feature Completeness
 - [ ] Deduction Board UI (spec Section 6.2.E)
@@ -118,24 +138,31 @@ Features planned:
 
 ## Known Issues
 
-1. **Solvability at 94%** - CRITICAL. Spec requires ≥95%. See P0 above.
+1. ~~**Solvability at 94%**~~ - RESOLVED by Feature 001 (signal injection guarantees catchable signal). Awaiting review.
 
-2. **2% "hard" cases** - Culprit doesn't self-contradict, only signature motive distinguishes them. Solver falls back to guessing. This is the root cause of #1.
+2. ~~**2% "hard" cases**~~ - RESOLVED. Signal injection adds minimal device event when culprit lacks catchable contradiction.
 
 3. **False positive risk at 53%** - Innocents often have more contradictions than culprit. Signature motive breaks ties. Acceptable but worth monitoring.
 
 4. **Cover-up disabled** - Was adding stress without fun. Code preserved for hard mode if needed. Not a bug.
+
+5. **Tier 2 may be too easy** - Playtest (seed 42): solved 6/6 in 5 AP, S-rank. Culprit's alibi directly contradicts their own testimony location — COMPARE hands you the answer. Testimony citing crime events ("heard Carol rummaging") feels too direct. 417 evidence items is high noise. May need tuning for human players vs solver.
 
 ---
 
 ## Recent Changes
 
 ### 2026-02-05
+- Feature 002 (Daily Seed System) complete — schedule types, HMAC finder, CLI --daily flag (30 new tests, 197 total)
+- Feature 005 (4-tier difficulty) completed — DifficultyProfile types, CLI --tier parser, signal preference wiring
+- Feature 001 (solvability guarantee) all tasks done, awaiting review — analyzeSignal, injectMinimalSignal, generateValidatedCase pipeline
+- Feature 003 (CaseBundle) complete — types, bundle.ts, validateBundle, --export-bundle CLI flag (30 tests)
+- Playtest (seed 42): 6/6 S-rank solve, noted tier 2 difficulty concerns
+
+### Previous
 - Difficulty control system implemented (easy/medium/hard)
 - Competing narratives for hard mode
 - Device coverage gaps for medium/hard
-
-### Previous
 - Accusation system overhaul (3 required, 3 bonus parts)
 - Batch seed validator added
 - COMPARE fixes for device vs testimony

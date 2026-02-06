@@ -14,7 +14,7 @@ import { simulate } from './sim.js';
 import { deriveEvidence } from './evidence.js';
 import { PlayerSession } from './player.js';
 import { performSearch, performInterview, checkLogs, compareEvidence } from './actions.js';
-import type { EvidenceItem, MotiveEvidence, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, SignalAnalysis } from './types.js';
+import type { EvidenceItem, MotiveEvidence, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, SignalAnalysis, DifficultyTier } from './types.js';
 import { analyzeSignal } from './validators.js';
 
 export interface SolveResult {
@@ -492,7 +492,7 @@ function buildSmartAccusation(
 /**
  * Smart solve using comprehensive investigation
  */
-export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy' | 'medium' | 'hard'): SolveResult {
+export function solve(seed: number, verbose: boolean = false, tier?: DifficultyTier): SolveResult {
     const trace: string[] = [];
     let apUsed = 0;
 
@@ -502,7 +502,7 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
     };
 
     // Generate case
-    const result = simulate(seed, 2, { difficulty });
+    const result = simulate(seed, tier ?? 2);
     if (!result) {
         return { seed, solved: false, correct: false, coreCorrect: false, apUsed: 0, failReason: 'sim_failed', trace };
     }
@@ -757,9 +757,9 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
 /**
  * Run solver across multiple seeds and report results
  */
-export function autosolve(count: number, startSeed: number = 1, verbose: boolean = false, difficulty?: 'easy' | 'medium' | 'hard'): void {
-    const diffLabel = difficulty ? ` [${difficulty.toUpperCase()}]` : '';
-    console.log(`\nSmart Autosolving ${count} cases${diffLabel} starting from seed ${startSeed}...\n`);
+export function autosolve(count: number, startSeed: number = 1, verbose: boolean = false, tier?: DifficultyTier): void {
+    const tierLabel = tier ? ` [Tier ${tier}]` : '';
+    console.log(`\nSmart Autosolving ${count} cases${tierLabel} starting from seed ${startSeed}...\n`);
 
     const results: SolveResult[] = [];
     const failures: SolveResult[] = [];
@@ -768,7 +768,7 @@ export function autosolve(count: number, startSeed: number = 1, verbose: boolean
         const seed = startSeed + i;
         if (verbose) console.log(`\n--- Seed ${seed} ---`);
 
-        const result = solve(seed, verbose, difficulty);
+        const result = solve(seed, verbose, tier);
         results.push(result);
 
         const status = result.correct ? '✅' : result.solved ? '⚠️' : '❌';

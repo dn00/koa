@@ -21,8 +21,8 @@ import type {
     CaseConfig,
     EvidenceItem,
     NPCId,
-    PlayabilityResult,
 } from './types.js';
+import type { PlayabilityResult } from './validators.js';
 
 // ============================================================================
 // Metrics Types

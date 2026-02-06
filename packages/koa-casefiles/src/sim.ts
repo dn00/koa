@@ -24,49 +24,14 @@ import type {
     Relationship,
     CrimeType,
     CrimeMethod,
-    DifficultyConfig,
     TwistType,
     MethodId,
     EvidenceItem,
     SignalConfig,
+    DifficultyTier,
 } from './types.js';
-import { METHODS_BY_CRIME } from './types.js';
+import { METHODS_BY_CRIME, DIFFICULTY_PROFILES, profileToDifficultyConfig } from './types.js';
 import { WINDOWS, getWindowForTick } from './types.js';
-
-// ============================================================================
-// Difficulty Presets (Spec Section 14)
-// ============================================================================
-
-export const DIFFICULTY_PRESETS: Record<number, DifficultyConfig> = {
-    1: {
-        tier: 1,
-        suspectCount: 5,   // Easier with fewer suspects
-        windowCount: 6,
-        twistRules: [],    // No twists for beginners
-        redHerringStrength: 3,
-    },
-    2: {
-        tier: 2,
-        suspectCount: 5,
-        windowCount: 6,
-        twistRules: ['false_alibi', 'unreliable_witness'] as TwistType[],
-        redHerringStrength: 5,
-    },
-    3: {
-        tier: 3,
-        suspectCount: 5,
-        windowCount: 6,
-        twistRules: ['false_alibi', 'unreliable_witness', 'planted_evidence'] as TwistType[],
-        redHerringStrength: 7,
-    },
-    4: {
-        tier: 4,
-        suspectCount: 5,
-        windowCount: 6,
-        twistRules: ['false_alibi', 'unreliable_witness', 'tampered_device', 'planted_evidence', 'accomplice'] as TwistType[],
-        redHerringStrength: 9,
-    },
-};
 import { createWorld, createWorldFromConfig, findPath, getDoorBetween, PLACES } from './world.js';
 import { createRng, type RNG } from './kernel/rng.js';
 import { computeEventId } from './kernel/canonical.js';
@@ -93,7 +58,7 @@ import {
     type CaseHistory,
 } from './gossip/index.js';
 import { ACTIVITIES, type ActivityType } from './activities.js';
-import { CaseDirector, type DifficultyTier, type DirectorConfig } from './director.js';
+import { CaseDirector, type DirectorConfig } from './director.js';
 
 // ============================================================================
 // Signal Injection (Solvability Guarantee)
@@ -1111,14 +1076,6 @@ export interface SimulationOptions {
     houseId?: string;
     /** Cast of NPCs to use (defaults to 'roommates') */
     castId?: string;
-    /**
-     * Difficulty control - determines how culprit behaves:
-     * - 'easy': Culprit self-contradicts (false_alibi) → obvious liar
-     * - 'medium': Culprit lies about crime scene only → connect the dots
-     * - 'hard': Culprit tells truth → only motive/opportunity signal
-     * - undefined: Random (legacy behavior)
-     */
-    difficulty?: 'easy' | 'medium' | 'hard';
     /** Signal tuning preferences for variety system (P1 hook) */
     signalConfig?: SignalConfig;
 }
@@ -1137,19 +1094,22 @@ export interface SimulationOptions {
  */
 export function simulate(
     seed: number,
-    difficultyTier: number = 2,
+    tier: DifficultyTier = 2,
     options: SimulationOptions = {}
 ): SimulationResult | null {
+    // Validate tier, fall back to 2
+    const validTier: DifficultyTier = DIFFICULTY_PROFILES[tier] ? tier : 2;
+    const profile = DIFFICULTY_PROFILES[validTier];
+    const difficultyConfig = profileToDifficultyConfig(profile);
+
     // If blueprints enabled, use the new system
     if (options.useBlueprints) {
-        return simulateWithBlueprints(seed, difficultyTier, options);
+        return simulateWithBlueprints(seed, validTier, profile, difficultyConfig, options);
     }
 
     // Otherwise, use legacy system (backward compatible)
     // Reset ordinal for deterministic event IDs
     eventOrdinal = 0;
-
-    const difficultyConfig = DIFFICULTY_PRESETS[difficultyTier] ?? DIFFICULTY_PRESETS[2];
 
     const rng = createRng(seed);
 
@@ -1276,8 +1236,8 @@ export function simulate(
 
     // (Red Herrings are now fully emergent inside simulateRoutines)
 
-    // Maybe add a twist (based on difficulty tier or explicit difficulty)
-    const twist = maybeGenerateTwist(world, chosen.npc.id, rng, difficultyConfig.twistRules, options.difficulty);
+    // Maybe add a twist (based on tier profile)
+    const twist = maybeGenerateTwist(world, chosen.npc.id, rng, difficultyConfig.twistRules, profile.puzzleDifficulty);
 
     // Aftermath: all windows after crime window
     const aftermathWindows = allWindowIds.slice(crimeWindowIndex + 1);
@@ -1329,7 +1289,8 @@ export function simulate(
         twist,
         suspiciousActs,
         distractedWitnesses: chosen.distractedWitness ? [chosen.distractedWitness.id] : undefined,
-        difficulty: options.difficulty,
+        tier: validTier,
+        difficulty: profile.puzzleDifficulty,
         signalConfig: options.signalConfig,
     };
 
@@ -1355,14 +1316,14 @@ export function simulate(
  */
 function simulateWithBlueprints(
     seed: number,
-    difficultyTier: number,
+    validTier: DifficultyTier,
+    profile: typeof DIFFICULTY_PROFILES[1],
+    difficultyConfig: ReturnType<typeof profileToDifficultyConfig>,
     options: SimulationOptions
 ): SimulationResult | null {
     // Reset ordinal for deterministic event IDs
     eventOrdinal = 0;
     setEventOrdinal(0);
-
-    const difficultyConfig = DIFFICULTY_PRESETS[difficultyTier] ?? DIFFICULTY_PRESETS[2];
 
     const rng = createRng(seed);
 
@@ -1382,7 +1343,7 @@ function simulateWithBlueprints(
     const instantiation = tryInstantiateAny(blueprints, world, rng, 20);
     if (!instantiation) {
         // Fall back to legacy system if blueprints fail
-        return simulate(seed, difficultyTier, { useBlueprints: false, houseId: options.houseId, castId: options.castId });
+        return simulate(seed, validTier, { useBlueprints: false, houseId: options.houseId, castId: options.castId });
     }
 
     const { blueprint, plan } = instantiation;
@@ -1446,8 +1407,8 @@ function simulateWithBlueprints(
     // Override with the plan's method
     crimeMethod.methodId = plan.variantId;
 
-    // Maybe add a twist (based on difficulty tier or explicit difficulty)
-    const twist = maybeGenerateTwist(world, plan.culprit, rng, difficultyConfig.twistRules, options.difficulty);
+    // Maybe add a twist (based on tier profile)
+    const twist = maybeGenerateTwist(world, plan.culprit, rng, difficultyConfig.twistRules, profile.puzzleDifficulty);
 
     // Aftermath: all windows after crime window
     const aftermathWindows = allWindowIds.slice(crimeWindowIndex + 1);
@@ -1494,7 +1455,8 @@ function simulateWithBlueprints(
         twist,
         suspiciousActs,
         distractedWitnesses: distractedWitnesses.length > 0 ? distractedWitnesses : undefined,
-        difficulty: options.difficulty,
+        tier: validTier,
+        difficulty: profile.puzzleDifficulty,
         signalConfig: options.signalConfig,
     };
 
@@ -1537,10 +1499,16 @@ import { analyzeSignal } from './validators.js';
  */
 export function generateValidatedCase(
     seed: number,
-    difficultyTier: number = 2,
+    tier: DifficultyTier = 2,
     options: SimulationOptions = {}
 ): { sim: SimulationResult; evidence: EvidenceItem[] } | null {
-    const sim = simulate(seed, difficultyTier, options);
+    // Auto-derive signal preference from tier if not explicitly set
+    if (!options.signalConfig) {
+        const profile = DIFFICULTY_PROFILES[tier] ?? DIFFICULTY_PROFILES[2];
+        options = { ...options, signalConfig: { preferredType: profile.preferredSignalType } };
+    }
+
+    const sim = simulate(seed, tier, options);
     if (!sim) return null;
 
     let evidence = deriveEvidence(sim.world, sim.eventLog, sim.config);

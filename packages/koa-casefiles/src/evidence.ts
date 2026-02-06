@@ -24,7 +24,7 @@ import type {
     Item,
     MethodId,
 } from './types.js';
-import { WINDOWS } from './types.js';
+import { WINDOWS, DIFFICULTY_PROFILES } from './types.js';
 import { sha256 } from './kernel/canonical.js';
 import { ACTIVITIES, type ActivityType } from './activities.js';
 
@@ -123,10 +123,11 @@ function deriveDeviceLogs(
     config?: CaseConfig
 ): DeviceLogEvidence[] {
     const evidence: DeviceLogEvidence[] = [];
-    const difficulty = config?.difficulty ?? 'easy';
+    const profile = config?.tier ? DIFFICULTY_PROFILES[config.tier] : DIFFICULTY_PROFILES[2];
+    const gaps = profile?.deviceGaps ?? 0;
 
-    // Determine which windows have "offline" devices based on difficulty
-    const offlineWindows = getOfflineWindows(config?.crimeWindow, difficulty);
+    // Determine which windows have "offline" devices based on tier profile
+    const offlineWindows = getOfflineWindowsByGaps(config?.crimeWindow, gaps);
 
     for (const event of events) {
         // Skip events in offline windows (device coverage gaps)
@@ -212,13 +213,13 @@ function deriveDeviceLogs(
  * - MEDIUM: One non-crime window is offline
  * - HARD: Two non-crime windows are offline (sparse but solvable)
  */
-function getOfflineWindows(
+function getOfflineWindowsByGaps(
     crimeWindow: WindowId | undefined,
-    difficulty: 'easy' | 'medium' | 'hard'
+    gaps: number
 ): Set<WindowId> {
     const offline = new Set<WindowId>();
 
-    if (difficulty === 'easy' || !crimeWindow) {
+    if (gaps === 0 || !crimeWindow) {
         return offline; // Full coverage
     }
 
@@ -226,20 +227,20 @@ function getOfflineWindows(
     const crimeIdx = allWindows.indexOf(crimeWindow);
 
     // Never offline: crime window and immediately adjacent windows
-    // This ensures the contradiction is always catchable
+    // This ensures the contradiction is always catchable (retro lesson #3)
     const protectedWindows = new Set<WindowId>([crimeWindow]);
     if (crimeIdx > 0) protectedWindows.add(allWindows[crimeIdx - 1]);
     if (crimeIdx < 5) protectedWindows.add(allWindows[crimeIdx + 1]);
 
     const candidateOffline = allWindows.filter(w => !protectedWindows.has(w));
 
-    if (difficulty === 'medium' && candidateOffline.length >= 1) {
+    if (gaps === 1 && candidateOffline.length >= 1) {
         // One gap: earliest non-protected window
         offline.add(candidateOffline[0]);
     }
 
-    if (difficulty === 'hard' && candidateOffline.length >= 2) {
-        // Two gaps: earliest and latest non-protected windows
+    if (gaps >= 2 && candidateOffline.length >= 2) {
+        // Two gaps: earliest and latest non-protected windows (spread out)
         offline.add(candidateOffline[0]);
         offline.add(candidateOffline[candidateOffline.length - 1]);
     }
@@ -1223,7 +1224,8 @@ function deriveCulpritAlibiClaim(
     const culprit = world.npcs.find(n => n.id === config.culpritId);
     if (!culprit) return evidence;
 
-    const difficulty = config.difficulty ?? 'easy';
+    const profile = config.tier ? DIFFICULTY_PROFILES[config.tier] : DIFFICULTY_PROFILES[2];
+    const difficulty = profile?.puzzleDifficulty ?? 'easy';
 
     // Find a plausible alibi location (not the crime scene or hidden place)
     const alibiLocations = world.places.filter(

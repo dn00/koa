@@ -7,7 +7,8 @@
  * All game output should go through these formatters to maintain consistent voice.
  */
 
-import type { EvidenceItem, TestimonyEvidence, MotiveEvidence, DeviceLogEvidence, PhysicalEvidence } from './types.js';
+import type { EvidenceItem, TestimonyEvidence, MotiveEvidence, DeviceLogEvidence, PhysicalEvidence, DifficultyTier } from './types.js';
+import { DIFFICULTY_PROFILES } from './types.js';
 import type { CoverageMeter, WhereaboutsMap } from './player.js';
 
 // ============================================================================
@@ -106,10 +107,10 @@ function pick<T>(arr: T[]): T {
 /**
  * Format the intro banner
  */
-export function formatIntroBanner(seed: number, resumed: boolean, difficulty?: 'easy' | 'medium' | 'hard'): string {
+export function formatIntroBanner(seed: number, resumed: boolean, tier?: DifficultyTier): string {
     const resumeNote = resumed ? ' [RESUMED]' : '';
-    const diffLabel = difficulty ? ` [${difficulty.toUpperCase()}]` : '';
-    const caseInfo = `Case #${seed}${resumeNote}${diffLabel}`;
+    const tierLabel = tier ? ` [${DIFFICULTY_PROFILES[tier]?.name?.toUpperCase() ?? `TIER ${tier}`}]` : '';
+    const caseInfo = `Case #${seed}${resumeNote}${tierLabel}`;
     return `
 ┌─────────────────────────────────────────────────────┐
 │  🏠 KOA - Kind of an Asshole (Smart Home AI v2.4)  │

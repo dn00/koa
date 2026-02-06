@@ -9,10 +9,12 @@
         "./activities": "./src/activities.ts",
         "./gossip": "./src/gossip/index.ts",
         "./kernel/rng": "./src/kernel/rng.ts",
-        "./kernel/canonical": "./src/kernel/canonical.ts"
+        "./kernel/canonical": "./src/kernel/canonical.ts",
+        "./bundle": "./src/bundle.ts"
     },
     "scripts": {
         "generate": "tsx src/cli.ts",
+        "daily": "tsx src/cli.ts --daily",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:generate": "tsx src/cli.ts --generate 100"

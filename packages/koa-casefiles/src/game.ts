@@ -8,8 +8,9 @@ import { deriveEvidence } from './evidence.js';
 import { PlayerSession, calculateScore, generateShareArtifact, formatTruthReplay, ActionType } from './player.js';
 import { performSearch, performInterview, checkLogs, compareEvidence, ActionResult, InterviewMode } from './actions.js';
 import { findContradictions, findKeystonePair } from './validators.js';
-import type { CrimeType, MotiveType, MethodId, EvidenceItem, EvidenceKind } from './types.js';
+import type { CrimeType, MotiveType, MethodId, EvidenceItem, EvidenceKind, DifficultyTier } from './types.js';
 import { METHODS_BY_CRIME } from './types.js';
+import { parseTier } from './tier-parser.js';
 import * as koa from './koa-voice.js';
 import { BarkState, fireBark, fireFirstEvidence, fireShapeTell, formatBark, CaseShape } from './barks.js';
 
@@ -137,8 +138,6 @@ function detectCaseShape(config: import('./types.js').CaseConfig): CaseShape {
 // Types & Args
 // ============================================================================
 
-type Difficulty = 'easy' | 'medium' | 'hard';
-
 interface GameArgs {
     seed: number;
     agentMode: boolean;
@@ -146,15 +145,7 @@ interface GameArgs {
     reset?: boolean;     // Reset saved state
     houseId?: string;    // House layout to use
     castId?: string;     // Cast of NPCs to use
-    difficulty?: Difficulty;  // Case difficulty
-}
-
-function parseDifficulty(str: string): Difficulty | undefined {
-    const lower = str.toLowerCase();
-    if (lower === 'easy' || lower === 'e' || lower === '1') return 'easy';
-    if (lower === 'medium' || lower === 'med' || lower === 'm' || lower === '2') return 'medium';
-    if (lower === 'hard' || lower === 'h' || lower === '3') return 'hard';
-    return undefined;
+    tier: DifficultyTier; // Difficulty tier (1-4)
 }
 
 function parseArgs(): GameArgs {
@@ -165,7 +156,7 @@ function parseArgs(): GameArgs {
     let reset = false;
     let houseId: string | undefined;
     let castId: string | undefined;
-    let difficulty: Difficulty | undefined;
+    let tier: DifficultyTier = 2;
 
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--seed' || args[i] === '-s') {
@@ -180,12 +171,18 @@ function parseArgs(): GameArgs {
             houseId = args[++i];
         } else if (args[i] === '--cast') {
             castId = args[++i];
-        } else if (args[i] === '--difficulty' || args[i] === '-d') {
-            difficulty = parseDifficulty(args[++i]);
+        } else if (args[i] === '--tier' || args[i] === '-t' || args[i] === '--difficulty' || args[i] === '-d') {
+            const parsed = parseTier(args[++i]);
+            if (parsed) {
+                tier = parsed;
+            } else {
+                console.warn(`Warning: invalid tier "${args[i]}", falling back to tier 2 (Standard)`);
+                tier = 2;
+            }
         }
     }
 
-    return { seed, agentMode, cmd, reset, houseId, castId, difficulty };
+    return { seed, agentMode, cmd, reset, houseId, castId, tier };
 }
 
 // ============================================================================
@@ -277,10 +274,9 @@ async function main() {
     }
 
     // 1. Sim
-    const result = simulate(args.seed, 2, {
+    const result = simulate(args.seed, args.tier, {
         houseId: args.houseId,
         castId: args.castId,
-        difficulty: args.difficulty,
     });
     if (!result) {
         console.error('Failed to generate case.');
@@ -330,7 +326,7 @@ async function main() {
     // =========================================================================
     const rl = createInterface({ input, output });
 
-    print(koa.formatIntroBanner(args.seed, hadSave, args.difficulty), args.agentMode);
+    print(koa.formatIntroBanner(args.seed, hadSave, args.tier), args.agentMode);
 
     // Fire CASE_OPEN bark (only on fresh start)
     if (!hadSave) {

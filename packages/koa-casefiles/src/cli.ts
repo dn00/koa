@@ -8,7 +8,7 @@
  *   npx tsx src/cli.ts --seed 42            # Generate single case with seed
  */
 
-import { simulate } from './sim.js';
+import { simulate, generateValidatedCase } from './sim.js';
 import { deriveEvidence } from './evidence.js';
 import {
     validateCase,
@@ -21,46 +21,41 @@ import {
     type PlayabilityResult,
     type TunerResult,
 } from './validators.js';
-import type { CaseValidation, DifficultyConfig } from './types.js';
+import type { CaseValidation, DifficultyConfig, DifficultyTier } from './types.js';
+import { DIFFICULTY_PROFILES, profileToDifficultyConfig, RULESET_VERSION } from './types.js';
+import { parseTier } from './tier-parser.js';
 import { ACTIVITIES } from './activities.js';
 import { autosolve, solve } from './solver.js';
 import type { SolverMetrics } from './validators.js';
+import { generateBundle } from './bundle.js';
+import { findValidDailySeed, getTierForDate, type DailyCaseRecord } from './daily/index.js';
+import { readFileSync } from 'fs';
 
-// Default difficulty config for validation
-const DEFAULT_DIFFICULTY: DifficultyConfig = {
-    tier: 2,
-    suspectCount: 5,
-    windowCount: 6,
-    twistRules: ['false_alibi'],
-    redHerringStrength: 5,
-};
+function getDifficultyConfig(tier: DifficultyTier): DifficultyConfig {
+    return profileToDifficultyConfig(DIFFICULTY_PROFILES[tier]);
+}
 
 // ============================================================================
 // CLI Argument Parsing
 // ============================================================================
-
-type Difficulty = 'easy' | 'medium' | 'hard';
 
 interface Args {
     generate: number;
     seed?: number;
     verbose: boolean;
     useBlueprints: boolean;
-    tier: number;
+    tier: DifficultyTier;
     houseId?: string;
     castId?: string;
     tune: boolean;
     playability: boolean;
     autosolve: boolean;
-    difficulty?: Difficulty;
-}
-
-function parseDifficulty(str: string): Difficulty | undefined {
-    const lower = str.toLowerCase();
-    if (lower === 'easy' || lower === 'e' || lower === '1') return 'easy';
-    if (lower === 'medium' || lower === 'med' || lower === 'm' || lower === '2') return 'medium';
-    if (lower === 'hard' || lower === 'h' || lower === '3') return 'hard';
-    return undefined;
+    exportBundle: boolean;
+    daily: boolean;
+    date?: string;
+    historyFile?: string;
+    bundle: boolean;
+    tierExplicit: boolean;
 }
 
 function parseArgs(): Args {
@@ -69,13 +64,18 @@ function parseArgs(): Args {
     let seed: number | undefined;
     let verbose = false;
     let useBlueprints = false;
-    let tier = 2;
+    let tier: DifficultyTier = 2;
     let houseId: string | undefined;
     let castId: string | undefined;
     let tune = false;
     let playability = false;
     let autosolve = false;
-    let difficulty: Difficulty | undefined;
+    let exportBundle = false;
+    let daily = false;
+    let date: string | undefined;
+    let historyFile: string | undefined;
+    let bundle = false;
+    let tierExplicit = false;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -88,8 +88,15 @@ function parseArgs(): Args {
             verbose = true;
         } else if (arg === '--blueprints' || arg === '-b') {
             useBlueprints = true;
-        } else if (arg === '--tier' || arg === '-t') {
-            tier = parseInt(args[++i], 10) || 2;
+        } else if (arg === '--tier' || arg === '-t' || arg === '--difficulty' || arg === '-d') {
+            tierExplicit = true;
+            const parsed = parseTier(args[++i]);
+            if (parsed) {
+                tier = parsed;
+            } else {
+                console.warn(`Warning: invalid tier "${args[i]}", falling back to tier 2 (Standard)`);
+                tier = 2;
+            }
         } else if (arg === '--house') {
             houseId = args[++i];
         } else if (arg === '--cast') {
@@ -100,8 +107,16 @@ function parseArgs(): Args {
             playability = true;
         } else if (arg === '--autosolve' || arg === '-a') {
             autosolve = true;
-        } else if (arg === '--difficulty' || arg === '-d') {
-            difficulty = parseDifficulty(args[++i]);
+        } else if (arg === '--export-bundle') {
+            exportBundle = true;
+        } else if (arg === '--daily') {
+            daily = true;
+        } else if (arg === '--date') {
+            date = args[++i];
+        } else if (arg === '--history-file') {
+            historyFile = args[++i];
+        } else if (arg === '--bundle') {
+            bundle = true;
         } else if (arg === '--help' || arg === '-h') {
             console.log(`
 KOA Casefiles - Case Generation Validator
@@ -110,24 +125,30 @@ Usage:
   npx tsx src/cli.ts [options]
 
 Options:
-  --generate, -g <n>   Generate and validate n cases (default: 100)
-  --seed, -s <n>       Generate single case with specific seed
-  --verbose, -v        Show detailed output
-  --blueprints, -b     Use blueprint system (new incident templates)
-  --tier, -t <n>       Difficulty tier 1-4 (default: 2)
-  --difficulty, -d <d> Puzzle difficulty: easy, medium, hard
-  --house <id>         House layout: share_house, cramped_apartment, mcmansion
-  --cast <id>          NPC cast: roommates, family, coworkers, friends
-  --playability, -p    Check playability with current player constraints
-  --tune               Grid search for optimal player constraints
-  --autosolve, -a      Run automated solver across seeds (practical playtest)
-  --help, -h           Show this help
+  --generate, -g <n>     Generate and validate n cases (default: 100)
+  --seed, -s <n>         Generate single case with specific seed
+  --verbose, -v          Show detailed output
+  --blueprints, -b       Use blueprint system (new incident templates)
+  --tier, -t <tier>      Difficulty tier: 1-4, tutorial/standard/challenging/expert,
+                         or easy/medium/hard (default: 2/standard)
+  --difficulty, -d <d>   Alias for --tier (accepts same values)
+  --house <id>           House layout: share_house, cramped_apartment, mcmansion
+  --cast <id>            NPC cast: roommates, family, coworkers, friends
+  --playability, -p      Check playability with current player constraints
+  --tune                 Grid search for optimal player constraints
+  --autosolve, -a        Run automated solver across seeds (practical playtest)
+  --export-bundle        Export a CaseBundle as JSON to stdout (use with --seed, --tier)
+  --daily                Find a valid daily seed for the given date
+  --date <YYYY-MM-DD>    Date for --daily (default: today UTC)
+  --history-file <path>  Path to DailyCaseRecord[] JSON for variety checking
+  --bundle               Output CaseBundle instead of FinderResult (use with --daily)
+  --help, -h             Show this help
 `);
             process.exit(0);
         }
     }
 
-    return { generate, seed, verbose, useBlueprints, tier, houseId, castId, tune, playability, autosolve, difficulty };
+    return { generate, seed, verbose, useBlueprints, tier, houseId, castId, tune, playability, autosolve, exportBundle, daily, date, historyFile, bundle, tierExplicit };
 }
 
 // ============================================================================
@@ -138,7 +159,7 @@ function generateCase(
     seed: number,
     verbose: boolean,
     useBlueprints: boolean = false,
-    tier: number = 2,
+    tier: DifficultyTier = 2,
     houseId?: string,
     castId?: string
 ): CaseValidation | null {
@@ -152,7 +173,7 @@ function generateCase(
     }
 
     const evidence = deriveEvidence(result.world, result.eventLog, result.config);
-    const validation = validateCase(result.world, result.config, evidence, DEFAULT_DIFFICULTY);
+    const validation = validateCase(result.world, result.config, evidence, getDifficultyConfig(tier));
 
     if (verbose) {
         const status = validation.passed ? '✅' : '❌';
@@ -200,7 +221,7 @@ function runBatch(
     startSeed: number,
     verbose: boolean,
     useBlueprints: boolean = false,
-    tier: number = 2,
+    tier: DifficultyTier = 2,
     houseId?: string,
     castId?: string
 ): void {
@@ -287,7 +308,7 @@ function runPlayabilityCheck(
     startSeed: number,
     verbose: boolean,
     useBlueprints: boolean = false,
-    tier: number = 2
+    tier: DifficultyTier = 2
 ): void {
     console.log(`\nChecking playability of ${count} cases with current constraints...\n`);
     console.log(`Constraints: ${DEFAULT_PLAYER_CONSTRAINTS.maxDays} days, ${DEFAULT_PLAYER_CONSTRAINTS.apPerDay} AP/day, cover-up after day ${DEFAULT_PLAYER_CONSTRAINTS.coverUpDay}, ${DEFAULT_PLAYER_CONSTRAINTS.maxLeads} leads\n`);
@@ -402,7 +423,7 @@ function runTuner(
     casesPerConfig: number,
     startSeed: number,
     useBlueprints: boolean = false,
-    tier: number = 2
+    tier: DifficultyTier = 2
 ): void {
     console.log(`\nRunning grid search tuner (${casesPerConfig} cases per config)...\n`);
 
@@ -625,12 +646,76 @@ function runTuner(
 
 const args = parseArgs();
 
-if (args.tune) {
+if (args.daily) {
+    const dateStr = args.date ?? new Date().toISOString().slice(0, 10);
+    const tier = args.tierExplicit ? args.tier : getTierForDate(dateStr);
+    const history: DailyCaseRecord[] = args.historyFile
+        ? JSON.parse(readFileSync(args.historyFile, 'utf-8'))
+        : [];
+
+    if (args.seed !== undefined) {
+        // --seed overrides HMAC derivation: use seed directly with generateValidatedCase
+        const caseData = generateValidatedCase(args.seed, tier);
+        if (!caseData) {
+            console.error('Failed to generate case for provided seed');
+            process.exit(1);
+        }
+        const result = {
+            seed: args.seed,
+            tier,
+            offset: 0,
+            culprit: caseData.sim.config.culpritId,
+            crimeType: caseData.sim.config.crimeType,
+            date: dateStr,
+            rulesetVersion: RULESET_VERSION,
+        };
+        if (args.bundle) {
+            const bundleData = generateBundle(args.seed, tier);
+            if (!bundleData) {
+                console.error('Failed to generate bundle for daily seed');
+                process.exit(1);
+            }
+            console.log(JSON.stringify(bundleData, null, 2));
+        } else {
+            console.log(JSON.stringify(result, null, 2));
+        }
+    } else {
+        const result = findValidDailySeed(dateStr, tier, history, {
+            secret: process.env.KOA_SECRET ?? 'dev-secret',
+        });
+
+        if (!result) {
+            console.error('Failed to find valid daily seed');
+            process.exit(1);
+        }
+
+        if (args.bundle) {
+            const bundleData = generateBundle(result.seed, result.tier);
+            if (!bundleData) {
+                console.error('Failed to generate bundle for daily seed');
+                process.exit(1);
+            }
+            console.log(JSON.stringify(bundleData, null, 2));
+        } else {
+            console.log(JSON.stringify(result, null, 2));
+        }
+    }
+} else if (args.exportBundle) {
+    // Export bundle mode
+    const bundleSeed = args.seed ?? Math.floor(Math.random() * 10000);
+    const bundle = generateBundle(bundleSeed, args.tier);
+    if (bundle) {
+        console.log(JSON.stringify(bundle, null, 2));
+    } else {
+        console.error('Failed to generate bundle');
+        process.exit(1);
+    }
+} else if (args.tune) {
     // Grid search tuner mode
     runTuner(args.generate, 0, args.useBlueprints, args.tier);
 } else if (args.autosolve) {
     // Automated solver mode - practical playtest
-    autosolve(args.generate, args.seed ?? 1, args.verbose, args.difficulty);
+    autosolve(args.generate, args.seed ?? 1, args.verbose, args.tier as DifficultyTier | undefined);
 } else if (args.playability) {
     // Playability check mode
     runPlayabilityCheck(args.generate, 0, args.verbose, args.useBlueprints, args.tier);
@@ -652,7 +737,7 @@ if (args.tune) {
     }
 
     const evidence = deriveEvidence(result.world, result.eventLog, result.config);
-    const validation = validateCase(result.world, result.config, evidence, DEFAULT_DIFFICULTY);
+    const validation = validateCase(result.world, result.config, evidence, getDifficultyConfig(args.tier));
 
     const config = result.config;
     const item = result.world.items.find(i => i.id === config.targetItem);
