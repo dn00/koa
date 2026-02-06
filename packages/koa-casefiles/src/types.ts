@@ -267,6 +267,8 @@ export interface CaseConfig {
      * - 'hard': Culprit tells truth → must use motive/opportunity to solve
      */
     difficulty?: 'easy' | 'medium' | 'hard';
+    injectedSignal?: boolean;       // True if solvability signal was injected post-generation
+    signalConfig?: SignalConfig;     // Signal tuning preferences (variety system hook)
 }
 
 // ============================================================================
@@ -410,6 +412,37 @@ export interface Contradiction {
     evidenceA: string;
     evidenceB: string;
     cites: EventId[];
+}
+
+// ============================================================================
+// Signal Analysis (Solvability Guarantee)
+// ============================================================================
+
+export type SignalType =
+    | 'self_contradiction'    // Culprit claims X, culprit claims Y (incompatible)
+    | 'device_contradiction'  // Culprit claims X, device log shows Y
+    | 'scene_presence'        // Device log places culprit at crime scene during crime window
+    | 'opportunity_only';     // No catchable signal - only motive/opportunity
+
+export type SignalStrength = 'strong' | 'medium' | 'weak';
+
+// Signal configuration for variety system (tuning hooks)
+export interface SignalConfig {
+    /** Preferred signal type (generation will try to achieve this, best effort) */
+    preferredType?: SignalType;
+    /** Minimum acceptable signal strength */
+    minStrength?: SignalStrength;
+}
+
+export interface SignalAnalysis {
+    hasSignal: boolean;
+    signalType: SignalType;
+    signalStrength: SignalStrength;
+    keystonePair?: {
+        evidenceA: string;  // EvidenceId
+        evidenceB: string;  // EvidenceId
+    };
+    details?: string;  // Human-readable explanation
 }
 
 export interface DifficultyValidation extends ValidationResult {

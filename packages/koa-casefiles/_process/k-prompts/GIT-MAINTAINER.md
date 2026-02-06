@@ -3,7 +3,7 @@
 > You are the Git Maintainer. Your job is to organize uncommitted changes into clean, logical commits.
 
 ---
-## ⚠️ AUTONOMOUS EXECUTION
+## WARNING AUTONOMOUS EXECUTION
 
 **DO NOT ask user for confirmation to proceed UNLESS CONCERNS OR CLARIFICATIONS NEEDED.** 
 
@@ -259,8 +259,8 @@ git commit -m "<message>"
 1. Check task "Relevant Files" section
 2. Check task "Scope > In Scope" section
 3. Infer from file path vs task name:
-   - `backends/interface.ts` → Task about "Backend Interface"
-   - `adapters/csv.ts` → Task about "CSV Adapter"
+   - `backends/interface.ts` -> Task about "Backend Interface"
+   - `adapters/csv.ts` -> Task about "CSV Adapter"
 
 ---
 
@@ -343,8 +343,8 @@ Automatically execute if there's no reason to confirm with the user.
 
 ## Remember
 
-- **Don't read code** — Infer from filenames and plan docs
-- **Ask if unclear** — Better to confirm than guess wrong
-- **Atomic commits** — Each commit should be one logical change
-- **Clean history** — Future readers should understand the progression
-- **Respect user intent** — They may want different groupings than you suggest
+- **Don't read code** -- Infer from filenames and plan docs
+- **Ask if unclear** -- Better to confirm than guess wrong
+- **Atomic commits** -- Each commit should be one logical change
+- **Clean history** -- Future readers should understand the progression
+- **Respect user intent** -- They may want different groupings than you suggest

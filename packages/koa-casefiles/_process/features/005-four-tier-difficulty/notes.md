@@ -149,8 +149,8 @@ Need to add Tier 3 (Challenging) as new middle ground.
 
 ## Dependencies
 
-- [ ] Solvability guarantee (Feature 001) - enables signal type tuning
-- [ ] Signal analysis (Task 001-004) - needed to control signal distribution
+- [x] Solvability guarantee (Feature 001) - enables signal type tuning
+- [x] Signal analysis (Task 001-004) - needed to control signal distribution
 
 ---
 
@@ -159,3 +159,13 @@ Need to add Tier 3 (Challenging) as new middle ground.
 - Current "hard" is very hard - might actually be Tier 4
 - Need playtesting to find right Tier 3 balance
 - Consider keeping string aliases for convenience (`--difficulty challenging`)
+
+---
+
+## Hooks from Feature 001 (ready to wire)
+
+Feature 001 shipped `SignalConfig` and `SolveResult.signalAnalysis` as tuning hooks. This feature should wire them:
+
+1. **Director → SignalConfig**: Add `getSignalConfig()` to `CaseDirector` that maps tier to preferred signal type (Tier 1 → `self_contradiction`, Tier 3 → `device_contradiction`, etc). Callers pass `director.getSignalConfig()` into `generateValidatedCase()` options.
+
+2. **CLI verbose → signal display**: Single-seed verbose mode (`--seed N -v`) should call `analyzeSignal()` and display signal type/strength after the DIFFICULTY METRICS section. Needed to verify cases match their tier's target signal distribution.

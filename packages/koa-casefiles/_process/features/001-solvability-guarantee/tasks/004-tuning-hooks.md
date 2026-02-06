@@ -1,6 +1,6 @@
 # Task 004: Tuning Hooks (P1)
 
-**Status:** backlog
+**Status:** done
 **Complexity:** S
 **Depends On:** 003
 **Implements:** R4.1, R4.2, R5.1, R5.2
@@ -176,7 +176,21 @@ const varietyConfig = {
 **Decisions:** Keep as P1 - solvability guarantee (Tasks 001-003) is the priority. This can ship later.
 
 ### Implementation Notes
-> Written by Implementer
+
+**Files modified:**
+- `src/types.ts` — Added `SignalConfig` interface and `signalConfig?: SignalConfig` to `CaseConfig`
+- `src/solver.ts` — Added `signalAnalysis?: SignalAnalysis` to `SolveResult`, imported `analyzeSignal`, computed signal analysis in `solve()` and included in all return paths
+- `src/sim.ts` — Added `signalConfig?: SignalConfig` to `SimulationOptions`, passed through to `CaseConfig` in both legacy and blueprint simulation paths
+
+**Files created:**
+- `tests/tuning-hooks.test.ts` — 7 test blocks (4 AC + 2 EC + 1 ERR = 7 test blocks, 16 individual tests)
+
+**Test count:** Task has 4 ACs + 2 ECs + 1 ERR = 7 requirements. Test file has 7 test blocks. ✓
+
+**Design notes:**
+- `SignalConfig.preferredType` is best-effort — the system reports the natural signal type. Injection only happens when no signal exists at all (not to match a preference). This aligns with "Out of Scope: Forcing specific signal types during generation".
+- `signalAnalysis` is computed once early in `solve()` using `analyzeSignal()` on full evidence, then included in all return paths.
+- `signalConfig` flows through `SimulationOptions` → `simulate()` → `CaseConfig` for both legacy and blueprint paths.
 
 ### Review Notes
 > Written by Reviewer

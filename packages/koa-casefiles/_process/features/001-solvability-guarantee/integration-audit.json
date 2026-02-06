@@ -1,0 +1,79 @@
+{
+  "feature": "solvability-guarantee",
+  "audit_date": "2026-02-05",
+  "verdict": "PASS",
+  "files_reviewed": [
+    "src/types.ts",
+    "src/validators.ts",
+    "src/sim.ts",
+    "src/solver.ts",
+    "src/evidence.ts",
+    "src/cli.ts",
+    "src/director.ts",
+    "tests/signal-analysis.test.ts",
+    "tests/signal-injection.test.ts",
+    "tests/pipeline-integration.test.ts",
+    "tests/tuning-hooks.test.ts",
+    "tests/smoke.test.ts"
+  ],
+  "tests_run": { "passed": 60, "failed": 0 },
+  "integration_checks": {
+    "module_connections": "pass",
+    "type_compatibility": "pass",
+    "error_handling": "pass",
+    "no_circular_deps": "pass",
+    "e2e_verification": "pass"
+  },
+  "e2e_details": {
+    "entry_point": "generateValidatedCase() for pipeline, solve() for solver",
+    "app_starts": true,
+    "feature_accessible": true,
+    "full_flow_works": true,
+    "notes": "CLI uses autosolve/tuner which call solve() — signal metrics display correctly"
+  },
+  "integration_points_verified": [
+    {
+      "from": "types.ts",
+      "to": "validators.ts, sim.ts, solver.ts",
+      "check": "SignalType, SignalStrength, SignalAnalysis, SignalConfig all exported and consumed correctly",
+      "status": "pass"
+    },
+    {
+      "from": "validators.ts:analyzeSignal",
+      "to": "sim.ts:generateValidatedCase",
+      "check": "Called with (evidence, config), result drives injection decision, called again after injection",
+      "status": "pass"
+    },
+    {
+      "from": "sim.ts:SimulationOptions.signalConfig",
+      "to": "sim.ts:CaseConfig.signalConfig",
+      "check": "Flows through both legacy simulate() and blueprint simulateWithBlueprints()",
+      "status": "pass"
+    },
+    {
+      "from": "validators.ts:analyzeSignal",
+      "to": "solver.ts:solve()",
+      "check": "Called once after evidence derivation, result included in all 6 post-evidence return paths",
+      "status": "pass"
+    },
+    {
+      "from": "sim.ts:injectMinimalSignal",
+      "to": "evidence.ts:deriveEvidence",
+      "check": "Injection adds event to mutable array, re-derivation picks it up, anti-anticlimax respected (adjacent room placement)",
+      "status": "pass"
+    },
+    {
+      "from": "solver.ts:SolveResult.signalAnalysis",
+      "to": "solver.ts:autosolve()",
+      "check": "autosolve collects metrics from solve() results including signal availability",
+      "status": "pass"
+    }
+  ],
+  "gaps_found": [],
+  "security_issues": [],
+  "notes": [
+    "Director (director.ts) does not use SignalConfig — this is by design (Out of Scope per task 004: 'Actual variety system implementation')",
+    "CLI single-seed verbose mode does not display signalAnalysis — this was a hint, not an AC. Signal metrics are available in autosolve and tuner modes.",
+    "sim_failed early return in solve() correctly omits signalAnalysis (no evidence exists to analyze)"
+  ]
+}

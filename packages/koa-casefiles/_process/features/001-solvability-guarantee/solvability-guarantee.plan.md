@@ -1,7 +1,7 @@
 # Plan: Solvability Guarantee System
 
 **Discovery:** [discovery.md](./discovery.md)
-**Status:** active
+**Status:** needs-review
 
 ---
 
@@ -85,10 +85,10 @@ Task 001 (Signal Analysis) must complete first - it defines the types and detect
 
 | ID | Name | Complexity | Status |
 |----|------|------------|--------|
-| 001 | Signal Analysis Function | M | ready |
-| 002 | Signal Injection Function | M | backlog |
-| 003 | Pipeline Integration | M | backlog |
-| 004 | Tuning Hooks (P1) | S | backlog |
+| 001 | Signal Analysis Function | M | done |
+| 002 | Signal Injection Function | M | done |
+| 003 | Pipeline Integration | M | done |
+| 004 | Tuning Hooks (P1) | S | done |
 
 ---
 

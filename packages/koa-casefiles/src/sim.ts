@@ -15,6 +15,7 @@ import type {
     ItemId,
     EventType,
     NPC,
+    Device,
     Item,
     Motive,
     MotiveType,
@@ -26,6 +27,8 @@ import type {
     DifficultyConfig,
     TwistType,
     MethodId,
+    EvidenceItem,
+    SignalConfig,
 } from './types.js';
 import { METHODS_BY_CRIME } from './types.js';
 import { WINDOWS, getWindowForTick } from './types.js';
@@ -91,6 +94,106 @@ import {
 } from './gossip/index.js';
 import { ACTIVITIES, type ActivityType } from './activities.js';
 import { CaseDirector, type DifficultyTier, type DirectorConfig } from './director.js';
+
+// ============================================================================
+// Signal Injection (Solvability Guarantee)
+// ============================================================================
+
+/**
+ * Inject a minimal device event that catches the culprit.
+ * Called when analyzeSignal() returns hasSignal: false.
+ *
+ * Strategy: Add a door event during crime window at an adjacent room.
+ * We place the event at the adjacent room (not the crime scene) so that
+ * anti-anticlimax rules don't strip the actor from the evidence.
+ * This creates a device_contradiction signal when combined with the
+ * culprit's scheduled presence elsewhere.
+ */
+export function injectMinimalSignal(
+    world: World,
+    events: SimEvent[],
+    config: CaseConfig,
+    rng: RNG
+): SimEvent | null {
+    if (!config.culpritId || !config.crimePlace) {
+        throw new Error('injectMinimalSignal requires culpritId and crimePlace');
+    }
+
+    const crimePlace = world.places.find(p => p.id === config.crimePlace);
+    if (!crimePlace) return null;
+
+    // Find candidate doors adjacent to crime scene
+    type DoorCandidate = { door: Device; adjacentPlace: string };
+    const candidates: DoorCandidate[] = [];
+
+    for (const adjId of crimePlace.adjacent) {
+        const door = getDoorBetween(config.crimePlace, adjId, world.devices);
+        if (door) {
+            candidates.push({ door, adjacentPlace: adjId });
+        }
+    }
+
+    // EC-1: If no doors at crime scene, check 1-hop neighbors
+    if (candidates.length === 0) {
+        for (const adjId of crimePlace.adjacent) {
+            const adjPlace = world.places.find(p => p.id === adjId);
+            if (!adjPlace) continue;
+            for (const nextAdjId of adjPlace.adjacent) {
+                if (nextAdjId === config.crimePlace) continue;
+                const door = getDoorBetween(adjId, nextAdjId, world.devices);
+                if (door) {
+                    candidates.push({ door, adjacentPlace: adjId });
+                    break;
+                }
+            }
+            if (candidates.length > 0) break;
+        }
+    }
+
+    // EC-2: No reachable doors
+    if (candidates.length === 0) return null;
+
+    // EC-3: Pick door using RNG for determinism
+    const chosen = candidates.length === 1
+        ? candidates[0]
+        : candidates[rng.nextInt(candidates.length)];
+
+    // Calculate tick within crime window
+    const windowDef = WINDOWS.find(w => w.id === config.crimeWindow);
+    if (!windowDef) return null;
+    const tick = windowDef.startTick + rng.nextInt(windowDef.endTick - windowDef.startTick + 1);
+
+    // Create event at the adjacent room (not crimePlace) to preserve actor
+    // in evidence derivation. Anti-anticlimax strips actor from events at
+    // crimePlace+crimeWindow+culpritId, so we place it on the other side.
+    const ordinal = events.length;
+    const event: SimEvent = {
+        id: '',
+        tick,
+        window: config.crimeWindow,
+        type: 'DOOR_OPENED',
+        actor: config.culpritId,
+        place: chosen.adjacentPlace,
+        target: chosen.door.id,
+    };
+    event.id = computeEventId({
+        tick,
+        ordinal,
+        type: 'DOOR_OPENED',
+        actor: config.culpritId,
+        place: chosen.adjacentPlace,
+        target: chosen.door.id,
+    });
+
+    // ERR-1: Push to events (throws if frozen)
+    try {
+        events.push(event);
+    } catch {
+        throw new Error('Events array must be mutable for injection');
+    }
+
+    return event;
+}
 
 // ============================================================================
 // Event Generation Helpers
@@ -1016,6 +1119,8 @@ export interface SimulationOptions {
      * - undefined: Random (legacy behavior)
      */
     difficulty?: 'easy' | 'medium' | 'hard';
+    /** Signal tuning preferences for variety system (P1 hook) */
+    signalConfig?: SignalConfig;
 }
 
 // ============================================================================
@@ -1225,6 +1330,7 @@ export function simulate(
         suspiciousActs,
         distractedWitnesses: chosen.distractedWitness ? [chosen.distractedWitness.id] : undefined,
         difficulty: options.difficulty,
+        signalConfig: options.signalConfig,
     };
 
     return {
@@ -1389,6 +1495,7 @@ function simulateWithBlueprints(
         suspiciousActs,
         distractedWitnesses: distractedWitnesses.length > 0 ? distractedWitnesses : undefined,
         difficulty: options.difficulty,
+        signalConfig: options.signalConfig,
     };
 
     return {
@@ -1411,4 +1518,59 @@ function mapIncidentToCrimeType(incidentType: string): CrimeType {
         case 'disappearance': return 'disappearance';
         default: return 'theft';
     }
+}
+
+// ============================================================================
+// Validated Case Generation (Solvability Guarantee Pipeline)
+// ============================================================================
+
+import { deriveEvidence } from './evidence.js';
+import { analyzeSignal } from './validators.js';
+
+/**
+ * Generate a case with guaranteed solvability signal.
+ *
+ * Pipeline: simulate → derive evidence → analyze signal →
+ *   if no signal: inject → re-derive → verify
+ *
+ * Returns null if simulation fails or seed is unsalvageable.
+ */
+export function generateValidatedCase(
+    seed: number,
+    difficultyTier: number = 2,
+    options: SimulationOptions = {}
+): { sim: SimulationResult; evidence: EvidenceItem[] } | null {
+    const sim = simulate(seed, difficultyTier, options);
+    if (!sim) return null;
+
+    let evidence = deriveEvidence(sim.world, sim.eventLog, sim.config);
+    const signal = analyzeSignal(evidence, sim.config);
+
+    if (!signal.hasSignal) {
+        // Signal missing — inject minimal device event
+        const injectionRng = createRng(seed + 10000);
+        const injected = injectMinimalSignal(
+            sim.world, sim.eventLog, sim.config, injectionRng,
+        );
+
+        if (!injected) {
+            // EC-1: No suitable door — seed unsalvageable
+            return null;
+        }
+
+        // Re-derive evidence with updated event log
+        evidence = deriveEvidence(sim.world, sim.eventLog, sim.config);
+        sim.config.injectedSignal = true;
+
+        // ERR-1: Verify injection fixed the signal (no retry loop)
+        const recheck = analyzeSignal(evidence, sim.config);
+        if (!recheck.hasSignal) {
+            console.error(
+                `Signal injection failed for seed ${seed} - seed unsalvageable`,
+            );
+            return null;
+        }
+    }
+
+    return { sim, evidence };
 }

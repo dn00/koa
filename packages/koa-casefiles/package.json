@@ -13,7 +13,9 @@
     },
     "scripts": {
         "generate": "tsx src/cli.ts",
-        "test": "tsx src/cli.ts --generate 100"
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:generate": "tsx src/cli.ts --generate 100"
     },
     "dependencies": {
         "fast-json-stable-stringify": "^2.1.0"

@@ -1,6 +1,6 @@
 # Task 001: Signal Analysis Function
 
-**Status:** ready
+**Status:** done
 **Complexity:** M
 **Depends On:** none
 **Implements:** R1.1, R1.2, R1.3, R1.4, R1.5
@@ -196,5 +196,79 @@ const implicatesCulprit = implicated.includes(config.culpritId) ? 10 : 0;
 ### Implementation Notes
 > Written by Implementer
 
+**Approach:** `analyzeSignal()` filters evidence for culprit-specific items (presence claims and device logs with actor=culpritId), then checks signal types in priority order: self-contradiction → device contradiction → scene presence → opportunity_only. Returns immediately on first match (strongest signal wins).
+
+**Decisions:**
+- Self-contradiction checks all windows, not just crime window (per EC-2 — a lie in any window is catchable)
+- Device contradiction requires matching window AND different place between presence claim and device log
+- Scene presence only checks crime scene + crime window (most restrictive)
+- Returns keystone pair for self-contradiction and device-contradiction signals (the two evidence IDs forming the contradiction)
+
+**Deviations:** None — followed the spec exactly.
+
+**Files Changed:**
+- `src/types.ts` — Added `SignalType`, `SignalStrength`, `SignalAnalysis` types
+- `src/validators.ts` — Added `analyzeSignal()` function with imports for new types
+- `tests/signal-analysis.test.ts` — 11 tests covering AC-1 through AC-5, EC-1 through EC-3, ERR-1, ERR-2
+- `tests/smoke.test.ts` — Infrastructure validation test
+- `vitest.config.ts` — Package-level vitest config (test infra setup)
+- `package.json` — Added `test` and `test:watch` scripts
+
+**Gotchas:**
+- Pre-existing type errors in `director.ts` (missing `Twist` export) and `validate-seeds.ts` (missing `PlayabilityResult` export) — not related to this task
+- Root vitest.config.ts has React setup file that would fail for this package — hence the package-level config
+
+**Questions for Reviewer:** None.
+
+### Status History
+- ready → in-progress (2026-02-05, Implementer starting work)
+- in-progress → review (2026-02-05, Implementer submitting for review)
+- reviewing → needs-changes (2026-02-05, Reviewer found 1 should-fix item)
+- needs-changes → review (2026-02-05, Implementer fixed all items)
+- review → done (2026-02-05, Reviewer approved)
+
+### Change Log
+- 2026-02-05 [Implementer] Starting work
+- 2026-02-05 [Implementer] Set up vitest test infrastructure for koa-casefiles package
+- 2026-02-05 [Implementer] Completed implementation, submitting for review — 11 tests passing
+- 2026-02-05 [Reviewer] Needs changes: 1 action item
+- 2026-02-05 [Implementer] Fixed should-fix + 2 consider items, resubmitting — 12 tests passing
+- 2026-02-05 [Reviewer] Approved — 15 tests passing, all action items resolved
+
 ### Review Notes
-> Written by Reviewer
+
+**Reviewer:** Claude (Review Agent)
+**Date:** 2026-02-05
+**Verdict:** APPROVED
+
+#### Acceptance Criteria Verification
+| AC | Test Exists | Test Passes | Notes |
+|----|-------------|-------------|-------|
+| AC-1 | ✓ | ✓ | Self-contradiction correctly detected |
+| AC-2 | ✓ | ✓ | Device contradiction correctly detected |
+| AC-3 | ✓ | ✓ | Scene presence correctly detected |
+| AC-4 | ✓ | ✓ | Opportunity-only detected, but see should-fix #1 |
+| AC-5 | ✓ | ✓ | keystonePair returned for both contradiction types |
+| EC-1 | ✓ | ✓ | Strongest signal wins |
+| EC-2 | ✓ | ✓ | Non-crime window signal still counts |
+| EC-3 | ✓ | ✓ | Culprit signal found despite noisier red herring |
+| ERR-1 | ✓ | ✓ | Missing culprit evidence handled |
+| ERR-2 | ✓ | ✓ | Missing culpritId throws |
+
+#### Action Items
+
+**Should fix:**
+- [x] `tests/signal-analysis.test.ts` — Added test "culprit has presence but no contradiction → opportunity_only" that exercises the final return path (path #4).
+
+**Consider (optional):**
+- [x] `tests/signal-analysis.test.ts:141-160` — Added `expect(result.keystonePair).toBeUndefined()` assertion to AC-3 scene_presence test.
+- [ ] `src/validators.ts:125-135` — Acknowledged. `scene_presence` / `validateAntiAnticlimax` mutual exclusion is a future task concern (door-pattern matching per implementation hints line 184).
+- [x] `src/validators.ts:88` — Renamed `window` → `windowId` in the destructuring loop.
+
+#### What's Good
+- Clean implementation that follows the priority-ordered signal hierarchy exactly as specified
+- Good use of early returns for the strongest-signal-wins pattern
+- Test helpers (`makeConfig`, `presence`, `deviceLog`, `motiveEvidence`) are well-structured and reusable
+- All 11 tests are meaningful and follow the Given/When/Then structure from the ACs
+- No dead code, no `any` types, no debug statements
+- Package-level vitest config cleanly avoids the root React setup issue

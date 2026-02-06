@@ -25,9 +25,128 @@ import type {
     Contradiction,
     DifficultyValidation,
     DifficultyConfig,
+    SignalAnalysis,
+    SignalType,
+    SignalStrength,
 } from './types.js';
 
 import { DIFFICULTY_TIER_TARGETS } from './types.js';
+
+// ============================================================================
+// Signal Analysis (Solvability Guarantee)
+// ============================================================================
+
+/**
+ * Analyze whether the culprit has a catchable signal (contradiction they're party to).
+ *
+ * Signal hierarchy (strongest to weakest):
+ * 1. self_contradiction - Culprit's testimony contradicts their own testimony
+ * 2. device_contradiction - Culprit's testimony contradicts device log
+ * 3. scene_presence - Device log places culprit at crime scene
+ * 4. opportunity_only - No catchable signal (INVALID - case needs injection)
+ */
+export function analyzeSignal(
+    evidence: EvidenceItem[],
+    config: CaseConfig
+): SignalAnalysis {
+    if (!config.culpritId) {
+        throw new Error('analyzeSignal requires config.culpritId');
+    }
+
+    const culpritId = config.culpritId;
+
+    // Gather culprit's presence claims
+    const culpritPresence = (evidence.filter(
+        e => e.kind === 'presence' && e.npc === culpritId
+    ) as PresenceEvidence[]);
+
+    // Gather device logs where actor is the culprit
+    const culpritDeviceLogs = (evidence.filter(
+        e => e.kind === 'device_log' && e.actor === culpritId
+    ) as DeviceLogEvidence[]);
+
+    // If no culprit evidence at all, early return
+    if (culpritPresence.length === 0 && culpritDeviceLogs.length === 0) {
+        return {
+            hasSignal: false,
+            signalType: 'opportunity_only',
+            signalStrength: 'weak',
+            details: 'No culprit evidence found',
+        };
+    }
+
+    // 1. Check for self-contradiction (strongest signal)
+    //    Culprit claims two different places in the same window
+    const presenceByWindow = new Map<string, PresenceEvidence[]>();
+    for (const p of culpritPresence) {
+        if (!presenceByWindow.has(p.window)) {
+            presenceByWindow.set(p.window, []);
+        }
+        presenceByWindow.get(p.window)!.push(p);
+    }
+
+    for (const [windowId, items] of presenceByWindow) {
+        if (items.length > 1) {
+            for (let i = 0; i < items.length; i++) {
+                for (let j = i + 1; j < items.length; j++) {
+                    if (items[i].place !== items[j].place) {
+                        return {
+                            hasSignal: true,
+                            signalType: 'self_contradiction',
+                            signalStrength: 'strong',
+                            keystonePair: {
+                                evidenceA: items[i].id,
+                                evidenceB: items[j].id,
+                            },
+                            details: `Culprit claims to be in ${items[i].place} and ${items[j].place} during ${windowId}`,
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Check for device contradiction (strong signal)
+    //    Culprit claims place X but device log shows them at place Y in same window
+    for (const p of culpritPresence) {
+        for (const d of culpritDeviceLogs) {
+            if (d.window === p.window && d.place !== p.place) {
+                return {
+                    hasSignal: true,
+                    signalType: 'device_contradiction',
+                    signalStrength: 'strong',
+                    keystonePair: {
+                        evidenceA: p.id,
+                        evidenceB: d.id,
+                    },
+                    details: `Culprit claims ${p.place} but device shows ${d.place} during ${p.window}`,
+                };
+            }
+        }
+    }
+
+    // 3. Check for scene presence (medium signal)
+    //    Device log places culprit at crime scene during crime window
+    const atCrimeScene = culpritDeviceLogs.find(
+        d => d.place === config.crimePlace && d.window === config.crimeWindow
+    );
+    if (atCrimeScene) {
+        return {
+            hasSignal: true,
+            signalType: 'scene_presence',
+            signalStrength: 'medium',
+            details: `Device log places culprit at ${config.crimePlace} during ${config.crimeWindow}`,
+        };
+    }
+
+    // 4. No catchable signal
+    return {
+        hasSignal: false,
+        signalType: 'opportunity_only',
+        signalStrength: 'weak',
+        details: 'Culprit has evidence but no catchable contradiction',
+    };
+}
 
 // ============================================================================
 // Solvability Validator
@@ -485,18 +604,25 @@ function findExculpatingEvidence(
     config: CaseConfig,
     evidence: EvidenceItem[]
 ): EvidenceItem | null {
-    const presenceEvidence = evidence.filter(
-        e => e.kind === 'presence'
-    ) as PresenceEvidence[];
-
     // Alibi = suspect was NOT at crime place during crime window
-    const alibi = presenceEvidence.find(
-        e => e.npc === suspect &&
+
+    // Check presence evidence
+    const presenceAlibi = evidence.find(
+        e => e.kind === 'presence' &&
+            (e as PresenceEvidence).npc === suspect &&
             e.window === config.crimeWindow &&
             e.place !== config.crimePlace
     );
+    if (presenceAlibi) return presenceAlibi;
 
-    return alibi ?? null;
+    // Check device logs (door sensor placing suspect elsewhere)
+    const deviceAlibi = evidence.find(
+        e => e.kind === 'device_log' &&
+            (e as DeviceLogEvidence).actor === suspect &&
+            e.window === config.crimeWindow &&
+            e.place !== config.crimePlace
+    );
+    return deviceAlibi ?? null;
 }
 
 export function validateSolvability(
@@ -543,7 +669,7 @@ export function validateSolvability(
  *
  * Rules:
  * - No testimony with confidence >= 0.95 that identifies culprit
- * - No device log that directly identifies culprit at crime scene
+ * - No device log that directly identifies culprit at crime scene (same place)
  * - Crime window testimony must be vague
  */
 export function validateAntiAnticlimax(
@@ -577,7 +703,8 @@ export function validateAntiAnticlimax(
 
     for (const device of deviceEvidence) {
         if (device.window === config.crimeWindow &&
-            device.actor === config.culpritId) {
+            device.actor === config.culpritId &&
+            device.place === config.crimePlace) {
             return {
                 valid: false,
                 reason: 'Device log directly identifies culprit during crime',
@@ -669,15 +796,21 @@ export function findContradictions(
 
     for (const [, items] of presenceByNpcWindow) {
         if (items.length > 1) {
-            const places = new Set(items.map(i => i.place));
-            if (places.size > 1) {
-                contradictions.push({
-                    id: `contradiction_${contradictionId++}`,
-                    rule: 'cannot_be_two_places',
-                    evidenceA: items[0].id,
-                    evidenceB: items[1].id,
-                    cites: [...items[0].cites, ...items[1].cites],
-                });
+            for (let i = 0; i < items.length; i++) {
+                for (let j = i + 1; j < items.length; j++) {
+                    if (items[i].place !== items[j].place) {
+                        contradictions.push({
+                            id: `contradiction_${contradictionId++}`,
+                            rule: 'cannot_be_two_places',
+                            evidenceA: items[i].id,
+                            evidenceB: items[j].id,
+                            cites: [...items[i].cites, ...items[j].cites],
+                        });
+                        // Break both loops to avoid multiple contradictions for same pair/window
+                        i = items.length;
+                        break;
+                    }
+                }
             }
         }
     }

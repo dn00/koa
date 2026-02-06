@@ -14,7 +14,8 @@ import { simulate } from './sim.js';
 import { deriveEvidence } from './evidence.js';
 import { PlayerSession } from './player.js';
 import { performSearch, performInterview, checkLogs, compareEvidence } from './actions.js';
-import type { EvidenceItem, MotiveEvidence, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence } from './types.js';
+import type { EvidenceItem, MotiveEvidence, PhysicalEvidence, DeviceLogEvidence, TestimonyEvidence, SignalAnalysis } from './types.js';
+import { analyzeSignal } from './validators.js';
 
 export interface SolveResult {
     seed: number;
@@ -34,6 +35,8 @@ export interface SolveResult {
         accusation?: string;
         expected?: string;
     };
+    // Signal analysis (solvability guarantee)
+    signalAnalysis?: SignalAnalysis;
     // Tuning metrics
     metrics?: {
         culpritHasSelfContradiction: boolean;
@@ -508,12 +511,15 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
     const session = new PlayerSession(result.world, result.config, evidence, result.eventLog);
     const suspects = session.config.suspects;
 
+    // Compute signal analysis for tuning metrics (R5.1)
+    const signalAnalysisResult = analyzeSignal(evidence, result.config);
+
     log(`--- Day 1 ---`);
 
     // ===== PHASE 1: GET CRIME INFO (1 AP) =====
     log('=== Phase 1: Get Crime Info ===');
     if (!ensureAP(session, 1, log)) {
-        return { seed, solved: false, correct: false, coreCorrect: false, apUsed, failReason: 'out_of_time', trace };
+        return { seed, solved: false, correct: false, coreCorrect: false, apUsed, failReason: 'out_of_time', trace, signalAnalysis: signalAnalysisResult };
     }
     log(`INTERVIEW ${suspects[0]} gossip`);
     performInterview(session, suspects[0], '', 'gossip');
@@ -521,14 +527,14 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
 
     const crimeInfo = parseCrimeAwareness(session.knownEvidence);
     if (!crimeInfo) {
-        return { seed, solved: false, correct: false, coreCorrect: false, apUsed, failReason: 'no_crime_awareness', trace };
+        return { seed, solved: false, correct: false, coreCorrect: false, apUsed, failReason: 'no_crime_awareness', trace, signalAnalysis: signalAnalysisResult };
     }
     log(`Crime: ${crimeInfo.crimeType} at ${crimeInfo.place} during ${crimeInfo.window}`);
 
     // ===== PHASE 2: SEARCH CRIME SCENE (1 AP) =====
     log('=== Phase 2: Crime Scene Search ===');
     if (!ensureAP(session, 1, log)) {
-        return { seed, solved: false, correct: false, coreCorrect: false, apUsed, failReason: 'out_of_time', trace };
+        return { seed, solved: false, correct: false, coreCorrect: false, apUsed, failReason: 'out_of_time', trace, signalAnalysis: signalAnalysisResult };
     }
     log(`SEARCH ${crimeInfo.place} ${crimeInfo.window}`);
     const searchResult = performSearch(session, crimeInfo.place, crimeInfo.window);
@@ -669,6 +675,7 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
             seed, solved: false, correct: false, coreCorrect: false, apUsed,
             failReason: 'could_not_build_accusation',
             trace,
+            signalAnalysis: signalAnalysisResult,
             details: {
                 crimePlace: crimeInfo.place,
                 crimeWindow: crimeInfo.window,
@@ -724,6 +731,7 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
                 accusation: accuseStr,
                 expected
             },
+            signalAnalysis: signalAnalysisResult,
             metrics,
         };
     }
@@ -741,6 +749,7 @@ export function solve(seed: number, verbose: boolean = false, difficulty?: 'easy
             accusation: accuseStr,
             expected
         },
+        signalAnalysis: signalAnalysisResult,
         metrics,
     };
 }
