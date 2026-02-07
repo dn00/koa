@@ -1,4 +1,5 @@
 const num = (key: string, fallback: number): number => {
+    if (typeof process === 'undefined' || !process.env) return fallback;
     const raw = process.env[key];
     if (raw === undefined) return fallback;
     const value = Number(raw);

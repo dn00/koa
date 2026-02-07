@@ -3,17 +3,25 @@
   import CommandColumn from '$lib/components/redesign/CommandColumn.svelte';
   import Header from '$lib/components/redesign/Header.svelte';
   import TerminalFeed from '$lib/components/redesign/TerminalFeed.svelte';
-  import { onMount, afterUpdate } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { activeTab } from '$lib/stores/ui';
+  import { start, stop } from '$lib/stores/game';
 
   onMount(() => {
+    // Start the simulation worker (client-only)
+    start();
+
     if ($page.url.pathname === '/') {
       goto('/ops');
     }
     // Default to OPS tab
     $activeTab = 'OPS';
+  });
+
+  onDestroy(() => {
+    stop();
   });
 </script>
 

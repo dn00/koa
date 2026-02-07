@@ -20,13 +20,13 @@
     <div 
       class="log-entry" 
       class:selected={$focusRoomId === threat.room}
-      on:click={() => selectThreat(threat.room)}
+      on:click={() => threat.room && selectThreat(threat.room)}
     >
       <div class="header">
         <span class="blink text-alert">> {threat.type}_DETECTED</span>
         <span class="severity">[{threat.severity}]</span>
       </div>
-      <div class="location">LOC: {threat.room.toUpperCase()}</div>
+      <div class="location">LOC: {(threat.room ?? 'UNKNOWN').toUpperCase()}</div>
       <div class="status">CONFIDENCE: {threat.confidence}</div>
     </div>
   {/each}

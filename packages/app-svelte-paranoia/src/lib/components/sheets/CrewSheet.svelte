@@ -15,7 +15,7 @@
       </div>
       <div class="header-content">
         <h2>{member.name}</h2>
-        <span class="role-badge">{member.role}</span>
+        <span class="role-badge">{member.id.toUpperCase()}</span>
       </div>
     </div>
 
@@ -44,12 +44,12 @@
       <div class="status-grid">
         <div class="status-item">
           <span class="label">LOCATION</span>
-          <span class="value">{member.room.toUpperCase()}</span>
+          <span class="value">{(member.room ?? 'UNKNOWN').toUpperCase()}</span>
         </div>
         <div class="status-item">
           <span class="label">ACTIVITY</span>
-          <span class="value" class:ok={member.status === 'OK'} class:warn={member.status === 'WARN'}>
-            {member.status.toUpperCase()}
+          <span class="value" class:ok={member.alive !== false} class:warn={member.alive === false}>
+            {member.intent.toUpperCase()}
           </span>
         </div>
       </div>

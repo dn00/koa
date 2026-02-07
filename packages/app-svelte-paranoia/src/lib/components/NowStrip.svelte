@@ -30,7 +30,7 @@
     <div 
       class="threat-card" 
       class:focused={$focusRoomId === threat.room}
-      on:click={() => focusThreat(threat.room)}
+      on:click={() => threat.room && focusThreat(threat.room)}
       role="button"
       tabindex="0"
     >
