@@ -4,57 +4,9 @@ import {
   MotherEngine,
   perceiveAllCrew,
   perceiveThreats,
-  type EngineLogEntry,
-  type Command
+  getAllBiometrics,
 } from '@aura/project-paranoia';
-
-type CrewVM = {
-  id: string;
-  name: string;
-  room: string | null;
-  roomStale: boolean;
-  alive: boolean | null;
-  hp: number | null;
-  intent: string;
-};
-
-type ThreatVM = {
-  type: string;
-  room: string | null;
-  message: string;
-  severity: 'HIGH' | 'MED';
-  confidence: 'CONFIRMED' | 'UNCERTAIN' | 'CONFLICTING';
-};
-
-type DoubtVM = {
-  id: string;
-  topic: string;
-  severity: number;
-};
-
-type Snapshot = {
-  integrity: number;
-  suspicion: number;
-  resetStage: string;
-  cpu: number;
-  power: number;
-  logs: EngineLogEntry[];
-  crew: CrewVM[];
-  threats: ThreatVM[];
-  doubts: DoubtVM[];
-};
-
-type InMsg =
-  | { type: 'INIT'; seed?: number; fastStart?: boolean; tickMs?: number }
-  | { type: 'START'; tickMs?: number }
-  | { type: 'STOP' }
-  | { type: 'DISPATCH'; command: Command }
-  | { type: 'SNAPSHOT' };
-
-type OutMsg =
-  | { type: 'READY' }
-  | { type: 'SNAPSHOT'; snapshot: Snapshot }
-  | { type: 'ERROR'; message: string; stack?: string };
+import type { CrewVM, ThreatVM, DoubtVM, BioVM, Snapshot, InMsg, OutMsg } from '$lib/types/worker-protocol';
 
 let engine: MotherEngine | null = null;
 let interval: number | null = null;
@@ -84,10 +36,13 @@ function makeSnapshot(): Snapshot {
       resetStage: 'unknown',
       cpu: 0,
       power: 0,
+      day: 0,
+      phase: 'unknown',
       logs: [],
       crew: [],
       threats: [],
-      doubts: []
+      doubts: [],
+      bios: []
     };
   }
 
@@ -111,16 +66,29 @@ function makeSnapshot(): Snapshot {
       severity: d.severity
     }));
 
+  const biosVM: BioVM[] = getAllBiometrics(engine.state).map((b) => ({
+    id: b.id,
+    heartRate: b.heartRate,
+    cortisol: b.cortisol,
+    tremor: b.tremor,
+    sleepDebt: b.sleepDebt,
+    socialIndex: b.socialIndex,
+    assessment: b.assessment,
+  }));
+
   return {
     integrity: engine.integrity,
     suspicion: engine.suspicion,
     resetStage: engine.state.truth.resetStage,
     cpu: engine.cpuCycles,
     power: engine.state.truth.station.power,
+    day: engine.state.truth.day,
+    phase: engine.state.truth.phase,
     logs: [...engine.logs],
     crew: crewVM,
     threats: threatsVM,
-    doubts: doubtsVM
+    doubts: doubtsVM,
+    bios: biosVM
   };
 }
 

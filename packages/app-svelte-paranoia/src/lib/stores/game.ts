@@ -2,32 +2,10 @@ import { writable } from 'svelte/store';
 import type { EngineLogEntry, Command } from '@aura/project-paranoia';
 // @ts-ignore — Vite ?worker import returns a Worker constructor
 import MotherWorker from '$lib/workers/mother.worker.ts?worker';
+import type { CrewVM, ThreatVM, DoubtVM, BioVM } from '$lib/types/worker-protocol';
 
+export type { CrewVM, ThreatVM, DoubtVM, BioVM } from '$lib/types/worker-protocol';
 export type LogEntry = EngineLogEntry;
-
-export type CrewVM = {
-  id: string;
-  name: string;
-  room: string | null;
-  roomStale: boolean;
-  alive: boolean | null;
-  hp: number | null;
-  intent: string;
-};
-
-export type ThreatVM = {
-  type: string;
-  room: string | null;
-  message: string;
-  severity: 'HIGH' | 'MED';
-  confidence: 'CONFIRMED' | 'UNCERTAIN' | 'CONFLICTING';
-};
-
-export type DoubtVM = {
-  id: string;
-  topic: string;
-  severity: number;
-};
 
 type Snapshot = {
   integrity: number;
@@ -35,10 +13,13 @@ type Snapshot = {
   resetStage: string;
   cpu: number;
   power: number;
-  logs: LogEntry[];
+  logs: EngineLogEntry[];
   crew: CrewVM[];
   threats: ThreatVM[];
   doubts: DoubtVM[];
+  bios: BioVM[];
+  day: number;
+  phase: string;
 };
 
 type OutMsg =
@@ -59,11 +40,14 @@ export const suspicion = writable(0);
 export const resetStage = writable('unknown');
 export const cpu = writable(0);
 export const power = writable(0);
+export const day = writable(0);
+export const phase = writable('unknown');
 
 export const logs = writable<LogEntry[]>([]);
 export const crew = writable<CrewVM[]>([]);
 export const threats = writable<ThreatVM[]>([]);
 export const doubts = writable<DoubtVM[]>([]);
+export const bios = writable<BioVM[]>([]);
 
 export const workerStatus = writable<'stopped' | 'starting' | 'ready' | 'error'>('stopped');
 export const workerError = writable<string | null>(null);
@@ -77,10 +61,13 @@ function applySnapshot(s: Snapshot) {
   resetStage.set(s.resetStage);
   cpu.set(s.cpu);
   power.set(s.power);
+  day.set(s.day);
+  phase.set(s.phase);
   logs.set(s.logs);
   crew.set(s.crew);
   threats.set(s.threats);
   doubts.set(s.doubts);
+  bios.set(s.bios);
 }
 
 function post(msg: InMsg) {
