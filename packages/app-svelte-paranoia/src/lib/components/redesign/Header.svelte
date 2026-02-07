@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { suspicion, integrity } from '$lib/stores/game';
+  import { suspicion, integrity, day, phase } from '$lib/stores/game';
   import MetricDisplay from './MetricDisplay.svelte';
+
+  $: phaseLabel = ($phase ?? 'unknown').toUpperCase().replace('_', ' ');
 </script>
 
 <header class="top-bar">
@@ -8,6 +10,12 @@
   <div class="brand-section">
     <div class="logo">ANTARES-9</div>
     <div class="sub">MOTHER_OS v4.3.0</div>
+  </div>
+
+  <!-- Center: Day / Phase -->
+  <div class="day-section">
+    <span class="day-label">DAY {$day}</span>
+    <span class="phase-label">{phaseLabel}</span>
   </div>
 
   <!-- Right: HUD Metrics -->
@@ -62,6 +70,27 @@
     opacity: 0.8;
     letter-spacing: 1px;
     margin-top: 2px;
+  }
+
+  .day-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--font-mono);
+  }
+
+  .day-label {
+    font-size: 18px;
+    color: var(--color-phosphor);
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+
+  .phase-label {
+    font-size: 11px;
+    color: var(--color-phosphor);
+    opacity: 0.7;
+    letter-spacing: 1px;
   }
 
   .hud-section {

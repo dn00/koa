@@ -1,9 +1,34 @@
 <script lang="ts">
   import { targetCrewId } from '$lib/stores/ui';
-  import { crew } from '$lib/stores/game';
-  import { HeartPulse, Brain, Radio } from 'lucide-svelte';
+  import { crew, bios } from '$lib/stores/game';
+  import { HeartPulse, Brain, Radio, Activity, Moon, Users } from 'lucide-svelte';
 
   $: member = $crew.find(c => c.id === $targetCrewId);
+  $: bio = $bios.find(b => b.id === $targetCrewId);
+
+  // Parse BPM number from heartRate string like "75 BPM" or "120 BPM (TACHYCARDIA)"
+  function parseBpm(hr: string): number {
+    const m = hr.match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  $: bpm = bio ? parseBpm(bio.heartRate) : 0;
+  // Map BPM to bar width: 60-140 range → 0-100%
+  $: bpmPct = Math.min(100, Math.max(0, ((bpm - 40) / 120) * 100));
+  $: isTachy = bio?.heartRate.includes('TACHYCARDIA') ?? false;
+
+  $: cortisolClass = bio
+    ? bio.cortisol === 'CRITICAL' ? 'alert'
+    : bio.cortisol === 'ELEVATED' ? 'warning'
+    : bio.cortisol === 'MILD ELEVATION' ? 'warning'
+    : ''
+    : '';
+
+  $: assessmentClass = bio
+    ? bio.assessment.includes('THREAT') || bio.assessment.includes('BREAKDOWN') ? 'alert'
+    : bio.assessment.includes('SABOTAGE') || bio.assessment.includes('DISTRUST') || bio.assessment.includes('DEGRADATION') ? 'warning'
+    : ''
+    : '';
 </script>
 
 <div class="sheet-content">
@@ -22,20 +47,41 @@
     <!-- Vitals -->
     <div class="section">
       <div class="section-title">>> BIOMETRIC_TELEMETRY</div>
-      <div class="stat-row">
-        <div class="stat-label"><HeartPulse size={16} class="pulse" /> BPM</div>
-        <div class="stat-bar">
-          <div class="bar-fill" style="width: 75%"></div>
+      {#if bio}
+        <div class="stat-row">
+          <div class="stat-label"><HeartPulse size={16} class="pulse" /> BPM</div>
+          <div class="stat-bar">
+            <div class="bar-fill" class:warning={isTachy} class:alert={isTachy && bpm > 120} style="width: {bpmPct}%"></div>
+          </div>
+          <div class="stat-value" class:warning-text={isTachy}>{bio.heartRate}</div>
         </div>
-        <div class="stat-value">75</div>
-      </div>
-      <div class="stat-row">
-        <div class="stat-label"><Brain size={16} /> STRESS</div>
-        <div class="stat-bar">
-          <div class="bar-fill warning" style="width: 45%"></div>
+        <div class="stat-row">
+          <div class="stat-label"><Brain size={16} /> CORTISOL</div>
+          <div class="stat-tag" class:warning={cortisolClass === 'warning'} class:alert={cortisolClass === 'alert'}>{bio.cortisol}</div>
         </div>
-        <div class="stat-value">45</div>
-      </div>
+        {#if bio.tremor}
+          <div class="stat-row">
+            <div class="stat-label"><Activity size={16} /> TREMOR</div>
+            <div class="stat-tag alert">DETECTED</div>
+          </div>
+        {/if}
+        <div class="stat-row">
+          <div class="stat-label"><Moon size={16} /> SLEEP</div>
+          <div class="stat-tag" class:warning={bio.sleepDebt !== 'NONE'}>{bio.sleepDebt}</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-label"><Users size={16} /> SOCIAL</div>
+          <div class="stat-tag"
+            class:warning={bio.socialIndex === 'RELUCTANT' || bio.socialIndex === 'EVASIVE'}
+            class:alert={bio.socialIndex === 'NON-COMPLIANT' || bio.socialIndex === 'HOSTILE'}
+          >{bio.socialIndex}</div>
+        </div>
+        <div class="assessment" class:warning={assessmentClass === 'warning'} class:alert={assessmentClass === 'alert'}>
+          {bio.assessment}
+        </div>
+      {:else}
+        <div class="no-data">NO TELEMETRY</div>
+      {/if}
     </div>
 
     <!-- Status -->
@@ -182,10 +228,67 @@
   }
 
   .stat-value {
-    width: 40px;
+    min-width: 40px;
     text-align: right;
     font-weight: bold;
-    font-size: 18px; /* Larger */
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .stat-value.warning-text {
+    color: var(--color-warning);
+  }
+
+  .stat-tag {
+    font-family: var(--font-mono);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 2px 8px;
+    border: 1px solid var(--color-phosphor-dim);
+    color: var(--color-phosphor);
+  }
+
+  .stat-tag.warning {
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+  }
+
+  .stat-tag.alert {
+    color: var(--color-alert);
+    border-color: var(--color-alert);
+  }
+
+  .bar-fill.alert {
+    background: var(--color-alert);
+    box-shadow: 0 0 5px var(--color-alert);
+  }
+
+  .assessment {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 8px;
+    margin-top: 8px;
+    border: 1px solid var(--color-phosphor-dim);
+    background: rgba(0, 10, 0, 0.3);
+    color: var(--color-phosphor);
+    letter-spacing: 0.5px;
+  }
+
+  .assessment.warning {
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+  }
+
+  .assessment.alert {
+    color: var(--color-alert);
+    border-color: var(--color-alert);
+  }
+
+  .no-data {
+    font-family: var(--font-mono);
+    color: var(--color-phosphor-dim);
+    font-style: italic;
+    padding: 8px 0;
   }
 
   .status-grid {

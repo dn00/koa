@@ -1,15 +1,14 @@
 <script lang="ts">
   import { activeSheet, targetCrewId } from '$lib/stores/ui';
+  import { crew } from '$lib/stores/game';
   export let orientation: 'horizontal' | 'vertical' = 'horizontal';
 
-  // Mock crew data
-  const crew = [
-    { id: 'vega', name: 'VEGA', role: 'ENG', status: 'OK' },
-    { id: 'rook', name: 'ROOK', role: 'SEC', status: 'OK' },
-    { id: 'ash', name: 'ASH', role: 'MED', status: 'WARN' },
-    { id: 'bishop', name: 'BISHOP', role: 'SCI', status: 'OK' }
-  ];
-  
+  $: members = $crew.map(c => ({
+    id: c.id,
+    name: c.name.toUpperCase(),
+    status: c.alive === false ? 'DEAD' : (c.hp !== null && c.hp < 50) ? 'WARN' : 'OK'
+  }));
+
   function openCrew(id: string) {
     targetCrewId.set(id);
     activeSheet.set('CREW');
@@ -17,21 +16,20 @@
 </script>
 
 <div class="crew-strip {orientation}">
-  {#each crew as member}
+  {#each members as member}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div 
-      class="crew-card" 
+    <div
+      class="crew-card"
       class:warn={member.status === 'WARN'}
+      class:dead={member.status === 'DEAD'}
       on:click={() => openCrew(member.id)}
     >
       <div class="portrait-frame">
-        <!-- Placeholder for pixel art -->
         <div class="silhouette"></div>
       </div>
       <div class="info">
         <span class="name">{member.name}</span>
-        <span class="role">{member.role}</span>
       </div>
     </div>
   {/each}
@@ -85,6 +83,12 @@
   .crew-card.warn {
     border-color: var(--color-warning);
     background: rgba(255, 204, 0, 0.1);
+  }
+
+  .crew-card.dead {
+    border-color: var(--color-alert);
+    background: rgba(255, 0, 0, 0.1);
+    opacity: 0.6;
   }
 
   .portrait-frame {

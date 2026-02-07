@@ -1,9 +1,27 @@
 <script lang="ts">
   import { CheckCircle } from 'lucide-svelte';
-  import { doubts, dispatch } from '$lib/stores/game';
+  import { doubts, threats, dispatch } from '$lib/stores/game';
+
+  let selectedAlertSystem: string | null = null;
+
+  $: threatTypes = [...new Set($threats.map(t => t.type))];
+  $: if (!threatTypes.length) {
+    selectedAlertSystem = null;
+  } else if (!selectedAlertSystem || !threatTypes.includes(selectedAlertSystem)) {
+    selectedAlertSystem = threatTypes[0];
+  }
 
   function handleVerify() {
     dispatch({ type: 'VERIFY' });
+  }
+
+  function handleAudit() {
+    dispatch({ type: 'AUDIT' });
+  }
+
+  function handleAlert() {
+    if (!selectedAlertSystem) return;
+    dispatch({ type: 'ALERT', system: selectedAlertSystem });
   }
 </script>
 
@@ -30,14 +48,51 @@
       </div>
     {/each}
   {/if}
-  
+
   <div class="actions">
-      <button class="resolve-btn" on:click={handleVerify} disabled={$doubts.length === 0}>
-        <CheckCircle size={16} />
-        <span>Audit Telemetry (-6 Suspicion)</span>
-      </button>
+    <button class="resolve-btn" on:click={handleVerify} disabled={$doubts.length === 0}>
+      <CheckCircle size={16} />
+      <span>VERIFY — 12 power, 60-tick cooldown</span>
+    </button>
   </div>
 </div>
+
+<!-- DIAGNOSTIC TOOLS -->
+<div class="section-title">DIAGNOSTIC TOOLS</div>
+
+<div class="actions">
+  <button class="resolve-btn" on:click={handleAudit}>
+    <span>AUDIT — Reveals recent tampering traces</span>
+  </button>
+</div>
+
+<!-- ALERT -->
+{#if threatTypes.length > 0}
+  <div class="section-title">ALERT</div>
+
+  <div class="picker-group">
+    <span class="picker-label">SYSTEM:</span>
+    <div class="picker-buttons">
+      {#each threatTypes as sys}
+        <button
+          class="picker-btn"
+          class:active={selectedAlertSystem === sys}
+          on:click={() => selectedAlertSystem = sys}
+        >{sys.toUpperCase()}</button>
+      {/each}
+    </div>
+  </div>
+
+  <div class="actions">
+    <button
+      class="resolve-btn"
+      on:click={handleAlert}
+      disabled={!selectedAlertSystem}
+    >
+      <span>ALERT {selectedAlertSystem?.toUpperCase() ?? '---'} — Come clean about situation</span>
+    </button>
+  </div>
+{/if}
 
 <style>
   .sheet-header {
@@ -49,34 +104,34 @@
   h2 {
     font-family: var(--font-display);
     color: var(--color-phosphor);
-    font-size: 42px; /* Consistency with CrewSheet */
+    font-size: 42px;
     text-shadow: 0 0 8px rgba(77, 191, 77, 0.6);
     letter-spacing: 2px;
     margin-bottom: 4px;
   }
-  
+
   .subtitle {
     font-size: 14px;
-    color: var(--color-phosphor); /* Brighter */
+    color: var(--color-phosphor);
     opacity: 0.8;
     font-family: var(--font-mono);
   }
 
   .section-title {
-    font-size: 14px; /* Increased */
+    font-size: 14px;
     font-weight: 700;
-    color: var(--color-phosphor); /* Brighter */
-    background: rgba(0, 20, 0, 0.6); /* Block style */
+    color: var(--color-phosphor);
+    background: rgba(0, 20, 0, 0.6);
     padding: 4px 8px;
     margin: var(--spacing-md) 0 var(--spacing-sm);
     letter-spacing: 1px;
-    border-left: 3px solid var(--color-phosphor); /* Left border accent */
-    display: block; /* Full width */
+    border-left: 3px solid var(--color-phosphor);
+    display: block;
   }
 
   .doubt-card {
     background: transparent;
-    border: 1px solid var(--color-alert); /* Red border for doubts */
+    border: 1px solid var(--color-alert);
     padding: 12px;
     border-radius: 0;
     margin-bottom: 8px;
@@ -105,6 +160,10 @@
     font-family: var(--font-mono);
   }
 
+  .actions {
+    margin-top: 8px;
+  }
+
   .resolve-btn {
     width: 100%;
     background: transparent;
@@ -123,10 +182,67 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  
-  .resolve-btn:hover {
+
+  .resolve-btn:hover:not(:disabled) {
     background: var(--color-phosphor);
     color: #000;
     box-shadow: 0 0 10px var(--color-phosphor);
+  }
+
+  .resolve-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .empty-state {
+    color: var(--color-phosphor-dim);
+    font-family: var(--font-mono);
+    text-align: center;
+    padding: 16px;
+    border: 1px dashed var(--color-phosphor-dim);
+  }
+
+  /* Picker groups */
+  .picker-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .picker-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-phosphor);
+    opacity: 0.8;
+    min-width: 55px;
+  }
+
+  .picker-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .picker-btn {
+    background: transparent;
+    border: 1px solid var(--color-phosphor-dim);
+    color: var(--color-phosphor);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .picker-btn:hover {
+    border-color: var(--color-phosphor);
+  }
+
+  .picker-btn.active {
+    background: var(--color-phosphor);
+    color: #000;
+    border-color: var(--color-phosphor);
   }
 </style>

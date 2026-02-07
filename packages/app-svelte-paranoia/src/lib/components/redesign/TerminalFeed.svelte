@@ -2,7 +2,7 @@
   import { logs } from '$lib/stores/game';
   import { activeSheet, focusRoomId, targetCrewId } from '$lib/stores/ui';
   import SheetContainer from '$lib/components/sheets/SheetContainer.svelte';
-  import { onMount, afterUpdate } from 'svelte';
+  import { afterUpdate } from 'svelte';
 
   let scrollContainer: HTMLElement;
   
@@ -15,9 +15,11 @@
 
     if (log.metadata.type === 'ROOM') {
       focusRoomId.set(log.metadata.id);
+      targetCrewId.set(null); // Exclusive focus
       activeSheet.set('ACT');
     } else if (log.metadata.type === 'CREW') {
       targetCrewId.set(log.metadata.id);
+      focusRoomId.set(null); // Exclusive focus
       activeSheet.set('CREW');
     }
   }
@@ -156,6 +158,7 @@
   .log-line.interactive:hover {
     background: rgba(51, 255, 51, 0.1);
     border-left-color: var(--color-phosphor);
+    cursor: pointer;
   }
 
   .timestamp {
@@ -164,6 +167,7 @@
     white-space: nowrap;
     font-size: 12px;
     margin-top: 2px;
+    font-family: var(--font-mono);
   }
 
   .source {
