@@ -1,7 +1,8 @@
-# Plan: Keystone Variety — CaseManifest + Liar Models + Gossip Slicing
+# Plan: Keystone Variety — CaseManifest + Liar Models + Gossip Slicing + WC18 Metrics
 
 **Status:** planning
 **Discovery:** Inline (gameplay + diagnostics analysis)
+**North Star:** WC18 — Mystery-Specific Proofs (Solvability / Uniqueness)
 
 ---
 
@@ -17,7 +18,17 @@ declarative "case bible" that parameterizes all variety axes. The manifest repla
 `DIFFICULTY_PROFILES` and centralizes liar model weights, twist weights, coverage profiles,
 gossip slicing, and twist-liar constraints into one data structure.
 
-Phase 1 ships: manifest + 3 liar models + gossip slicing.
+Additionally, this plan adds **WC18-derived solvability metrics** to the diagnostics and finder
+scoring, including: collision diversity (Cdiv), collision timing (CT), orthogonality (OR),
+paperwork score (PS), and axis uniqueness for WHO (AU). These metrics validate that variety
+improvements actually produce better-feeling cases, and serve as finder scoring inputs to
+**schedule diversity across consecutive daily puzzles**.
+
+WHY becomes a real deduction axis — motive is no longer free information from a single gossip
+call. The player must cross-reference gossip with evidence to confirm motive, creating a second
+"aha moment" per case.
+
+Phase 1 ships: manifest + 3 liar models + gossip slicing + WC18 metrics.
 Future phases plug in: case shapes, technique tiers, new settings — all as manifest templates.
 
 ---
@@ -131,15 +142,39 @@ Consumed by: `maybeGenerateTwist()`, `deriveCulpritAlibiClaim()`, `deriveGossip(
 | R5.5 | No single keystoneKind > 60% on tier 3-4 | Variety validator | 005 |
 | R5.6 | Tier 2 backward compatible | 100% confident_lie, same solve rate | 005 |
 
+### From R6: WC18 solvability metrics (diagnostics + finder)
+
+| ID | Requirement | Verification | Tasks |
+|----|-------------|--------------|-------|
+| R6.1 | Collision diversity (Cdiv): classify keystone collision type per case, report distribution | diagnostics.ts shows Cdiv across N seeds, target ≥2 distinct classes | 006 |
+| R6.2 | Collision timing (CT_early): measure which solver action # yields first contradiction | diagnostics.ts reports median + P80 timing | 006 |
+| R6.3 | Orthogonality (OR): count distinct evidence channels contributing to solution | diagnostics.ts reports OR per seed, target ≥3 for easy/med | 006 |
+| R6.4 | Paperwork score (PS): `actions_taken - collisions - axis_reductions`, flag grindy cases | diagnostics.ts reports mean PS, flags cases above threshold | 006 |
+| R6.5 | Axis uniqueness AU(WHO): count plausible suspects after high-trust evidence only | diagnostics.ts reports AU(WHO), target ≤2 for easy/med | 006 |
+| R6.6 | Finder uses Cdiv + CT as daily scheduling constraints | No repeat collision class within 3 consecutive days | 006 |
+| R6.7 | Finder incorporates PS into deductionQuality subscore | High PS → lower deductionQuality | 006 |
+
+### From R7: WHY axis as deduction target
+
+| ID | Requirement | Verification | Tasks |
+|----|-------------|--------------|-------|
+| R7.1 | Motive not fully revealed by single gossip interview (tier 3+) | First gossip slice includes ≤1 motive hint per suspect | 004 |
+| R7.2 | WHY requires cross-referencing gossip with evidence | Solver must do ≥2 gossip calls OR gossip + evidence correlation to confirm motive | 005 |
+| R7.3 | Motive confirmation is a distinct "aha" from keystone contradiction | Collision classifier tags motive reveals as separate class `motive_reveal` | 006 |
+| R7.4 | Accusation without correct WHY gets partial credit (not full fail) | Solver tracks whether WHY was deduced vs guessed | 005 |
+
 ---
 
 ## Dependency Graph
 
 ```
 001 (manifest + types) ──> 002 (conditional derivation) ──> 003 (analyzer)
-                       ──> 004 (gossip slicing)                    │
+                       ──> 004 (gossip slicing + WHY axis)         │
                                                                    v
                                                             005 (solver + validator + tests)
+                                                                   │
+                                                                   v
+                                                            006 (WC18 metrics + finder scheduling)
 ```
 
 ---
@@ -149,9 +184,10 @@ Consumed by: `maybeGenerateTwist()`, `deriveCulpritAlibiClaim()`, `deriveGossip(
 | Batch | Tasks | Complexity | Blocked By | Notes |
 |-------|-------|------------|------------|-------|
 | 1 | 001 | S | - | Types + manifest + templates. Foundation only. |
-| 2 | 002, 004 | M | Batch 1 | Parallel: liar model derivation + gossip slicing |
+| 2 | 002, 004 | M | Batch 1 | Parallel: liar model derivation + gossip slicing (incl. WHY axis) |
 | 3 | 003 | M | Batch 2 (needs 002) | Analyzer for new keystone families |
 | 4 | 005 | M | Batch 3 | Solver adaptation + variety validator + all tests |
+| 5 | 006 | M | Batch 4 | WC18 metrics in diagnostics + finder scheduling constraints |
 
 ---
 
@@ -162,8 +198,9 @@ Consumed by: `maybeGenerateTwist()`, `deriveCulpritAlibiClaim()`, `deriveGossip(
 | 001 | CaseManifest types, templates, CaseConfig extension | S | backlog |
 | 002 | Conditional alibi derivation + manifest-driven liar model selection | M | backlog |
 | 003 | Extend analyzeSignal + COMPARE for new keystone families | M | backlog |
-| 004 | Gossip slicing via manifest | M | backlog |
+| 004 | Gossip slicing via manifest + WHY axis gating | M | backlog |
 | 005 | Solver adaptation + variety validator + regression tests | M | backlog |
+| 006 | WC18 solvability metrics + finder scheduling | M | backlog |
 
 ---
 
@@ -451,15 +488,17 @@ Extend COMPARE to handle GAP claims. Update finder scoring for new signal types.
 
 ---
 
-### Task 004: Gossip slicing via manifest
+### Task 004: Gossip slicing via manifest + WHY axis gating
 
 **Complexity:** M
 **Depends On:** 001
-**Implements:** R4.1, R4.2, R4.3, R4.4, R4.5
+**Implements:** R4.1, R4.2, R4.3, R4.4, R4.5, R7.1
 
 #### Objective
 Cap gossip output per interview using `manifest.evidenceOverrides.gossipSliceSize`.
 Tag gossip atoms by axis for deterministic selection. Guarantee crime_awareness is discoverable.
+Gate motive information so WHY is a real deduction target — first gossip slice contains at most
+1 motive hint per suspect, forcing cross-referencing with evidence or multiple interviews.
 
 #### Context
 **Relevant Files:**
@@ -511,6 +550,13 @@ Player gets every relationship hint, every motive hint, AND crime_awareness in o
 - Then: returns next slice of items (not duplicates of first slice)
 - And: second slice is also capped at gossipSliceSize
 
+##### AC-6: WHY gated — first slice limits motive hints <- R7.1
+- Given: tier 3 (gossipSliceSize = 4), 5 suspects
+- When: first gossip interview with any NPC
+- Then: slice contains at most 1 `why_hint` tagged item per suspect
+- And: culprit's motive hint is NOT in every NPC's first slice (distributed across NPCs)
+- And: confirming WHY requires either: (a) 2+ gossip interviews, or (b) cross-referencing gossip with evidence
+
 #### Edge Cases
 
 ##### EC-1: NPC has fewer gossip items than sliceSize
@@ -519,10 +565,13 @@ Player gets every relationship hint, every motive hint, AND crime_awareness in o
 ##### EC-2: All gossip exhausted
 - Expected: interview returns empty + message "nothing new to share"
 
+##### EC-3: Tier 2 WHY still free
+- Expected: tier 2 gossip unchanged — all motive info in one call
+
 #### Test Mapping
 | Requirement | Test | File |
 |-------------|------|------|
-| AC-1..5 | Gossip slicing | `tests/keystone-variety.test.ts` |
+| AC-1..6 | Gossip slicing + WHY gating | `tests/keystone-variety.test.ts` |
 
 ---
 
@@ -530,7 +579,7 @@ Player gets every relationship hint, every motive hint, AND crime_awareness in o
 
 **Complexity:** M
 **Depends On:** 003, 004
-**Implements:** R5.1, R5.2, R5.3, R5.4, R5.5, R5.6
+**Implements:** R5.1, R5.2, R5.3, R5.4, R5.5, R5.6, R7.2, R7.4
 
 #### Objective
 Update solver for omission (gap analysis), misremember (timeline), and gossip slicing.
@@ -544,9 +593,11 @@ Add variety validator to diagnostics. Write regression tests for all new behavio
 
 **Solver changes needed:**
 - Phase 1: If gossip sliced, do 2+ gossip interviews (budget 2 AP instead of 1)
+- Phase 1.5 (WHY deduction): Cross-reference motive hints from gossip with evidence. Track whether WHY was deduced vs guessed.
 - Phase 5 (contradictions): If no HARD contradictions, check for GAP claims (omission detection)
 - Phase 5: If no HARD and no GAP, check adjacent-window logs for timeline mismatch
 - `buildSmartAccusation()`: New fallback — suspect with GAP claim + scene device presence = likely culprit
+- `buildSmartAccusation()`: Include WHY confidence — deduced motive vs best-guess motive
 
 #### Entry Points / Wiring
 - `src/solver.ts` — modify solve() and buildSmartAccusation()
@@ -592,10 +643,147 @@ Add variety validator to diagnostics. Write regression tests for all new behavio
 - Given: `npx vitest run`
 - Then: no regressions
 
+##### AC-9: Solver deduces WHY via cross-reference <- R7.2
+- Given: tier 3 with gossip slicing
+- When: solver runs
+- Then: solver does ≥2 gossip interviews OR correlates gossip hint with evidence
+- And: solver tracks `motiveDeduced: boolean` in solve result
+
+##### AC-10: Partial credit for correct WHO + wrong WHY <- R7.4
+- Given: solver identifies correct culprit but wrong motive
+- Then: solve result includes `motiveCorrect: boolean`
+- And: case still counts as "solved" for WHO (solve rate metric unchanged)
+- And: diagnostics reports separate `motiveAccuracy` metric
+
 #### Test Mapping
 | Requirement | Test | File |
 |-------------|------|------|
-| AC-1..8 | Variety regression suite | `tests/keystone-variety.test.ts` |
+| AC-1..10 | Variety regression suite | `tests/keystone-variety.test.ts` |
+
+---
+
+### Task 006: WC18 solvability metrics + finder scheduling
+
+**Complexity:** M
+**Depends On:** 005
+**Implements:** R6.1, R6.2, R6.3, R6.4, R6.5, R6.6, R6.7, R7.3
+
+#### Objective
+Add WC18-derived solvability metrics to diagnostics.ts and finder scoring. These metrics
+validate that variety improvements produce better cases AND serve as scheduling constraints
+for daily puzzle selection (no repeat collision class within 3 consecutive days).
+
+#### Context
+**Relevant Files:**
+- `scripts/diagnostics.ts` — existing metrics script, add new sections
+- `src/daily/finder.ts` — `scoreDailyCandidate()` + daily selection pipeline
+- `src/validators.ts` — `analyzeSignal()` returns keystone info needed for classification
+- `src/solver.ts` — solve traces contain action sequence for timing metrics
+
+**WC18 metrics mapped to koa-casefiles:**
+
+| WC18 Metric | Koa Implementation | Source |
+|---|---|---|
+| Cdiv (collision diversity) | Classify keystone: `presence_contradiction`, `device_contradiction`, `testimony_gap`, `timeline_mismatch`, `motive_reveal` | analyzeSignal output + motive tracking |
+| CT_early (collision timing) | Action index of first contradiction in solver trace | solver trace |
+| OR (orthogonality) | Count of {testimony, device_log, physical, motive} channels in solution path | evidence analysis |
+| PS (paperwork score) | `total_actions - (2 * contradictions_found) - (3 * axis_reductions)` | solver trace |
+| AU(WHO) | Suspects remaining after filtering by device evidence only | evidence analysis |
+
+**Finder scheduling:**
+- Track last N daily puzzle collision classes in a rolling window
+- Penalize candidates whose collision class matches any of the last 3 days
+- This is a selection-time constraint, not a generation constraint
+
+#### Entry Points / Wiring
+- `scripts/diagnostics.ts` — new report sections for each metric
+- `src/daily/finder.ts` — `scoreDailyCandidate()` incorporates PS + Cdiv
+- `src/daily/finder.ts` — daily selection applies collision-class diversity window
+- `src/validators.ts` — export helper `classifyCollision(signal, evidence)` for reuse
+
+#### Files Touched
+- `scripts/diagnostics.ts` — modify (add ~100 lines: 5 new metric sections)
+- `src/daily/finder.ts` — modify (PS in deductionQuality, collision scheduling)
+- `src/validators.ts` — modify (add classifyCollision helper, ~20 lines)
+- `src/types.ts` — add `CollisionClass` type
+
+#### Acceptance Criteria
+
+##### AC-1: Collision diversity reported <- R6.1
+- Given: `npx tsx scripts/diagnostics.ts 200 --tier 3`
+- Then: output includes COLLISION DIVERSITY section
+- And: reports distribution of collision classes across 200 seeds
+- And: reports Cdiv (number of distinct classes seen)
+- And: target: Cdiv ≥ 2 for tier 3, ≥ 3 for tier 4
+
+##### AC-2: Collision timing reported <- R6.2
+- Given: diagnostics run
+- Then: output includes COLLISION TIMING section
+- And: reports median and P80 action index of first contradiction
+- And: target: CT_early ≥ 0.70 by action 4 for medium difficulty
+
+##### AC-3: Orthogonality reported <- R6.3
+- Given: diagnostics run
+- Then: output includes EVIDENCE ORTHOGONALITY section
+- And: reports mean OR across seeds
+- And: target: OR ≥ 2 (currently ~2, should improve with liar models)
+
+##### AC-4: Paperwork score reported <- R6.4
+- Given: diagnostics run
+- Then: output includes PAPERWORK SCORE section
+- And: reports mean PS and flags cases where PS > threshold (e.g., PS > 8)
+- And: lists seed IDs of "grindy" cases
+
+##### AC-5: Axis uniqueness AU(WHO) reported <- R6.5
+- Given: diagnostics run
+- Then: output includes AXIS UNIQUENESS section
+- And: reports mean AU(WHO) — suspects remaining after device evidence only
+- And: target: AU(WHO) ≤ 2 for easy/med
+
+##### AC-6: Finder penalizes repeat collision class <- R6.6
+- Given: last 3 daily puzzles all had `device_contradiction`
+- When: finder scores next batch of candidates
+- Then: candidates with `device_contradiction` get penalty (e.g., -5 points)
+- And: candidates with different collision class get no penalty
+- And: scheduling state stored in finder context (not global)
+
+##### AC-7: Finder incorporates PS <- R6.7
+- Given: case with PS = 10 (grindy) vs case with PS = 3 (crisp)
+- Then: PS = 3 case scores higher on deductionQuality
+- And: PS contribution is ~25% of deductionQuality subscore
+
+##### AC-8: Motive reveal classified as distinct collision <- R7.3
+- Given: case where motive deduction is a cross-reference aha
+- Then: `classifyCollision` includes `motive_reveal` in collision classes
+- And: Cdiv counts it as a distinct class from the keystone collision
+
+#### Edge Cases
+
+##### EC-1: Solver trace unavailable (solver times out)
+- Expected: metrics default to worst-case values, case not flagged as error
+
+##### EC-2: Only 1 collision class across all seeds
+- Expected: Cdiv = 1, diagnostics warns "MONOCULTURE" (same as current state, validates the metric)
+
+##### EC-3: Finder has no scheduling history (first run)
+- Expected: no collision penalty applied, all candidates scored equally
+
+#### Error Cases
+
+##### ERR-1: Invalid collision class
+- When: analyzeSignal returns unknown signal type
+- Then: classifyCollision returns 'unknown', diagnostics counts it separately
+
+#### Test Mapping
+| Requirement | Test | File |
+|-------------|------|------|
+| AC-1..5 | Diagnostics metric output | `tests/keystone-variety.test.ts` |
+| AC-6..7 | Finder scheduling + PS scoring | `tests/keystone-variety.test.ts` |
+| AC-8 | Collision classification | `tests/keystone-variety.test.ts` |
+
+#### Notes
+**Implementation Notes:** [filled by implementer]
+**Review Notes:** [filled by reviewer]
 
 ---
 
@@ -605,10 +793,13 @@ Add variety validator to diagnostics. Write regression tests for all new behavio
 |------|--------|------------|
 | Omission too hard for human players | Can't figure out gap analysis | SUGGEST guides them; COMPARE GAP gives SOFT_TENSION hint |
 | Gossip slicing makes crime unfindable | Player can't locate crime | AC-3 in Task 004: crime_awareness guaranteed in first slice for ≥80% |
+| WHY gating makes game too hard | Player can't determine motive | Partial credit (R7.4); SUGGEST can hint at motive cross-reference |
 | Solver rate drops | INV-1 violation | AC-4 in Task 005 gates merge |
 | Tier 2 regression | Breaks daily puzzle | AC-6 in Task 005 ensures unchanged |
 | DIFFICULTY_PROFILES removal breaks imports | Compile errors across codebase | Backward compat shim in Task 001 (AC-8) |
 | Manifest adds complexity without clear benefit | Over-engineering | Manifest IS the benefit: every future feature (shapes, techniques, settings) plugs in as a template knob |
+| WC18 metrics are aspirational overkill | Measurement without value | Metrics are cheap (solver trace already exists). They validate variety investment and prevent regressions. |
+| Finder scheduling over-constrains seed selection | Too few candidates pass | Penalty is soft (-5), not hard rejection. Finder still picks best available. |
 
 ---
 
@@ -628,3 +819,16 @@ Add variety validator to diagnostics. Write regression tests for all new behavio
 - **Coverage profiles** (partial, sparse) — manifest.coverageProfile drives device gap generation
 - **Settings** (office, dorm, spaceship) — new world.ts variants + evidence types
 - **Weekly themes** — manifest modifiers applied to daily template
+- **Full WC18 compliance** — ClueGraph, uniqueness enumerator, RepairTargets feedback loop
+- **WHEN/WHERE as scored axes** — player must deduce crime window and location, not just WHO+WHY
+
+---
+
+## Verification
+
+1. `npx vitest run` — all existing + new tests pass
+2. `npx tsx scripts/smart-solver.ts 50 --tier 2` — solve rate stays >= 80%
+3. `npx tsx scripts/find-seed.ts` (or equivalent) — selected seeds have higher deductionQuality
+4. `npx tsx scripts/diagnostics.ts 200 --tier 3` — Cdiv ≥ 2, PS mean < 8, OR ≥ 2, motive accuracy tracked
+5. `npx tsx scripts/diagnostics.ts 200 --tier 3 --json` — machine-parseable WC18 metrics for CI
+6. Manual playtest: play a top-scored seed, verify SUGGEST works, motive isn't obvious, two distinct aha moments
