@@ -5,3 +5,4 @@ export type { World, DoorId, Place, Door, NPC, NPCScheduleEntry, WindowId } from
 export * from './kernel/perception.js';
 export type { Command } from './kernel/commands.js';
 export { CONFIG } from './config.js';
+export { DOORS, PLACES } from './core/world.js';
