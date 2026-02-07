@@ -29,13 +29,16 @@
     }
   });
 
-  function getMessageStyle(log: any) {
-    // Source-specific overrides for the MESSAGE text
+    // Source-specific overrides
     if (log.source === 'MOTHER') return 'color: #ffffff; text-shadow: 0 0 2px rgba(255,255,255,0.5);';
     if (log.source === 'BIO') return 'color: #00ffff;'; /* Cyan */
     if (log.source === 'ALERT') return 'color: var(--color-alert);';
+    if (log.source === 'COMMS') return 'color: #aaddff; font-style: italic;'; /* Light Blue Italic */
     
-    // Default fallback to type-based colors
+    // Severity overrides
+    if (log.severity === 'CRITICAL') return 'color: var(--color-alert); font-weight: bold; animation: blink 1s infinite;';
+    
+    // Default fallback
     switch (log.type) {
       case 'error': return 'color: var(--color-alert);';
       case 'warning': return 'color: var(--color-warning);';
@@ -65,7 +68,11 @@
           [{log.source}]
         </span>
         {#if log.severity}
-          <span class="severity-badge" class:high={log.severity === 'HIGH'} class:med={log.severity === 'MED'} class:low={log.severity === 'LOW'}>
+          <span class="severity-badge" 
+            class:crit={log.severity === 'CRITICAL'}
+            class:high={log.severity === 'HIGH'} 
+            class:med={log.severity === 'MEDIUM' || log.severity === 'MED'} 
+            class:low={log.severity === 'LOW'}>
             {log.severity}
           </span>
         {/if}

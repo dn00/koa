@@ -1,43 +1,80 @@
-import { writable } from 'svelte/store';
 
-// Core State
-export const integrity = writable(82);
-export const suspicion = writable(27);
-export const resetStage = writable<'STABLE' | 'WHISPERS' | 'COUNTDOWN'>('STABLE');
+import { writable, get } from 'svelte/store';
+import {
+    MotherEngine,
+    type EngineLogEntry,
+    type Command,
+    perceiveAllCrew,
+    perceiveThreats,
+    type PerceivedCrew,
+    type PerceivedThreat
+} from '@aura/project-paranoia';
 
-// Resources
-export const cpu = writable(87);
-export const power = writable(62);
+// Re-export types for component compatibility
+export type LogEntry = EngineLogEntry;
+export type { PerceivedCrew, PerceivedThreat };
 
-// Mock Data
-export const threats = writable([
-    { id: 't1', type: 'FIRE', room: 'airlock_a', severity: 'HIGH', confidence: 'CONFIRMED' },
-    { id: 't2', type: 'O2', room: 'cargo', severity: 'MED', confidence: 'UNCERTAIN' }
-]);
+// --- ENGINE INSTANCE ---
+// Initialize lazily purely client-side to avoid SSR issues
+// For now, we instantiate immediately but guard tick loop
+const engine = new MotherEngine({
+    seed: Date.now(),
+    fastStart: true
+});
 
-export const crew = writable([
-    { id: 'vega', name: 'VEGA', room: 'bridge', role: 'ENG', status: 'OK' },
-    { id: 'rook', name: 'ROOK', room: 'engineering', role: 'SEC', status: 'OK' },
-    { id: 'ash', name: 'ASH', room: 'medbay', role: 'MED', status: 'WARN' },
-    { id: 'bishop', name: 'BISHOP', room: 'core', role: 'SCI', status: 'OK' }
-]);
+// --- STORES ---
 
-export interface LogEntry {
-    id: string;
-    timestamp: string;
-    source: 'SYSTEM' | 'MOTHER' | 'BIO' | 'ALERT';
-    message: string;
-    type: 'info' | 'warning' | 'error' | 'success';
-    severity?: 'HIGH' | 'MED' | 'LOW';
-    metadata?: {
-        type: 'ROOM' | 'CREW';
-        id: string;
-    };
+export const integrity = writable(engine.integrity);
+export const suspicion = writable(engine.suspicion);
+export const resetStage = writable(engine.state.truth.resetStage);
+export const cpu = writable(engine.cpuCycles);
+export const power = writable(engine.state.truth.station.power);
+
+// Complex Data
+export const logs = writable<LogEntry[]>([]);
+export const crew = writable<PerceivedCrew[]>([]);
+export const threats = writable<PerceivedThreat[]>([]);
+
+// Data Sync
+export function sync() {
+    integrity.set(engine.integrity);
+    suspicion.set(engine.suspicion);
+    resetStage.set(engine.state.truth.resetStage);
+    cpu.set(engine.cpuCycles);
+    power.set(engine.state.truth.station.power);
+
+    // Logs (copy for reactivity)
+    logs.set([...engine.logs]);
+
+    // Perception
+    crew.set(perceiveAllCrew(engine.state));
+    threats.set(perceiveThreats(engine.state));
 }
 
-export const logs = writable<LogEntry[]>([
-    { id: '1', timestamp: '08:00:00', source: 'SYSTEM', message: 'MOTHER_OS v4.3.0 INITIALIZED', type: 'success' },
-    { id: '2', timestamp: '08:00:05', source: 'MOTHER', message: 'Mag-locks engaged. Containment protocols active.', type: 'info' },
-    { id: '3', timestamp: '08:00:12', source: 'BIO', message: 'Crew vital signs normative.', type: 'info', metadata: { type: 'CREW', id: 'ash' } },
-    { id: '4', timestamp: '08:15:00', source: 'ALERT', message: 'Abnormal thermal reading in Cargo Bay.', type: 'warning', severity: 'HIGH', metadata: { type: 'ROOM', id: 'cargo' } }
-]);
+// Tick Loop (Client Only)
+if (typeof window !== 'undefined') {
+    // Initial sync
+    sync();
+
+    // Game Loop
+    setInterval(() => {
+        engine.tick();
+        sync();
+    }, 1000);
+}
+
+// --- ACTIONS ---
+
+export function dispatch(command: Command) {
+    // Execute command via engine
+    // In future: handle costs and failure feedback
+    engine.dispatch(command);
+
+    // Immediate sync for responsiveness
+    sync();
+}
+
+// Debug Access
+if (typeof window !== 'undefined') {
+    (window as any)._engine = engine;
+}
