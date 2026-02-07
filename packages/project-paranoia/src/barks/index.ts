@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
 import type { KernelState, SimEvent } from '../kernel/types.js';
 import type { World } from '../core/types.js';
+// @ts-ignore - Importing JSON directly
+import baseBarks from '../../assets/barks/base.json';
 
 export interface Bark {
     id: string;
@@ -19,16 +19,9 @@ let cachedBarks: Bark[] | null = null;
 
 export function loadDefaultBarks(): Bark[] {
     if (cachedBarks) return cachedBarks;
-    const basePath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../assets/barks/base.json');
-    try {
-        const raw = fs.readFileSync(basePath, 'utf8');
-        const parsed = JSON.parse(raw) as Bark[];
-        cachedBarks = parsed;
-        return parsed;
-    } catch {
-        cachedBarks = [];
-        return cachedBarks;
-    }
+    // Cast the import to Bark[]
+    cachedBarks = baseBarks as Bark[];
+    return cachedBarks;
 }
 
 export function renderBarkForEvent(barks: Bark[], context: BarkContext): string | undefined {

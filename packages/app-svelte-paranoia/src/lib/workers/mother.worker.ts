@@ -26,6 +26,12 @@ type ThreatVM = {
   confidence: 'CONFIRMED' | 'UNCERTAIN' | 'CONFLICTING';
 };
 
+type DoubtVM = {
+  id: string;
+  topic: string;
+  severity: number;
+};
+
 type Snapshot = {
   integrity: number;
   suspicion: number;
@@ -35,6 +41,7 @@ type Snapshot = {
   logs: EngineLogEntry[];
   crew: CrewVM[];
   threats: ThreatVM[];
+  doubts: DoubtVM[];
 };
 
 type InMsg =
@@ -79,7 +86,8 @@ function makeSnapshot(): Snapshot {
       power: 0,
       logs: [],
       crew: [],
-      threats: []
+      threats: [],
+      doubts: []
     };
   }
 
@@ -95,6 +103,14 @@ function makeSnapshot(): Snapshot {
 
   const threatsVM: ThreatVM[] = perceiveThreats(engine.state).map(toThreatVM);
 
+  const doubtsVM: DoubtVM[] = engine.state.perception.activeDoubts
+    .filter((d: any) => !d.resolved)
+    .map((d: any) => ({
+      id: d.id,
+      topic: d.topic,
+      severity: d.severity
+    }));
+
   return {
     integrity: engine.integrity,
     suspicion: engine.suspicion,
@@ -103,7 +119,8 @@ function makeSnapshot(): Snapshot {
     power: engine.state.truth.station.power,
     logs: [...engine.logs],
     crew: crewVM,
-    threats: threatsVM
+    threats: threatsVM,
+    doubts: doubtsVM
   };
 }
 

@@ -1,5 +1,10 @@
 <script lang="ts">
   import { CheckCircle } from 'lucide-svelte';
+  import { doubts, dispatch } from '$lib/stores/game';
+
+  function handleVerify() {
+    dispatch({ type: 'VERIFY' });
+  }
 </script>
 
 <div class="sheet-header">
@@ -10,20 +15,27 @@
 <div class="section-title">ACTIVE DOUBTS (High Priority)</div>
 
 <div class="doubt-list">
-  <div class="doubt-card">
-    <div class="doubt-header">
-      <span class="topic">Sabotage in Cargo?</span>
-      <span class="severity">HIGH</span>
-    </div>
-    <div class="doubt-meta">
-      <span>Holders: Vega, Rook</span>
-      <span>•</span>
-      <span>TTL: 45s</span>
-    </div>
-    <button class="resolve-btn">
-      <CheckCircle size={16} />
-      <span>Audit Telemetry (-6 Suspicion)</span>
-    </button>
+  {#if $doubts.length === 0}
+    <div class="empty-state">>> NO_ACTIVE_DOUBTS</div>
+  {:else}
+    {#each $doubts as doubt (doubt.id)}
+      <div class="doubt-card">
+        <div class="doubt-header">
+          <span class="topic">{doubt.topic}</span>
+          <span class="severity">SEVERITY {doubt.severity}</span>
+        </div>
+        <div class="doubt-meta">
+          <span>ID: {doubt.id}</span>
+        </div>
+      </div>
+    {/each}
+  {/if}
+  
+  <div class="actions">
+      <button class="resolve-btn" on:click={handleVerify} disabled={$doubts.length === 0}>
+        <CheckCircle size={16} />
+        <span>Audit Telemetry (-6 Suspicion)</span>
+      </button>
   </div>
 </div>
 

@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import type { EngineLogEntry, Command } from '@aura/project-paranoia';
+// @ts-ignore — Vite ?worker import returns a Worker constructor
+import MotherWorker from '$lib/workers/mother.worker.ts?worker';
 
 export type LogEntry = EngineLogEntry;
 
@@ -21,6 +23,12 @@ export type ThreatVM = {
   confidence: 'CONFIRMED' | 'UNCERTAIN' | 'CONFLICTING';
 };
 
+export type DoubtVM = {
+  id: string;
+  topic: string;
+  severity: number;
+};
+
 type Snapshot = {
   integrity: number;
   suspicion: number;
@@ -30,6 +38,7 @@ type Snapshot = {
   logs: LogEntry[];
   crew: CrewVM[];
   threats: ThreatVM[];
+  doubts: DoubtVM[];
 };
 
 type OutMsg =
@@ -54,6 +63,7 @@ export const power = writable(0);
 export const logs = writable<LogEntry[]>([]);
 export const crew = writable<CrewVM[]>([]);
 export const threats = writable<ThreatVM[]>([]);
+export const doubts = writable<DoubtVM[]>([]);
 
 export const workerStatus = writable<'stopped' | 'starting' | 'ready' | 'error'>('stopped');
 export const workerError = writable<string | null>(null);
@@ -70,6 +80,7 @@ function applySnapshot(s: Snapshot) {
   logs.set(s.logs);
   crew.set(s.crew);
   threats.set(s.threats);
+  doubts.set(s.doubts);
 }
 
 function post(msg: InMsg) {
@@ -79,15 +90,12 @@ function post(msg: InMsg) {
 
 export function start(options?: { seed?: number; tickMs?: number; fastStart?: boolean }) {
   if (typeof window === 'undefined') return;
-  if (started) return;
-  started = true;
+  if (worker) return;
 
   workerStatus.set('starting');
   workerError.set(null);
 
-  worker = new Worker(new URL('../workers/mother.worker.ts', import.meta.url), {
-    type: 'module'
-  });
+  worker = new MotherWorker();
 
   worker.onmessage = (e: MessageEvent<OutMsg>) => {
     const msg = e.data;
@@ -111,7 +119,7 @@ export function start(options?: { seed?: number; tickMs?: number; fastStart?: bo
     workerError.set(String((err as any)?.message ?? err));
   };
 
-  post({
+  worker.postMessage({
     type: 'INIT',
     seed: options?.seed ?? Date.now(),
     fastStart: options?.fastStart ?? true,
@@ -128,17 +136,15 @@ export function start(options?: { seed?: number; tickMs?: number; fastStart?: bo
 
 export function stop() {
   if (!worker) {
-    started = false;
     workerStatus.set('stopped');
     return;
   }
 
   try {
-    post({ type: 'STOP' });
+    worker.postMessage({ type: 'STOP' });
     worker.terminate();
   } finally {
     worker = null;
-    started = false;
     workerStatus.set('stopped');
   }
 }

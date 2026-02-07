@@ -1,7 +1,24 @@
 <script lang="ts">
   import { focusRoomId } from '$lib/stores/ui';
+  import { dispatch } from '$lib/stores/game';
   import { Lock, Wind, Users } from 'lucide-svelte';
   import StationMap from '../StationMap.svelte';
+
+  function handleVent() {
+    if (!$focusRoomId) return;
+    dispatch({ type: 'VENT', place: $focusRoomId });
+  }
+
+  function handleLock() {
+    // TODO: Need door selection. For now, just logging.
+    console.log('Locking requires specific door selection logic');
+  }
+
+  function handleDispatchCrew() {
+    if (!$focusRoomId) return;
+    // MVP: Dispatch 'rook' to the location
+    dispatch({ type: 'ORDER', target: 'rook', intent: 'move', place: $focusRoomId });
+  }
 </script>
 
 <div class="sheet-header">
@@ -19,23 +36,23 @@
 
   <div class="actions-list">
     {#if $focusRoomId}
-      <button class="action-item">
+      <button class="action-item" on:click={handleDispatchCrew}>
         <div class="icon"><Users size={20} /></div>
         <div class="details">
           <span class="name">Dispatch Crew through <span class="highlight">{$focusRoomId}</span></span>
-          <span class="sub">Rook is nearest (Hub)</span>
+          <span class="sub">Rook (Sentry)</span>
         </div>
       </button>
       
-      <button class="action-item">
+      <button class="action-item" on:click={handleLock} disabled>
         <div class="icon"><Lock size={20} /></div>
         <div class="details">
           <span class="name">Lockdown <span class="highlight">{$focusRoomId}</span></span>
-          <span class="sub">Seals all connected doors</span>
+          <span class="sub">Seals all connected doors (Coming Soon)</span>
         </div>
       </button>
   
-      <button class="action-item danger">
+      <button class="action-item danger" on:click={handleVent}>
         <div class="icon"><Wind size={20} /></div>
         <div class="details">
           <span class="name">Vent Atmosphere: <span class="highlight-danger">{$focusRoomId}</span></span>

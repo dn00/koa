@@ -1,3 +1,21 @@
+<script lang="ts">
+  import { dispatch } from '$lib/stores/game';
+
+  function handleSuppress() {
+    dispatch({ type: 'SUPPRESS', system: 'comms', duration: 30 });
+  }
+
+  function handleFabricate() {
+    // MVP: Targeting Vega by default
+    dispatch({ type: 'FABRICATE', target: 'vega' });
+  }
+
+  function handlePurge() {
+    // Logic: Downplay comms traffic
+    dispatch({ type: 'DOWNPLAY', system: 'comms' });
+  }
+</script>
+
 <div class="sheet-content">
   <h2>CURATE</h2>
   <div class="message">
@@ -6,15 +24,15 @@
   </div>
 
   <div class="curate-options">
-    <button class="curate-btn">
+    <button class="curate-btn" on:click={handleSuppress}>
       <span class="label">SUPPRESS_AUDIO</span>
       <span class="cost">COST: 5 INTEGRITY</span>
     </button>
-    <button class="curate-btn">
+    <button class="curate-btn" on:click={handleFabricate}>
       <span class="label">FABRICATE_LOG</span>
       <span class="cost">COST: 10 INTEGRITY</span>
     </button>
-    <button class="curate-btn">
+    <button class="curate-btn" on:click={handlePurge}>
       <span class="label">PURGE_INCIDENT</span>
       <span class="cost">COST: 20 INTEGRITY</span>
     </button>
