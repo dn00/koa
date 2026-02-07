@@ -1,3 +1,4 @@
+
 /**
  * PERCEPTION MODULE
  *
@@ -613,4 +614,18 @@ export function formatActiveDoubtsDisplay(doubts: ActiveDoubt[], currentTick: nu
         const age = currentTick - d.createdTick;
         return `  ? ${d.topic} (${age} ticks ago) — VERIFY to clear`;
     });
+}
+
+/**
+ * Format value as a colored meter bar.
+ */
+export function formatMeter(value: number, label: string): string {
+    // Color based on value: green (0-33), yellow (34-66), red (67-100)
+    let color = '\x1b[32m'; // green
+    if (value > 66) color = '\x1b[31m'; // red
+    else if (value > 33) color = '\x1b[33m'; // yellow
+
+    const reset = '\x1b[0m';
+    const bar = '█'.repeat(Math.floor(value / 10)) + '░'.repeat(10 - Math.floor(value / 10));
+    return `${label}: ${color}[${bar}] ${value}%${reset}`;
 }
